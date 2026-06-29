@@ -211,14 +211,49 @@ export function detectLanguage(text: string): { name: string; label: string } {
 
 /**
  * 高亮代码并返回 HTML 字符串
- * 使用 highlight.js 进行语法高亮
+ * 使用 highlight.js core + 按需注册语言，避免 tree-shaking 丢失语言模块
  */
+let hljsCore: typeof import("highlight.js/lib/core").default | null = null;
+let languagesRegistered = false;
+
+async function getHljs() {
+  if (!hljsCore) {
+    hljsCore = (await import("highlight.js/lib/core")).default;
+  }
+  if (!languagesRegistered) {
+    // 按需注册所有支持的语言（显式 import 确保不被 tree-shake）
+    const langModules = await Promise.all([
+      import("highlight.js/lib/languages/python"),
+      import("highlight.js/lib/languages/javascript"),
+      import("highlight.js/lib/languages/typescript"),
+      import("highlight.js/lib/languages/rust"),
+      import("highlight.js/lib/languages/go"),
+      import("highlight.js/lib/languages/java"),
+      import("highlight.js/lib/languages/cpp"),
+      import("highlight.js/lib/languages/c"),
+      import("highlight.js/lib/languages/sql"),
+      import("highlight.js/lib/languages/bash"),
+      import("highlight.js/lib/languages/json"),
+      import("highlight.js/lib/languages/xml"),
+      import("highlight.js/lib/languages/yaml"),
+      import("highlight.js/lib/languages/css"),
+      import("highlight.js/lib/languages/markdown"),
+    ]);
+    const langNames = [
+      "python", "javascript", "typescript", "rust", "go", "java",
+      "cpp", "c", "sql", "bash", "json", "xml", "yaml", "css", "markdown",
+    ];
+    langNames.forEach((name, i) => hljsCore!.registerLanguage(name, langModules[i].default));
+    languagesRegistered = true;
+  }
+  return hljsCore;
+}
+
 export async function highlightCode(text: string, language?: string): Promise<string> {
   try {
-    const hljs = (await import("highlight.js")).default;
+    const hljs = await getHljs();
 
     if (language && language !== "plain" && language !== "errorlog") {
-      // 检查是否支持该语言
       if (hljs.getLanguage(language)) {
         const result = hljs.highlight(text, { language });
         return result.value;
