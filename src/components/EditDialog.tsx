@@ -11,13 +11,19 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
   const [showOriginal, setShowOriginal] = useState(false);
   const { toast } = useToast();
   const originalText = item?.text || "";
-  // 语言检测（异步高亮检测）
+  // 语言检测 + 高亮预览
   const [langLabel, setLangLabel] = useState("检测中…");
+  const [highlightedHtml, setHighlightedHtml] = useState("");
+  const [showHighlight, setShowHighlight] = useState(true);
   useEffect(() => {
     if (text.length <= 5000) {
-      highlightCode(text).then(r => setLangLabel(getLangLabel(r.language)));
+      highlightCode(text).then(r => {
+        setLangLabel(getLangLabel(r.language));
+        setHighlightedHtml(r.html);
+      });
     } else {
       setLangLabel("文本");
+      setHighlightedHtml("");
     }
   }, [text]);
   // 撤销/重做历史
@@ -208,6 +214,31 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
                 </button>
               )}
             </div>
+
+            {/* 语法高亮预览 */}
+            {highlightedHtml && langLabel !== "文本" && (
+              <div style={{ marginTop: 4 }}>
+                <button
+                  onClick={() => setShowHighlight(!showHighlight)}
+                  style={{
+                    fontSize: 11, color: "var(--accent)", background: "none",
+                    border: "none", cursor: "pointer", fontFamily: "inherit",
+                    padding: "2px 0", marginBottom: showHighlight ? 4 : 0,
+                  }}>
+                  {showHighlight ? "▾ 隐藏高亮预览" : "▸ 显示高亮预览"}
+                </button>
+                {showHighlight && (
+                  <div className="code-viewer" style={{ maxHeight: 180 }}>
+                    <div className="code-lines">
+                      {text.split("\n").map((_, i) => <span key={i} className="code-ln">{i + 1}</span>)}
+                    </div>
+                    <pre className="code-text code-highlighted">
+                      <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 原文对比区 */}
             {showOriginal && isModified && (
