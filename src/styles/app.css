@@ -1489,10 +1489,11 @@ button:disabled,
 /* 带行号的代码查看器 */
 .code-viewer {
   display: flex;
+  flex: 1;
+  min-height: 0;
   border-radius: 10px;
   border: 1px solid var(--border-color);
   background: var(--card-bg);
-  max-height: 45vh;
   overflow: auto;
 }
 .code-lines {
