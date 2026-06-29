@@ -199,7 +199,7 @@ export function ContextMenu({ children }: { children: ReactNode }) {
   return (
     <>
       <CtxMenuCtx.Provider value={trigger}>
-        <div ref={wrapperRef} onContextMenu={handleContextMenu} onKeyDown={handleKeyDown} tabIndex={0} role="button" aria-haspopup="menu" aria-label="右键菜单" style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>{children}</div>
+        <div ref={wrapperRef} onContextMenu={handleContextMenu} onKeyDown={handleKeyDown} tabIndex={0} role="button" aria-haspopup="menu" aria-label="右键菜单" style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>{children}</div>
       </CtxMenuCtx.Provider>
       {pos && createPortal(
         <AnimatePresence>
