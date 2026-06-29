@@ -250,12 +250,14 @@ function App() {
       e.preventDefault();
       if (filtered.length > 0) store.selectItem(filtered[filtered.length - 1].id);
     } else if (e.key === " ") {
-      // Space: 快速预览选中的文本（已在上方 tag 检测中排除输入框，dialogOpen 也已排除）
+      // Space: 快速预览选中的文本
       e.preventDefault();
       const selectedIds = useAppStore.getState().selectedIds;
+      console.log("[Space] selectedIds:", selectedIds.size, "filtered:", filtered.length);
       if (selectedIds.size > 0) {
         const firstId = [...selectedIds][0];
         const item = filtered.find((i) => i.id === firstId);
+        console.log("[Space] firstId:", firstId, "item:", item?.type, "text:", item?.text?.slice(0, 50));
         if (item && item.type === "text") {
           window.dispatchEvent(new CustomEvent("app-quick-preview", { detail: { text: item.text } }));
         }
