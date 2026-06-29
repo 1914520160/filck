@@ -250,14 +250,11 @@ function App() {
       e.preventDefault();
       if (filtered.length > 0) store.selectItem(filtered[filtered.length - 1].id);
     } else if (e.key === " ") {
-      // Space: 快速预览选中的文本
+      // Space: 快速预览选中的文本（优先 selectedIds，回退 focusId）
       e.preventDefault();
-      const selectedIds = useAppStore.getState().selectedIds;
-      console.log("[Space] selectedIds:", selectedIds.size, "filtered:", filtered.length);
-      if (selectedIds.size > 0) {
-        const firstId = [...selectedIds][0];
-        const item = filtered.find((i) => i.id === firstId);
-        console.log("[Space] firstId:", firstId, "item:", item?.type, "text:", item?.text?.slice(0, 50));
+      const targetId = selectedIds.size > 0 ? [...selectedIds][0] : focusId;
+      if (targetId) {
+        const item = filtered.find((i) => i.id === targetId);
         if (item && item.type === "text") {
           window.dispatchEvent(new CustomEvent("app-quick-preview", { detail: { text: item.text } }));
         }
