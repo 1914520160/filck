@@ -1,0 +1,33 @@
+/* globals.css — 全局基础样式 */
+@import "./app.css";
+
+/* ===== 全局基础 ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: "SF Pro Text", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+  background-color: var(--app-bg);
+  color: var(--text-primary);
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+::selection { background-color: var(--accent-light); color: var(--accent); }
+
+img { -webkit-user-drag: none; user-select: none; }
+
+/* 文字工具类 */
+.text-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+.text-body  { font-size: 13px; font-weight: 400; color: var(--text-primary); }
+.text-meta  { font-size: 11px; font-weight: 400; color: var(--text-secondary); }
+.text-tiny  { font-size: 10px; font-weight: 500; color: var(--text-muted); }

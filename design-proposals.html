@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>剪贴板管理 v4.2 — UI 升级设计稿</title>
+<style>
+/* ===== Reset & Base ===== */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", sans-serif;
+  background: #E8ECF1;
+  color: #1A2B4A;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ===== Page Layout ===== */
+.page-header {
+  background: linear-gradient(135deg, #1B2D45 0%, #2A4060 50%, #1B3A5E 100%);
+  color: #E0E8F5;
+  padding: 32px 40px;
+  text-align: center;
+}
+.page-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.3px; }
+.page-header p { font-size: 14px; color: #7B94B8; margin-top: 6px; }
+
+.container { max-width: 1040px; margin: 0 auto; padding: 32px 24px; }
+
+/* ===== Section Cards ===== */
+.section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px 32px;
+  margin-bottom: 28px;
+  box-shadow: 0 2px 12px rgba(0,40,100,0.06), 0 0 1px rgba(0,40,100,0.08);
+  border: 1px solid #D6E4F7;
+}
+.section-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+}
+.section-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.section-title { font-size: 18px; font-weight: 700; color: #1A2B4A; }
+.section-badge {
+  font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600;
+}
+.badge-high { background: #FEE2E2; color: #DC2626; }
+.badge-mid { background: #FEF3C7; color: #D97706; }
+.badge-low { background: #DBEAFE; color: #2563EB; }
+
+/* ===== 1. LAN 同步面板 ===== */
+.lan-panel {
+  background: linear-gradient(135deg, #F0F7FF 0%, #EDF2FA 100%);
+  border-radius: 14px;
+  padding: 20px 24px;
+  border: 1px solid #D6E4F7;
+}
+.lan-status-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 18px;
+}
+.lan-status-indicator {
+  display: flex; align-items: center; gap: 8px;
+}
+.lan-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px rgba(16,185,129,0.4);
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.lan-dot.offline { background: #9CA3AF; box-shadow: none; animation: none; }
+.lan-label { font-size: 13px; font-weight: 600; color: #1A2B4A; }
+.lan-info { font-size: 11px; color: #7B94B8; }
+.lan-toggle {
+  display: flex; align-items: center; gap: 8px; font-size: 12px; color: #5A6E8A;
+}
+
+/* Toggle Switch */
+.switch {
+  width: 44px; height: 24px; background: #D1D5DB; border-radius: 12px;
+  position: relative; cursor: pointer; transition: background 0.25s;
+}
+.switch.on { background: #0078D4; }
+.switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 20px; height: 20px; border-radius: 50%; background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2); transition: transform 0.25s;
+}
+.switch.on::after { transform: translateX(20px); }
+
+.lan-devices {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.lan-device {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 12px;
+  background: rgba(255,255,255,0.7); border: 1px solid #D6E4F7;
+  transition: all 0.2s;
+}
+.lan-device:hover { background: #fff; box-shadow: 0 2px 8px rgba(0,60,140,0.06); }
+.device-avatar {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.device-info { flex: 1; min-width: 0; }
+.device-name { font-size: 13px; font-weight: 600; color: #1A2B4A; }
+.device-ip { font-size: 11px; color: #8A9AB5; }
+.device-status {
+  font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600;
+  flex-shrink: 0;
+}
+.device-status.online { background: #D1FAE5; color: #059669; }
+.device-status.syncing { background: #DBEAFE; color: #2563EB; }
+
+/* ===== 2. 图片加载三态 ===== */
+.image-states { display: flex; gap: 12px; flex-wrap: wrap; }
+.image-card {
+  width: 200px; border-radius: 12px; overflow: hidden;
+  border: 1px solid #D6E4F7; background: #F5F8FF;
+}
+.image-card-header {
+  padding: 10px 12px; display: flex; align-items: center; gap: 8px;
+  border-bottom: 1px solid #E4ECF7;
+}
+.image-card-body {
+  height: 120px; display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: #5A6E8A;
+}
+.image-card-body.loading {
+  background: linear-gradient(90deg, #F0F4FA 25%, #E4ECF7 50%, #F0F4FA 75%);
+  background-size: 200% 100%; animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+.image-card-body.error {
+  background: #FEF2F2; flex-direction: column; gap: 8px;
+}
+.image-card-body img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.retry-btn {
+  font-size: 11px; padding: 4px 12px; border-radius: 6px;
+  border: 1px solid #FCA5A5; background: #fff; color: #DC2626;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.retry-btn:hover { background: #FEF2F2; }
+.placeholder-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: #E4ECF7; display: flex; align-items: center; justify-content: center;
+  font-size: 20px;
+}
+
+/* ===== 3. 搜索增强 ===== */
+.search-enhanced {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.search-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.search-input-enhanced {
+  flex: 1; height: 38px; padding: 0 14px; border-radius: 12px;
+  border: 1px solid #C4D6EE; background: #F5F8FF;
+  font-size: 13px; outline: none; font-family: inherit;
+  transition: all 0.2s;
+}
+.search-input-enhanced:focus {
+  border-color: #0078D4; box-shadow: 0 0 0 3px rgba(0,120,212,0.15);
+}
+.search-options {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.search-option {
+  font-size: 11px; padding: 4px 10px; border-radius: 8px;
+  border: 1px solid #D6E4F7; background: #F5F8FF;
+  color: #5A6E8A; cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 4px;
+  font-family: inherit;
+}
+.search-option:hover { border-color: #0078D4; color: #0078D4; }
+.search-option.active {
+  background: #DBE8FA; border-color: #0078D4; color: #0078D4; font-weight: 600;
+}
+.search-option-disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+.search-date-range {
+  display: flex; align-items: center; gap: 6px;
+}
+.date-input {
+  height: 28px; padding: 0 8px; border-radius: 6px;
+  border: 1px solid #C4D6EE; background: #F5F8FF;
+  font-size: 12px; outline: none; font-family: inherit;
+  width: 120px;
+}
+.date-input:focus { border-color: #0078D4; }
+
+/* ===== 4. 初始化错误提示 ===== */
+.error-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 48px 24px; text-align: center; gap: 16px;
+}
+.error-icon {
+  width: 64px; height: 64px; border-radius: 50%;
+  background: #FEF2F2; display: flex; align-items: center; justify-content: center;
+  font-size: 28px;
+}
+.error-title { font-size: 16px; font-weight: 700; color: #1A2B4A; }
+.error-desc { font-size: 13px; color: #5A6E8A; max-width: 280px; }
+.error-actions { display: flex; gap: 8px; }
+.btn-primary {
+  padding: 8px 20px; border-radius: 10px; border: none;
+  background: #0078D4; color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.btn-primary:hover { background: #005A9E; transform: translateY(-1px); }
+.btn-secondary {
+  padding: 8px 20px; border-radius: 10px; border: 1px solid #D6E4F7;
+  background: #fff; color: #5A6E8A; font-size: 13px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.btn-secondary:hover { background: #F5F8FF; }
+
+/* ===== 5. 主题优化 ===== */
+.theme-previews {
+  display: flex; gap: 16px; flex-wrap: wrap;
+}
+.theme-preview {
+  width: 160px; border-radius: 14px; overflow: hidden;
+  border: 2px solid transparent; cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.theme-preview:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+.theme-preview.selected { border-color: #0078D4; }
+.theme-preview-bar {
+  height: 32px; display: flex; align-items: center; padding: 0 10px; gap: 6px;
+}
+.theme-preview-body {
+  height: 80px; padding: 10px; display: flex; flex-direction: column; gap: 6px;
+}
+.theme-preview-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.theme-preview-line {
+  height: 6px; border-radius: 3px;
+}
+.theme-preview-line.short { width: 60%; }
+.theme-preview-line.mid { width: 80%; }
+.theme-label {
+  font-size: 12px; font-weight: 600; text-align: center; margin-top: 8px;
+}
+
+/* ===== 6. 关于对话框 ===== */
+.about-dialog {
+  text-align: center; padding: 8px 0;
+}
+.about-icon {
+  width: 64px; height: 64px; border-radius: 18px;
+  background: linear-gradient(135deg, #0078D4, #005A9E);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-size: 28px; color: #fff;
+}
+.about-version {
+  font-size: 13px; color: #5A6E8A;
+  background: #F0F4FA; border-radius: 6px; padding: 2px 10px;
+  display: inline-block;
+}
+.update-banner {
+  background: linear-gradient(135deg, #DBE8FA, #E8F0FE);
+  border: 1px solid #B4D4F7; border-radius: 12px;
+  padding: 12px 16px; display: flex; align-items: center; gap: 10px;
+  margin-top: 16px;
+}
+.update-dot { width: 8px; height: 8px; border-radius: 50%; background: #0078D4; flex-shrink: 0; }
+.update-text { flex: 1; font-size: 13px; color: #1A2B4A; }
+.update-link { font-size: 12px; color: #0078D4; font-weight: 600; cursor: pointer; }
+.update-link:hover { text-decoration: underline; }
+
+/* ===== Wireframe Callout ===== */
+.wireframe-label {
+  position: absolute; top: -8px; right: -8px;
+  font-size: 10px; padding: 2px 8px; border-radius: 4px;
+  background: #FEF3C7; color: #92400E; font-weight: 700;
+  border: 1px dashed #F59E0B;
+}
+.relative-wrap { position: relative; display: inline-flex; }
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .container { padding: 20px 16px; }
+  .section { padding: 20px 16px; }
+  .image-states { flex-direction: column; }
+  .image-card { width: 100%; }
+  .theme-previews { gap: 10px; }
+  .theme-preview { width: calc(50% - 5px); }
+}
+</style>
+</head>
+<body>
+
+<!-- Page Header -->
+<div class="page-header">
+  <h1>📋 剪贴板管理 v4.2</h1>
+  <p>UI 升级设计稿 — 6 项界面改动方案</p>
+</div>
+
+<div class="container">
+
+  <!-- ==================== 1. LAN 同步面板 ==================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#DBE8FA;">🌐</div>
+      <span class="section-title">局域网同步面板</span>
+      <span class="section-badge badge-high">新增</span>
+    </div>
+    <p style="font-size:13px;color:#5A6E8A;margin-bottom:16px;">
+      在设置页新增「局域网同步」区块，显示在线设备和同步状态。打开开关后自动发现局域网内其他设备。
+    </p>
+
+    <!-- LAN 面板 -->
+    <div class="lan-panel">
+      <!-- 状态栏 -->
+      <div class="lan-status-bar">
+        <div class="lan-status-indicator">
+          <div class="lan-dot"></div>
+          <div>
+            <div class="lan-label">局域网同步已开启</div>
+            <div class="lan-info">本机: DESKTOP-PC · 192.168.1.100</div>
+          </div>
+        </div>
+        <div class="lan-toggle">
+          <span>开启</span>
+          <div class="switch on"></div>
+        </div>
+      </div>
+
+      <!-- 设备列表 -->
+      <div style="font-size:12px;font-weight:600;color:#5A6E8A;margin-bottom:8px;">已发现设备 (2)</div>
+      <div class="lan-devices">
+        <div class="lan-device">
+          <div class="device-avatar" style="background:linear-gradient(135deg,#8B5CF6,#6D28D9);">💻</div>
+          <div class="device-info">
+            <div class="device-name">MacBook-Pro</div>
+            <div class="device-ip">192.168.1.101</div>
+          </div>
+          <span class="device-status online">在线</span>
+        </div>
+        <div class="lan-device">
+          <div class="device-avatar" style="background:linear-gradient(135deg,#10B981,#059669);">🖥</div>
+          <div class="device-info">
+            <div class="device-name">Office-PC</div>
+            <div class="device-ip">192.168.1.102</div>
+          </div>
+          <span class="device-status syncing">同步中…</span>
+        </div>
+      </div>
+
+      <!-- 提示 -->
+      <div style="margin-top:12px;font-size:11px;color:#8A9AB5;display:flex;align-items:center;gap:4px;">
+        💡 剪贴板内容会在局域网内自动同步，所有设备共享复制内容
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. 图片加载状态 ==================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#FEF3C7;">🖼</div>
+      <span class="section-title">图片缩略图加载三态</span>
+      <span class="section-badge badge-mid">优化</span>
+    </div>
+    <p style="font-size:13px;color:#5A6E8A;margin-bottom:16px;">
+      当前图片卡片加载失败后永久不显示缩略图。改为三种状态：加载中（骨架屏）、加载成功、加载失败（可重试）。
+    </p>
+
+    <div class="image-states">
+      <!-- 加载中 -->
+      <div class="image-card">
+        <div class="image-card-header" style="font-size:12px;font-weight:600;">📸 screenshot_001</div>
+        <div class="image-card-body loading">
+          <div style="font-size:12px;color:#8A9AB5;">⏳ 加载中…</div>
+        </div>
+      </div>
+
+      <!-- 加载成功 -->
+      <div class="image-card">
+        <div class="image-card-header" style="font-size:12px;font-weight:600;">📸 design_mockup</div>
+        <div class="image-card-body" style="background:#D6E4F7;">
+          <div style="font-size:32px;">🖼</div>
+        </div>
+      </div>
+
+      <!-- 加载失败 -->
+      <div class="image-card">
+        <div class="image-card-header" style="font-size:12px;font-weight:600;">📸 corrupted_file</div>
+        <div class="image-card-body error">
+          <div class="placeholder-icon">⚠️</div>
+          <div style="font-size:11px;color:#DC2626;">加载失败</div>
+          <button class="retry-btn">🔄 重试</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 3. 搜索增强 ==================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#D1FAE5;">🔍</div>
+      <span class="section-title">搜索增强</span>
+      <span class="section-badge badge-mid">优化</span>
+    </div>
+    <p style="font-size:13px;color:#5A6E8A;margin-bottom:16px;">
+      在现有搜索框下方增加搜索选项栏，支持大小写敏感、正则表达式、时间范围筛选。
+    </p>
+
+    <div class="search-enhanced">
+      <div class="search-row">
+        <input class="search-input-enhanced" type="text" placeholder="搜索剪贴板内容…" value="error">
+        <button class="btn-primary" style="padding:8px 14px;font-size:12px;">搜索</button>
+      </div>
+      <div class="search-options">
+        <button class="search-option">🔤 Aa</button>
+        <button class="search-option active">.* 正则</button>
+        <button class="search-option search-option-disabled">📅 时间范围</button>
+        <div class="search-date-range">
+          <input class="date-input" type="date" value="2026-06-20">
+          <span style="font-size:12px;color:#8A9AB5;">至</span>
+          <input class="date-input" type="date" value="2026-06-26">
+          <button class="search-option">应用</button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#5A6E8A;margin-top:4px;">
+        🔍 找到 <strong style="color:#0078D4;">3 条</strong> 匹配结果
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 4. 初始化错误提示 ==================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#FEE2E2;">⚠️</div>
+      <span class="section-title">初始化失败提示</span>
+      <span class="section-badge badge-high">新增</span>
+    </div>
+    <p style="font-size:13px;color:#5A6E8A;margin-bottom:16px;">
+      当后端初始化失败时（数据库损坏、权限不足等），显示友好错误页面并提供重试操作，而非静默失败。
+    </p>
+
+    <div class="error-state" style="border:1px solid #FEE2E2;border-radius:14px;background:#FFF5F5;">
+      <div class="error-icon">⚠️</div>
+      <div class="error-title">无法加载剪贴板数据</div>
+      <div class="error-desc">
+        数据库文件可能已损坏，或应用没有读取权限。请尝试重新启动应用或检查磁盘空间。
+      </div>
+      <div style="font-size:11px;color:#8A9AB5;background:#FEF2F2;padding:6px 12px;border-radius:6px;font-family:monospace;">
+        错误详情: SQLITE_CORRUPT: database disk image is malformed
+      </div>
+      <div class="error-actions">
+        <button class="btn-secondary">📋 复制错误详情</button>
+        <button class="btn-primary">🔄 重试加载</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 5. 主题优化 ==================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#DBE8FA;">🎨</div>
+      <span class="section-title">主题选择器优化</span>
+      <span class="section-badge badge-low">优化</span>
+    </div>
+    <p style="font-size:13px;color:#5A6E8A;margin-bottom:16px;">
+      将主题选择从下拉框改为可视化的预览卡片，用户可直观看到每个主题的效果再选择。
+    </p>
+
+    <div class="theme-previews">
+      <!-- Light -->
+      <div class="theme-preview selected">
+        <div class="theme-preview-bar" style="background:#fff;border-bottom:1px solid #E5E5EA;">
+          <div class="theme-preview-dot" style="background:#007AFF;"></div>
+          <div style="font-size:10px;color:#86868B;">浅色</div>
+        </div>
+        <div class="theme-preview-body" style="background:#F5F5F7;">
+          <div class="theme-preview-line" style="background:#fff;width:100%;border:1px solid #E5E5EA;"></div>
+          <div class="theme-preview-line mid" style="background:#E8E8ED;"></div>
+          <div class="theme-preview-line short" style="background:#007AFF;"></div>
+        </div>
+        <div class="theme-label">☀️ 浅色</div>
+      </div>
+
+      <!-- Dark -->
+      <div class="theme-preview">
+        <div class="theme-preview-bar" style="background:#2C2C2E;border-bottom:1px solid #3A3A3C;">
+          <div class="theme-preview-dot" style="background:#0A84FF;"></div>
+          <div style="font-size:10px;color:#98989D;">深色</div>
+        </div>
+        <div class="theme-preview-body" style="background:#1C1C1E;">
+          <div class="theme-preview-line" style="background:#2C2C2E;width:100%;border:1px solid #3A3A3C;"></div>
+          <div class="theme-preview-line mid" style="background:#3A3A3C;"></div>
+          <div class="theme-preview-line short" style="background:#0A84FF;"></div>
+        </div>
+        <div class="theme-label">🌙 深色</div>
+      </div>
+
+      <!-- Fluent Blue -->
+      <div class="theme-preview">
+        <div class="theme-preview-bar" style="background:linear-gradient(180deg,#F5F8FF,#EDF2FA);border-bottom:1px solid #D6E4F7;">
+          <div class="theme-preview-dot" style="background:#0078D4;"></div>
+          <div style="font-size:10px;color:#5A6E8A;">蔚蓝</div>
+        </div>
+        <div class="theme-preview-body" style="background:#EDF2FA;">
+          <div class="theme-preview-line" style="background:#F5F8FF;width:100%;border:1px solid #D6E4F7;"></div>
+          <div class="theme-preview-line mid" style="background:#D6E4F7;"></div>
+          <div class="theme-preview-line short" style="background:#0078D4;"></div>
+        </div>
+        <div class="theme-label">💎 蔚蓝色</div>
+      </div>
+
+      <!-- Fluent Blue Dark -->
+      <div class="theme-preview">
+        <div class="theme-preview-bar" style="background:linear-gradient(180deg,#1B2D45,#0D1B2A);border-bottom:1px solid #2A4060;">
+          <div class="theme-preview-dot" style="background:#4DA3FF;"></div>
+          <div style="font-size:10px;color:#7B94B8;">蔚蓝深</div>
+        </div>
+        <div class="theme-preview-body" style="background:#0D1B2A;">
+          <div class="theme-preview-line" style="background:#1B2D45;width:100%;border:1px solid #2A4060;"></div>
+          <div class="theme-preview-line mid" style="background:#2A4060;"></div>
+          <div class="theme-preview-line short" style="background:#4DA3FF;"></div>
+        </div>
+        <div class="theme-label">🌌 蔚蓝深色</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 6. 关于 & 更新 ==================== -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#DBE8FA;">ℹ️</div>
+      <span class="section-title">关于页面 & 自动更新</span>
+      <span class="section-badge badge-low">新增</span>
+    </div>
+    <p style="font-size:13px;color:#5A6E8A;margin-bottom:16px;">
+      新增「关于」页面入口，显示版本信息，集成自动更新检查，有新版本时显示更新横幅。
+    </p>
+
+    <div style="display:flex;gap:20px;flex-wrap:wrap;">
+      <!-- 关于 -->
+      <div style="flex:1;min-width:260px;">
+        <div class="about-dialog" style="background:#F5F8FF;border-radius:14px;padding:24px;border:1px solid #D6E4F7;">
+          <div class="about-icon">📋</div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px;">剪贴板管理</div>
+          <span class="about-version">v4.2.0</span>
+          <div style="font-size:12px;color:#5A6E8A;margin-top:12px;">
+            Tauri 2 · React 19 · Rust
+          </div>
+          <div style="font-size:11px;color:#8A9AB5;margin-top:4px;">
+            © 2026 Clipboard Manager
+          </div>
+        </div>
+      </div>
+
+      <!-- 更新横幅 -->
+      <div style="flex:1;min-width:260px;">
+        <div style="background:#F5F8FF;border-radius:14px;padding:24px;border:1px solid #D6E4F7;">
+          <div style="font-size:13px;font-weight:600;color:#1A2B4A;margin-bottom:12px;">🔔 版本更新</div>
+          <div class="update-banner">
+            <div class="update-dot"></div>
+            <div class="update-text">
+              <div style="font-weight:600;">新版本 v4.2.1 可用</div>
+              <div style="font-size:11px;color:#5A6E8A;">修复了若干 Bug，新增局域网同步功能</div>
+            </div>
+            <span class="update-link">立即更新 →</span>
+          </div>
+          <div style="font-size:11px;color:#8A9AB5;margin-top:10px;text-align:center;">
+            当前版本: v4.2.0 · 上次检查: 2 分钟前
+          </div>
+          <div style="text-align:center;margin-top:8px;">
+            <button class="btn-secondary" style="font-size:11px;padding:6px 14px;">🔄 检查更新</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== Summary Table ==================== -->
+  <div class="section">
+    <div class="section-header">
+      <span class="section-title">📊 升级清单总览</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr style="border-bottom:2px solid #D6E4F7;text-align:left;">
+          <th style="padding:10px 12px;">#</th>
+          <th style="padding:10px 12px;">功能</th>
+          <th style="padding:10px 12px;">类型</th>
+          <th style="padding:10px 12px;">优先级</th>
+          <th style="padding:10px 12px;">涉及文件</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #E4ECF7;">
+          <td style="padding:10px 12px;font-weight:700;">1</td>
+          <td style="padding:10px 12px;">🌐 局域网同步面板</td>
+          <td style="padding:10px 12px;"><span class="device-status online">新增</span></td>
+          <td style="padding:10px 12px;"><span class="badge-high">高</span></td>
+          <td style="padding:10px 12px;font-size:11px;color:#5A6E8A;">SettingsDialog.tsx<br>lan_sync.rs</td>
+        </tr>
+        <tr style="border-bottom:1px solid #E4ECF7;background:#FAFBFC;">
+          <td style="padding:10px 12px;font-weight:700;">2</td>
+          <td style="padding:10px 12px;">🖼 图片加载三态</td>
+          <td style="padding:10px 12px;"><span style="background:#FEF3C7;color:#D97706;font-size:11px;padding:3px 8px;border-radius:6px;font-weight:600;">优化</span></td>
+          <td style="padding:10px 12px;"><span class="badge-mid">中</span></td>
+          <td style="padding:10px 12px;font-size:11px;color:#5A6E8A;">CardList.tsx</td>
+        </tr>
+        <tr style="border-bottom:1px solid #E4ECF7;">
+          <td style="padding:10px 12px;font-weight:700;">3</td>
+          <td style="padding:10px 12px;">🔍 搜索增强</td>
+          <td style="padding:10px 12px;"><span style="background:#FEF3C7;color:#D97706;font-size:11px;padding:3px 8px;border-radius:6px;font-weight:600;">优化</span></td>
+          <td style="padding:10px 12px;"><span class="badge-mid">中</span></td>
+          <td style="padding:10px 12px;font-size:11px;color:#5A6E8A;">CardList.tsx<br>TopBar.tsx<br>appStore.ts</td>
+        </tr>
+        <tr style="border-bottom:1px solid #E4ECF7;background:#FAFBFC;">
+          <td style="padding:10px 12px;font-weight:700;">4</td>
+          <td style="padding:10px 12px;">⚠️ 初始化错误提示</td>
+          <td style="padding:10px 12px;"><span class="device-status online">新增</span></td>
+          <td style="padding:10px 12px;"><span class="badge-high">高</span></td>
+          <td style="padding:10px 12px;font-size:11px;color:#5A6E8A;">App.tsx<br>api.ts</td>
+        </tr>
+        <tr style="border-bottom:1px solid #E4ECF7;">
+          <td style="padding:10px 12px;font-weight:700;">5</td>
+          <td style="padding:10px 12px;">🎨 主题选择器优化</td>
+          <td style="padding:10px 12px;"><span style="background:#FEF3C7;color:#D97706;font-size:11px;padding:3px 8px;border-radius:6px;font-weight:600;">优化</span></td>
+          <td style="padding:10px 12px;"><span class="badge-low">低</span></td>
+          <td style="padding:10px 12px;font-size:11px;color:#5A6E8A;">SettingsDialog.tsx</td>
+        </tr>
+        <tr style="border-bottom:1px solid #E4ECF7;background:#FAFBFC;">
+          <td style="padding:10px 12px;font-weight:700;">6</td>
+          <td style="padding:10px 12px;">ℹ️ 关于页面 & 更新</td>
+          <td style="padding:10px 12px;"><span class="device-status online">新增</span></td>
+          <td style="padding:10px 12px;"><span class="badge-low">低</span></td>
+          <td style="padding:10px 12px;font-size:11px;color:#5A6E8A;">AboutDialog.tsx (新)<br>tauri.conf.json</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+</body>
+</html>

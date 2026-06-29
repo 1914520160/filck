@@ -1,0 +1,163 @@
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Copy, ClipboardPaste, Loader2 } from "lucide-react";
+import { useToast } from "@/components/Toast";
+import { pasteText } from "@/lib/api";
+import { detectLanguage, highlightCode } from "@/lib/utils";
+
+/**
+ * 快速预览面板 — 按 Space 键弹出，显示选中文本的完整内容
+ * 监听全局 `app-quick-preview` 事件，自动检测语言并高亮代码
+ */
+export function QuickPreview() {
+  const [visible, setVisible] = useState(false);
+  const [text, setText] = useState("");
+  const [highlightedHtml, setHighlightedHtml] = useState("");
+  const [langInfo, setLangInfo] = useState<{ name: string; label: string }>({ name: "plain", label: "文本" });
+  const [highlighting, setHighlighting] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.text) {
+        setText(detail.text);
+        setVisible(true);
+      }
+    };
+    window.addEventListener("app-quick-preview", handler);
+    // 按 Space 或 Esc 关闭
+    const keyHandler = (e: KeyboardEvent) => {
+      if (visible && (e.key === "Escape" || e.key === " ")) {
+        e.preventDefault();
+        setVisible(false);
+      }
+    };
+    window.addEventListener("keydown", keyHandler);
+    return () => {
+      window.removeEventListener("app-quick-preview", handler);
+      window.removeEventListener("keydown", keyHandler);
+    };
+  }, [visible]);
+
+  // 文本变化时检测语言并高亮
+  useEffect(() => {
+    if (!text || !visible) return;
+
+    const lang = detectLanguage(text);
+    setLangInfo(lang);
+
+    if (lang.name !== "plain" && text.length <= 5000) {
+      setHighlighting(true);
+      highlightCode(text, lang.name).then((html) => {
+        setHighlightedHtml(html);
+        setHighlighting(false);
+      });
+    } else {
+      setHighlightedHtml("");
+      setHighlighting(false);
+    }
+  }, [text, visible]);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast("已复制到剪贴板", "success");
+    } catch { toast("复制失败", "error"); }
+  }, [text, toast]);
+
+  const handlePaste = async () => {
+    try {
+      await pasteText(text);
+      toast("已粘贴", "success");
+    } catch { toast("粘贴失败", "error"); }
+  };
+
+  const lineCount = text.split("\n").length;
+  const charCount = text.length;
+  const lines = text.split("\n");
+
+  const langLabel = langInfo.name !== "plain" ? langInfo.label : "文本";
+  const langIcon = langInfo.name !== "plain" ? "📝" : "📄";
+
+  return (
+    <AnimatePresence>
+      {visible && (
+        <motion.div
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="dialog-backdrop"
+          style={{ zIndex: 9990 }}
+          onClick={() => setVisible(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.95, opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            className="dialog-box w480"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="dialog-header">
+              <h2 className="dialog-title">📄 快速预览</h2>
+              <button onClick={() => setVisible(false)} className="dialog-close"><X size={16} /></button>
+            </div>
+
+            {/* Body */}
+            <div className="dialog-body" style={{ gap: 10 }}>
+              {/* 元信息条 */}
+              <div className="code-meta-bar">
+                <div className="code-meta-left">
+                  <div className="code-meta-item"><span className="code-meta-label">行</span><span className="code-meta-val">{lineCount}</span></div>
+                  <div className="code-meta-item"><span className="code-meta-label">字符</span><span className="code-meta-val">{charCount}</span></div>
+                </div>
+                <div className="code-type-badge">
+                  {highlighting ? (
+                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                      <Loader2 size={11} className="spin-icon" /> 高亮中
+                    </span>
+                  ) : (
+                    <>{langIcon} {langLabel}</>
+                  )}
+                </div>
+              </div>
+
+              {/* 带行号的代码查看器 */}
+              <div className="code-viewer">
+                <div className="code-lines">
+                  {lines.map((_, i) => <span key={i} className="code-ln">{i + 1}</span>)}
+                </div>
+                {highlightedHtml ? (
+                  <pre className="code-text code-highlighted">
+                    <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
+                  </pre>
+                ) : (
+                  <pre className="code-text">{text}</pre>
+                )}
+              </div>
+
+              {/* 操作栏 */}
+              <div className="code-actions-bar">
+                <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Space / Esc 关闭 · 可选中文本</span>
+                <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+                  <button onClick={handleCopy} className="btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }}>
+                    <Copy size={12} /> 复制
+                  </button>
+                  <button onClick={handlePaste} className="btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }}>
+                    <ClipboardPaste size={12} /> 粘贴
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="dialog-footer">
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Space / Esc 关闭 · 可选中文本</span>
+              <span></span>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

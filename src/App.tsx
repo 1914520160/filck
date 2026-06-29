@@ -1,0 +1,440 @@
+import { useEffect, useState, useCallback, useRef, lazy, Suspense, useMemo } from "react";
+import { motion } from "framer-motion";
+import { applyTheme, DEFAULT_THEME, ThemeKey } from "@/lib/theme";
+import { useAppStore } from "@/stores/appStore";
+import { TopBar } from "@/components/TopBar";
+import { CardList } from "@/components/CardList";
+import { QuickPreview } from "@/components/QuickPreview";
+import { ToastProvider, useToast } from "@/components/Toast";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { logger } from "@/lib/logger";
+import { pasteText, pasteImage, deleteHistory, togglePin, toggleWindow, sequentialPaste } from "@/lib/api";
+import { ClipboardList, RotateCcw, Loader2 } from "lucide-react";
+
+// 懒加载对话框组件 — 只在打开时才加载对应 JS chunk
+const SettingsDialog = lazy(() => import("@/components/SettingsDialog").then(m => ({ default: m.SettingsDialog })));
+const HelpDialog = lazy(() => import("@/components/HelpDialog").then(m => ({ default: m.HelpDialog })));
+const SnippetsDialog = lazy(() => import("@/components/SnippetsDialog").then(m => ({ default: m.SnippetsDialog })));
+const ExtractDialog = lazy(() => import("@/components/ExtractDialog").then(m => ({ default: m.ExtractDialog })));
+const AboutDialog = lazy(() => import("@/components/AboutDialog").then(m => ({ default: m.AboutDialog })));
+
+function App() {
+  const config = useAppStore((s) => s.config);
+  const history = useAppStore((s) => s.history);
+  const seqPointer = useAppStore((s) => s.seqPointer);
+  const resetSeqPointer = useAppStore((s) => s.resetSeqPointer);
+  const { toast } = useToast();
+  const seqTotal = history.filter((h) => h.type === "text").length;
+  const [showSettings, setShowSettings] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showSnippets, setShowSnippets] = useState(false);
+  const [showExtract, setShowExtract] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const retryCleanupRef = useRef<(() => void) | null>(null);
+
+  useEffect(() => {
+    try { applyTheme((config.theme as ThemeKey) || DEFAULT_THEME); } catch (e) { logger.warn("应用主题失败", e); }
+  }, [config.theme]);
+
+  // 窗口置顶状态恢复
+  useEffect(() => {
+    import("@tauri-apps/api/window").then(m => m.getCurrentWindow().setAlwaysOnTop(config.always_on_top)).catch(e => logger.warn("窗口置顶设置失败", e));
+  }, [config.always_on_top]);
+
+  // 监听来自 api.ts 的 toast 通知（如自动清理）
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.message) toast(detail.message, detail.type || "info");
+    };
+    window.addEventListener("app-toast", handler);
+    return () => window.removeEventListener("app-toast", handler);
+  }, [toast]);
+
+  // 组件卸载时清理 retry 创建的监听器
+  useEffect(() => {
+    return () => { if (retryCleanupRef.current) retryCleanupRef.current(); };
+  }, []);
+
+  // 失焦自动隐藏（弹窗打开时跳过）—— 使用 useRef 避免闭包陷阱
+  const dialogOpen = showSettings || showHelp || showSnippets || showExtract || showAbout;
+  const dialogOpenRef = useRef(dialogOpen);
+  dialogOpenRef.current = dialogOpen;
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    async function setup() {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        unlisten = await listen("tauri://focus-lost", () => {
+          const cfg = useAppStore.getState().config;
+          if (cfg.hide_on_focus_out && !dialogOpenRef.current) {
+            import("@tauri-apps/api/window").then(m => m.getCurrentWindow().hide()).catch(e => logger.warn("隐藏窗口失败", e));
+          }
+        });
+      } catch (e) { logger.warn("注册失焦监听失败", e); }
+    }
+    setup();
+    return () => { if (unlisten) unlisten(); };
+  }, []);
+
+  // 监听托盘菜单事件
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    async function setup() {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        // 托盘"设置"菜单项 → 打开设置弹窗
+        unlisten = await listen("tray-open-settings", () => {
+          setShowSettings(true);
+        });
+      } catch (e) { logger.warn("注册托盘事件监听失败", e); }
+    }
+    setup();
+    return () => { if (unlisten) unlisten(); };
+  }, []);
+
+  useEffect(() => {
+    let cleanup: (() => void) | null = null;
+    let mounted = true;
+    async function init() {
+      try {
+        const { initBackend } = await import("@/lib/api");
+        if (!mounted) return;
+        cleanup = await initBackend();
+        if (!mounted) {
+          if (cleanup) cleanup();
+          cleanup = null;
+          return;
+        }
+      } catch (e) {
+        logger.error("初始化后端失败", e);
+        if (mounted) {
+          setInitError(e instanceof Error ? e.message : String(e));
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+    init();
+    return () => { 
+      mounted = false; 
+      if (cleanup) cleanup(); 
+    };
+  }, []);
+
+  // 使用 ref 存储弹窗状态，避免 handleKeyDown 依赖变化导致频繁重新注册事件
+  const dialogStatesRef = useRef({ showSettings, showHelp, showSnippets, showExtract, showAbout, showShortcuts });
+  dialogStatesRef.current = { showSettings, showHelp, showSnippets, showExtract, showAbout, showShortcuts };
+
+  // 键盘导航
+  const handleKeyDown = useCallback(async (e: KeyboardEvent) => {
+    // 忽略输入框内的按键
+    const tag = (e.target as HTMLElement)?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+    // 弹窗打开时：ESC/? 正常工作，其余列表导航按键被屏蔽（让弹窗内部控件如 Tab 可以正常使用）
+    const { showSettings, showHelp, showSnippets, showExtract, showAbout } = dialogStatesRef.current;
+    const dialogOpen = showSettings || showHelp || showSnippets || showExtract || showAbout;
+    const isListNavKey = ["ArrowDown", "ArrowUp", "Enter", "Delete", "Backspace", "Home", "End"].includes(e.key)
+      || (e.ctrlKey && (e.key === "d" || e.key === "z" || e.key === "s" || e.key === "h" || e.key === "a"));
+    if (dialogOpen && e.key !== "Escape" && e.key !== "?" && isListNavKey) return;
+
+    const store = useAppStore.getState();
+    const filtered = store.getFilteredItems();
+    const selectedIds = store.selectedIds;
+    const focusId = store.focusId;
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      // 弹窗打开时，按 ESC 关闭弹窗（而不是什么都不做）
+      if (showSettings) { setShowSettings(false); return; }
+      if (showHelp) { setShowHelp(false); return; }
+      if (showSnippets) { setShowSnippets(false); return; }
+      if (showExtract) { setShowExtract(false); return; }
+      if (showAbout) { setShowAbout(false); return; }
+      if (dialogStatesRef.current.showShortcuts) { setShowShortcuts(false); return; }
+      await toggleWindow();
+    } else if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+      e.preventDefault();
+      setShowShortcuts((v) => !v);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (filtered.length === 0) return;
+      const currentIdx = focusId ? filtered.findIndex((i) => i.id === focusId) : -1;
+      const nextIdx = Math.min(currentIdx + 1, filtered.length - 1);
+      store.selectItem(filtered[nextIdx].id);
+      // 滚动到视图内
+      const targetEl = document.querySelector(`[data-item-id="${filtered[nextIdx].id}"]`);
+      if (targetEl) targetEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (filtered.length === 0) return;
+      const currentIdx = focusId ? filtered.findIndex((i) => i.id === focusId) : filtered.length;
+      const prevIdx = Math.max(currentIdx - 1, 0);
+      store.selectItem(filtered[prevIdx].id);
+      // 滚动到视图内
+      const targetEl = document.querySelector(`[data-item-id="${filtered[prevIdx].id}"]`);
+      if (targetEl) targetEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const selectedArr = [...selectedIds];
+      // 优先用 focusId（键盘导航当前项），其次用 selectedIds 第一项
+      const targetId = focusId || selectedArr[0];
+      if (targetId) {
+        const item = filtered.find((i) => i.id === targetId);
+        if (item) {
+          if (item.type === "image" && item.content) {
+            await pasteImage(item.content);
+            window.dispatchEvent(new CustomEvent("app-toast", { detail: { message: "已粘贴图片", type: "success" } }));
+          } else if (item.type === "file" && item.content) {
+            // 文件粘贴：将文件路径写入剪贴板
+            await pasteText(item.content);
+            window.dispatchEvent(new CustomEvent("app-toast", { detail: { message: "已粘贴文件路径", type: "success" } }));
+          } else {
+            await pasteText(item.text);
+            window.dispatchEvent(new CustomEvent("app-toast", { detail: { message: "已粘贴", type: "success" } }));
+          }
+        }
+      }
+    } else if (e.key === "Delete" || e.key === "Backspace") {
+      e.preventDefault();
+      const selectedArr = [...selectedIds];
+      if (selectedArr.length > 0) {
+        await deleteHistory(selectedArr);
+      } else if (focusId) {
+        await deleteHistory([focusId]);
+      }
+    } else if (e.ctrlKey && e.key === "a") {
+      e.preventDefault();
+      store.selectAll();
+    } else if (e.ctrlKey && e.key === "d") {
+      e.preventDefault();
+      const selectedArr = [...selectedIds];
+      if (selectedArr.length > 0) {
+        await togglePin(selectedArr[0]);
+      } else if (focusId) {
+        await togglePin(focusId);
+      }
+    } else if (e.ctrlKey && e.key === "z") {
+      e.preventDefault();
+      const restored = store.undoDelete();
+      if (restored) {
+        const failed: string[] = [];
+        for (const item of restored) {
+          try { await import("@tauri-apps/api/core").then(m => m.invoke("insert_history", { item })); } catch (e) {
+            logger.warn("撤销恢复失败", e);
+            failed.push(item.text.slice(0, 30));
+          }
+        }
+        if (failed.length > 0) {
+          window.dispatchEvent(new CustomEvent("app-toast", { detail: { message: `部分恢复失败 (${failed.length}/${restored.length})，请检查数据完整性`, type: "error" } }));
+        } else {
+          window.dispatchEvent(new CustomEvent("app-toast", { detail: { message: `已恢复 ${restored.length} 条记录`, type: "success" } }));
+        }
+      }
+    } else if (e.ctrlKey && e.key === "s") {
+      e.preventDefault();
+      setShowSettings(true);
+    } else if (e.ctrlKey && e.key === "h") {
+      e.preventDefault();
+      setShowHelp(true);
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      if (filtered.length > 0) store.selectItem(filtered[0].id);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      if (filtered.length > 0) store.selectItem(filtered[filtered.length - 1].id);
+    } else if (e.key === " ") {
+      // Space: 快速预览选中的文本（已在上方 tag 检测中排除输入框，dialogOpen 也已排除）
+      e.preventDefault();
+      const selectedIds = useAppStore.getState().selectedIds;
+      if (selectedIds.size > 0) {
+        const firstId = [...selectedIds][0];
+        const item = filtered.find((i) => i.id === firstId);
+        if (item && item.type === "text") {
+          window.dispatchEvent(new CustomEvent("app-quick-preview", { detail: { text: item.text } }));
+        }
+      }
+    }
+  }, []); // 使用 ref 存储状态，避免频繁重新注册键盘事件
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  // 加载中页面
+  if (loading) {
+    return (
+      <ToastProvider>
+        <div className="app-shell">
+          <div className="loading-screen">
+            <Loader2 size={32} className="spin-icon" style={{ color: "var(--accent)" }} />
+            <p className="loading-text">正在加载剪贴板数据…</p>
+          </div>
+        </div>
+      </ToastProvider>
+    );
+  }
+
+  // 初始化错误页面
+  if (initError) {
+    return (
+      <ToastProvider>
+        <div className="app-shell">
+          <div className="error-init-state">
+            <div className="error-init-icon">⚠️</div>
+            <h3 className="error-init-title">无法加载剪贴板数据</h3>
+            <p className="error-init-desc">数据库文件可能已损坏，或应用没有读取权限。</p>
+            <p className="error-init-detail">{initError}</p>
+            <div className="error-init-actions">
+              <button className="btn-init-secondary" onClick={() => {
+                try { navigator.clipboard.writeText(initError); toast("已复制", "success"); } catch { toast("复制失败", "error"); }
+              }}>📋 复制错误详情</button>
+              <button className="btn-init-primary" onClick={() => {
+                // 清理上次重试的监听器
+                if (retryCleanupRef.current) { retryCleanupRef.current(); retryCleanupRef.current = null; }
+                setInitError(null);
+                const init = async () => {
+                  try {
+                    const { initBackend } = await import("@/lib/api");
+                    retryCleanupRef.current = await initBackend();
+                  } catch (e) { setInitError(e instanceof Error ? e.message : String(e)); }
+                };
+                init();
+              }}>🔄 重试加载</button>
+            </div>
+          </div>
+        </div>
+      </ToastProvider>
+    );
+  }
+
+  return (
+    <ToastProvider>
+      <div className="app-shell">
+        <TopBar
+          onSettings={() => setShowSettings(true)}
+          onHelp={() => setShowHelp(true)}
+          onSnippets={() => setShowSnippets(true)}
+          onExtract={() => setShowExtract(true)}
+          onAbout={() => setShowAbout(true)}
+        />
+        <CardList />
+        <QuickPreview />
+
+        {/* FAB — 依次粘贴悬浮按钮，独立于滚动区域 */}
+        {seqTotal > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20, scale: 0.9 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.9 }} transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="fab-container">
+            <div className="fab-counter"><span className="num">{Math.min(seqPointer, seqTotal)}</span><span className="sep">/</span>{seqTotal}</div>
+            <button className="fab-btn" onClick={() => sequentialPaste()}>
+              <ClipboardList size={14} /> 粘贴
+              <span className="fab-btn-reset" onClick={(e) => { e.stopPropagation(); resetSeqPointer(); }}><RotateCcw size={10} /></span>
+            </button>
+          </motion.div>
+        )}
+
+        <Suspense fallback={null}>
+          <ErrorBoundary fallback={null} componentName="设置面板">
+            <SettingsDialog open={showSettings} onClose={() => setShowSettings(false)} />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={null} componentName="帮助面板">
+            <HelpDialog open={showHelp} onClose={() => setShowHelp(false)} />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={null} componentName="片段库">
+            <SnippetsDialog open={showSnippets} onClose={() => setShowSnippets(false)} />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={null} componentName="提取面板">
+            <ExtractDialog open={showExtract} onClose={() => setShowExtract(false)} />
+          </ErrorBoundary>
+          <ErrorBoundary fallback={null} componentName="关于面板">
+            <AboutDialog open={showAbout} onClose={() => setShowAbout(false)} />
+          </ErrorBoundary>
+        </Suspense>
+
+        {/* 快捷键浮层 — 从 config 动态读取，支持搜索过滤 */}
+        {showShortcuts && (
+          <ShortcutPanel onClose={() => setShowShortcuts(false)} />
+        )}
+      </div>
+    </ToastProvider>
+  );
+}
+
+export default App;
+
+/** 快捷键浮层（支持搜索过滤） */
+function ShortcutPanel({ onClose }: { onClose: () => void }) {
+  const [filter, setFilter] = useState("");
+  const config = useAppStore((s) => s.config);
+  const allShortcuts = useMemo(() => {
+    return [
+      { desc: "唤出 / 隐藏窗口", keys: config.hotkey || "Ctrl+Shift+V" },
+      { desc: "依次粘贴", keys: config.sequential_hotkey || "Ctrl+Shift+B" },
+      { desc: "全选", keys: config.select_all_hotkey || "Ctrl+A" },
+      { desc: "粘贴第 N 条", keys: "Ctrl+Alt+1~9" },
+      { desc: "上下导航", keys: "↑ / ↓" },
+      { desc: "首尾跳转", keys: "Home / End" },
+      { desc: "快速预览", keys: "Space" },
+      { desc: "粘贴选中", keys: "Enter" },
+      { desc: "双击复制到剪贴板", keys: "双击卡片" },
+      { desc: "右键编辑内容", keys: "右键菜单" },
+      { desc: "删除选中", keys: "Delete" },
+      { desc: "置顶 / 取消", keys: "Ctrl+D" },
+      { desc: "撤销删除", keys: "Ctrl+Z" },
+      { desc: "打开设置", keys: "Ctrl+S" },
+      { desc: "打开帮助", keys: "Ctrl+H" },
+      { desc: "显示此面板", keys: "? 或 Shift+/" },
+    ];
+  }, [config.hotkey, config.sequential_hotkey, config.select_all_hotkey]);
+
+  const filtered = useMemo(() => {
+    if (!filter.trim()) return allShortcuts;
+    const kw = filter.toLowerCase();
+    return allShortcuts.filter(s => s.desc.toLowerCase().includes(kw) || s.keys.toLowerCase().includes(kw));
+  }, [filter, allShortcuts]);
+
+  return (
+    <div className="shortcut-overlay" onClick={onClose}>
+      <div className="shortcut-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="shortcut-panel-header">
+          <span>⌨ 快捷键一览</span>
+          <button className="dialog-close" onClick={onClose}>✕</button>
+        </div>
+        <div style={{ padding: "8px 16px 0" }}>
+          <input
+            type="text"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="搜索快捷键…"
+            className="snippet-search"
+            autoFocus
+          />
+        </div>
+        <div className="shortcut-panel-body">
+          {filtered.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "20px", color: "var(--text-muted)", fontSize: 12 }}>
+              未找到匹配的快捷键
+            </div>
+          ) : (
+            filtered.map((s, i) => (
+              <div key={i} className="shortcut-row">
+                <span className="shortcut-desc">{s.desc}</span>
+                <span className="h-key">{s.keys}</span>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+

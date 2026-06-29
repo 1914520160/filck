@@ -1,0 +1,567 @@
+/* ===== 托盘弹出窗口样式 — Fluent Air 风格 ===== */
+
+/* 全局盒模型 */
+.tray-popup-root *,
+.tray-popup-root *::before,
+.tray-popup-root *::after {
+  box-sizing: border-box;
+}
+
+/* ===== 根容器 ===== */
+.tray-popup-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--dialog-bg);
+  border-radius: 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+/* ===== 头部 ===== */
+.tray-popup-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tray-popup-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0078D4, #005A9E);
+  color: #fff;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+[data-theme="ocean"] .tray-popup-logo {
+  background: linear-gradient(135deg, #3B82F6, #0284C7);
+}
+[data-theme="forest"] .tray-popup-logo {
+  background: linear-gradient(135deg, #10B981, #059669);
+}
+[data-theme="blossom"] .tray-popup-logo {
+  background: linear-gradient(135deg, #EC4899, #DB2777);
+}
+[data-theme="midnight"] .tray-popup-logo {
+  background: linear-gradient(135deg, #818CF8, #6366F1);
+}
+[data-theme="terminal"] .tray-popup-logo {
+  background: linear-gradient(135deg, #22C55E, #16A34A);
+}
+[data-theme="sunset"] .tray-popup-logo {
+  background: linear-gradient(135deg, #F97316, #EA580C);
+}
+
+.tray-popup-title {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.tray-popup-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.tray-popup-version {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+/* 监听状态指示点 */
+.tray-popup-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #CCC;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+.tray-popup-status-dot.active {
+  background: #34C759;
+  box-shadow: 0 0 6px rgba(52, 199, 89, 0.4);
+}
+
+/* ===== 统计卡片 ===== */
+.tray-popup-cards {
+  display: flex;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+.tray-popup-card {
+  flex: 1;
+  padding: 12px 8px 10px;
+  background: var(--section-bg);
+  border-radius: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  transition: background 0.2s;
+}
+
+.tray-popup-card .card-icon-slot {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.card-today .card-icon-slot {
+  background: linear-gradient(135deg, #3B82F6, #0078D4);
+}
+
+.card-total .card-icon-slot {
+  background: linear-gradient(135deg, #8B5CF6, #5856D6);
+}
+
+.card-pinned .card-icon-slot {
+  background: linear-gradient(135deg, #F59E0B, #FF9500);
+}
+
+/* 主题卡片图标 — ocean */
+[data-theme="ocean"] .card-today .card-icon-slot {
+  background: linear-gradient(135deg, #3B82F6, #0284C7);
+}
+[data-theme="ocean"] .card-total .card-icon-slot {
+  background: linear-gradient(135deg, #8B5CF6, #5856D6);
+}
+[data-theme="ocean"] .card-pinned .card-icon-slot {
+  background: linear-gradient(135deg, #F59E0B, #FF9500);
+}
+/* forest */
+[data-theme="forest"] .card-today .card-icon-slot {
+  background: linear-gradient(135deg, #10B981, #059669);
+}
+[data-theme="forest"] .card-total .card-icon-slot {
+  background: linear-gradient(135deg, #14B8A6, #0D9488);
+}
+[data-theme="forest"] .card-pinned .card-icon-slot {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+}
+/* blossom */
+[data-theme="blossom"] .card-today .card-icon-slot {
+  background: linear-gradient(135deg, #EC4899, #DB2777);
+}
+[data-theme="blossom"] .card-total .card-icon-slot {
+  background: linear-gradient(135deg, #A78BFA, #8B5CF6);
+}
+[data-theme="blossom"] .card-pinned .card-icon-slot {
+  background: linear-gradient(135deg, #F59E0B, #FF9500);
+}
+/* 暗色主题卡片图标 — midnight */
+[data-theme="midnight"] .card-today .card-icon-slot {
+  background: linear-gradient(135deg, #6366F1, #3730A3);
+}
+[data-theme="midnight"] .card-total .card-icon-slot {
+  background: linear-gradient(135deg, #8B5CF6, #5B21B6);
+}
+[data-theme="midnight"] .card-pinned .card-icon-slot {
+  background: linear-gradient(135deg, #C2410C, #7C2D12);
+}
+/* terminal */
+[data-theme="terminal"] .card-today .card-icon-slot {
+  background: linear-gradient(135deg, #16A34A, #14532D);
+}
+[data-theme="terminal"] .card-total .card-icon-slot {
+  background: linear-gradient(135deg, #22C55E, #166534);
+}
+[data-theme="terminal"] .card-pinned .card-icon-slot {
+  background: linear-gradient(135deg, #CA8A04, #713F12);
+}
+/* sunset */
+[data-theme="sunset"] .card-today .card-icon-slot {
+  background: linear-gradient(135deg, #EA580C, #7C2D12);
+}
+[data-theme="sunset"] .card-total .card-icon-slot {
+  background: linear-gradient(135deg, #F97316, #9A3412);
+}
+[data-theme="sunset"] .card-pinned .card-icon-slot {
+  background: linear-gradient(135deg, #EAB308, #A16207);
+}
+
+.tray-popup-card .card-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.card-today .card-value { color: #0078D4; }
+.card-total .card-value { color: #5856D6; }
+.card-pinned .card-value { color: #FF9500; }
+
+[data-theme="ocean"] .card-today .card-value { color: #0284C7; }
+[data-theme="ocean"] .card-total .card-value { color: #5856D6; }
+[data-theme="ocean"] .card-pinned .card-value { color: #FF9500; }
+
+[data-theme="forest"] .card-today .card-value { color: #059669; }
+[data-theme="forest"] .card-total .card-value { color: #0D9488; }
+[data-theme="forest"] .card-pinned .card-value { color: #D97706; }
+
+[data-theme="blossom"] .card-today .card-value { color: #EC4899; }
+[data-theme="blossom"] .card-total .card-value { color: #8B5CF6; }
+[data-theme="blossom"] .card-pinned .card-value { color: #FF9500; }
+
+[data-theme="midnight"] .card-today .card-value { color: #A5B4FC; }
+[data-theme="midnight"] .card-total .card-value { color: #C4B5FD; }
+[data-theme="midnight"] .card-pinned .card-value { color: #FDE68A; }
+[data-theme="terminal"] .card-today .card-value { color: #86EFAC; }
+[data-theme="terminal"] .card-total .card-value { color: #6EE7B7; }
+[data-theme="terminal"] .card-pinned .card-value { color: #FDE68A; }
+[data-theme="sunset"] .card-today .card-value { color: #FDBA74; }
+[data-theme="sunset"] .card-total .card-value { color: #FED7AA; }
+[data-theme="sunset"] .card-pinned .card-value { color: #FDE68A; }
+
+.tray-popup-card .card-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* ===== 分区标签 ===== */
+.tray-popup-section-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tray-popup-section-label .section-label-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #8B5CF6, #5856D6);
+  color: #fff;
+  transition: background 0.3s ease;
+}
+
+[data-theme="ocean"] .tray-popup-section-label .section-label-icon {
+  background: linear-gradient(135deg, #8B5CF6, #5856D6);
+}
+[data-theme="forest"] .tray-popup-section-label .section-label-icon {
+  background: linear-gradient(135deg, #14B8A6, #0D9488);
+}
+[data-theme="blossom"] .tray-popup-section-label .section-label-icon {
+  background: linear-gradient(135deg, #A78BFA, #8B5CF6);
+}
+[data-theme="midnight"] .tray-popup-section-label .section-label-icon {
+  background: linear-gradient(135deg, #7C3AED, #4C1D95);
+}
+[data-theme="terminal"] .tray-popup-section-label .section-label-icon {
+  background: linear-gradient(135deg, #16A34A, #14532D);
+}
+[data-theme="sunset"] .tray-popup-section-label .section-label-icon {
+  background: linear-gradient(135deg, #EA580C, #7C2D12);
+}
+
+/* ===== 最近记录区 ===== */
+.tray-popup-recents {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 6px;
+}
+
+/* ===== 操作区 ===== */
+.tray-popup-actions {
+  display: flex;
+  flex-direction: column;
+  padding: 2px 6px 8px;
+  flex: 1;
+}
+
+/* ===== 菜单项 ===== */
+.tray-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.12s ease, color 0.12s ease;
+  outline: none;
+}
+
+.tray-popup-item:hover,
+.tray-popup-item.active {
+  background: var(--hover-bg, var(--section-bg));
+}
+
+.tray-popup-item:active {
+  transform: scale(0.98);
+}
+
+/* 危险操作 */
+.tray-popup-item.danger {
+  color: #EF4444;
+}
+
+.tray-popup-item.danger:hover,
+.tray-popup-item.danger.active {
+  background: rgba(239, 68, 68, 0.08);
+  color: #DC2626;
+}
+
+[data-theme="midnight"] .tray-popup-item.danger,
+[data-theme="terminal"] .tray-popup-item.danger,
+[data-theme="sunset"] .tray-popup-item.danger {
+  color: #FF99A4;
+}
+
+[data-theme="midnight"] .tray-popup-item.danger:hover,
+[data-theme="midnight"] .tray-popup-item.danger.active,
+[data-theme="terminal"] .tray-popup-item.danger:hover,
+[data-theme="terminal"] .tray-popup-item.danger.active,
+[data-theme="sunset"] .tray-popup-item.danger:hover,
+[data-theme="sunset"] .tray-popup-item.danger.active {
+  background: rgba(255, 153, 164, 0.12);
+  color: #FFB3B9;
+}
+
+/* 图标 — 彩色渐变背景方块 */
+.tray-popup-item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+}
+
+.tray-popup-item-icon.icon-blue {
+  background: linear-gradient(135deg, #3B82F6, #0078D4);
+}
+
+.tray-popup-item-icon.icon-orange {
+  background: linear-gradient(135deg, #F59E0B, #FF9500);
+}
+
+.tray-popup-item-icon.icon-purple {
+  background: linear-gradient(135deg, #8B5CF6, #AF52DE);
+}
+
+.tray-popup-item-icon.icon-red {
+  background: linear-gradient(135deg, #EF4444, #FF3B30);
+}
+
+/* 主题菜单图标 */
+[data-theme="ocean"] .tray-popup-item-icon.icon-blue   { background: linear-gradient(135deg, #3B82F6, #0284C7); }
+[data-theme="ocean"] .tray-popup-item-icon.icon-orange { background: linear-gradient(135deg, #F59E0B, #FF9500); }
+[data-theme="ocean"] .tray-popup-item-icon.icon-purple { background: linear-gradient(135deg, #8B5CF6, #AF52DE); }
+[data-theme="ocean"] .tray-popup-item-icon.icon-red    { background: linear-gradient(135deg, #EF4444, #FF3B30); }
+
+[data-theme="forest"] .tray-popup-item-icon.icon-blue   { background: linear-gradient(135deg, #10B981, #059669); }
+[data-theme="forest"] .tray-popup-item-icon.icon-orange { background: linear-gradient(135deg, #F59E0B, #D97706); }
+[data-theme="forest"] .tray-popup-item-icon.icon-purple { background: linear-gradient(135deg, #14B8A6, #0D9488); }
+[data-theme="forest"] .tray-popup-item-icon.icon-red    { background: linear-gradient(135deg, #EF4444, #DC2626); }
+
+[data-theme="blossom"] .tray-popup-item-icon.icon-blue   { background: linear-gradient(135deg, #EC4899, #DB2777); }
+[data-theme="blossom"] .tray-popup-item-icon.icon-orange { background: linear-gradient(135deg, #F59E0B, #FF9500); }
+[data-theme="blossom"] .tray-popup-item-icon.icon-purple { background: linear-gradient(135deg, #A78BFA, #8B5CF6); }
+[data-theme="blossom"] .tray-popup-item-icon.icon-red    { background: linear-gradient(135deg, #EF4444, #FF3B30); }
+
+[data-theme="midnight"] .tray-popup-item-icon.icon-blue   { background: linear-gradient(135deg, #6366F1, #3730A3); }
+[data-theme="midnight"] .tray-popup-item-icon.icon-orange { background: linear-gradient(135deg, #C2410C, #7C2D12); }
+[data-theme="midnight"] .tray-popup-item-icon.icon-purple { background: linear-gradient(135deg, #7C3AED, #4C1D95); }
+[data-theme="midnight"] .tray-popup-item-icon.icon-red    { background: linear-gradient(135deg, #DC2626, #7F1D1D); }
+
+[data-theme="terminal"] .tray-popup-item-icon.icon-blue   { background: linear-gradient(135deg, #16A34A, #14532D); }
+[data-theme="terminal"] .tray-popup-item-icon.icon-orange { background: linear-gradient(135deg, #CA8A04, #713F12); }
+[data-theme="terminal"] .tray-popup-item-icon.icon-purple { background: linear-gradient(135deg, #22C55E, #166534); }
+[data-theme="terminal"] .tray-popup-item-icon.icon-red    { background: linear-gradient(135deg, #DC2626, #7F1D1D); }
+
+[data-theme="sunset"] .tray-popup-item-icon.icon-blue   { background: linear-gradient(135deg, #EA580C, #7C2D12); }
+[data-theme="sunset"] .tray-popup-item-icon.icon-orange { background: linear-gradient(135deg, #F97316, #9A3412); }
+[data-theme="sunset"] .tray-popup-item-icon.icon-purple { background: linear-gradient(135deg, #EAB308, #A16207); }
+[data-theme="sunset"] .tray-popup-item-icon.icon-red    { background: linear-gradient(135deg, #DC2626, #7F1D1D); }
+
+/* 文本 */
+.tray-popup-item-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+
+/* 快捷键提示 */
+.tray-popup-item-hint {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* ===== 分隔线 ===== */
+.tray-popup-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 12px;
+  opacity: 0.6;
+}
+
+/* ===== 底部状态栏 ===== */
+.tray-popup-footer {
+  padding: 10px 14px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tray-popup-footer .footer-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #06B6D4, #3B82F6);
+  color: #fff;
+  flex-shrink: 0;
+  transition: background 0.3s ease;
+}
+
+[data-theme="ocean"] .tray-popup-footer .footer-icon {
+  background: linear-gradient(135deg, #06B6D4, #3B82F6);
+}
+[data-theme="forest"] .tray-popup-footer .footer-icon {
+  background: linear-gradient(135deg, #14B8A6, #0D9488);
+}
+[data-theme="blossom"] .tray-popup-footer .footer-icon {
+  background: linear-gradient(135deg, #EC4899, #DB2777);
+}
+[data-theme="midnight"] .tray-popup-footer .footer-icon {
+  background: linear-gradient(135deg, #6366F1, #4338CA);
+}
+[data-theme="terminal"] .tray-popup-footer .footer-icon {
+  background: linear-gradient(135deg, #16A34A, #15803D);
+}
+[data-theme="sunset"] .tray-popup-footer .footer-icon {
+  background: linear-gradient(135deg, #EA580C, #C2410C);
+}
+
+.tray-popup-footer .footer-info {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.tray-popup-footer .footer-bar-wrap {
+  width: 80px;
+  flex-shrink: 0;
+}
+
+.tray-popup-footer .footer-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-color);
+  overflow: hidden;
+}
+
+.tray-popup-footer .footer-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #3B82F6, #0078D4);
+  transition: width 0.4s, background 0.3s ease;
+}
+
+[data-theme="ocean"] .tray-popup-footer .footer-bar-fill {
+  background: linear-gradient(90deg, #3B82F6, #0284C7);
+}
+[data-theme="forest"] .tray-popup-footer .footer-bar-fill {
+  background: linear-gradient(90deg, #10B981, #059669);
+}
+[data-theme="blossom"] .tray-popup-footer .footer-bar-fill {
+  background: linear-gradient(90deg, #EC4899, #DB2777);
+}
+[data-theme="midnight"] .tray-popup-footer .footer-bar-fill {
+  background: linear-gradient(90deg, #6366F1, #4338CA);
+}
+[data-theme="terminal"] .tray-popup-footer .footer-bar-fill {
+  background: linear-gradient(90deg, #22C55E, #16A34A);
+}
+[data-theme="sunset"] .tray-popup-footer .footer-bar-fill {
+  background: linear-gradient(90deg, #F97316, #EA580C);
+}
+
+.tray-popup-footer .footer-text {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* ===== 滚动条（当内容超出时） ===== */
+.tray-popup-root::-webkit-scrollbar {
+  width: 4px;
+}
+
+.tray-popup-root::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tray-popup-root::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
+
+/* ===== 主题过渡 ===== */
+.tray-popup-header,
+.tray-popup-item,
+.tray-popup-divider,
+.tray-popup-section-label,
+.tray-popup-root,
+.tray-popup-card,
+.tray-popup-footer {
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+

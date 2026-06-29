@@ -1,0 +1,398 @@
+use tauri::{
+    image::Image,
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    webview::WebviewWindowBuilder,
+    AppHandle, Emitter, Manager,
+};
+use std::sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}};
+
+/// 截断文本，确保适合预览显示（最大 30 个字符）
+fn truncate_preview(text: &str, max_len: usize) -> String {
+    let text = text.trim();
+    if text.len() <= max_len {
+        return text.to_string();
+    }
+    let end = text.char_indices()
+        .take(max_len)
+        .last()
+        .map(|(i, c)| i + c.len_utf8())
+        .unwrap_or(max_len);
+    format!("{}…", &text[..end])
+}
+
+/// 获取最近 N 条文本记录用于自绘弹窗预览
+/// 返回 (id, item_type, preview_text, full_text)，item_type 用于前端图标渲染
+fn get_recent_texts(app: &AppHandle, limit: usize) -> Vec<(String, String, String, String)> {
+    let store = match app.try_state::<crate::data_store::DataStore>() {
+        Some(s) => s,
+        None => return Vec::new(),
+    };
+    match store.get_recent_items(limit as u32) {
+        Ok(items) => items
+            .into_iter()
+            .map(|item| {
+                let preview = if item.item_type == "image" {
+                    "图片".to_string()
+                } else if item.item_type == "file" {
+                    let name = std::path::Path::new(&item.text)
+                        .file_name()
+                        .and_then(|n| n.to_str())
+                        .unwrap_or("文件");
+                    truncate_preview(name, 26)
+                } else {
+                    truncate_preview(&item.text, 26)
+                };
+                (item.id, item.item_type, preview, item.text)
+            })
+            .collect(),
+        Err(e) => {
+            log::warn!("[TrayManager] 获取最近记录失败: {}", e);
+            Vec::new()
+        }
+    }
+}
+
+/// 获取当前剪贴板监听状态
+fn is_monitoring(app: &AppHandle) -> bool {
+    app.try_state::<crate::clipboard_monitor::ClipboardMonitor>()
+        .map(|m| m.is_running())
+        .unwrap_or(true)
+}
+
+
+
+/// 构建弹窗数据 JSON（统一复用，消除重复查询）
+fn build_popup_data(app: &AppHandle, recents: &[(String, String, String, String)], monitoring: bool) -> serde_json::Value {
+    let version = crate::commands::APP_VERSION.to_string();
+
+    let recents_json: Vec<serde_json::Value> = recents.iter().map(|(id, item_type, preview, text)| {
+        serde_json::json!({ "id": id, "type": item_type, "preview": preview, "text": text })
+    }).collect();
+
+    let store = app.try_state::<crate::data_store::DataStore>();
+    let stats = store.as_ref()
+        .and_then(|s| s.get_stats("默认").ok())
+        .map(|s| {
+            // 从配置中读取数据库上限（MB），默认 100
+            let max_size_mb = store
+                .and_then(|s| s.get_config().ok())
+                .and_then(|c| c.get("db_max_size_mb").and_then(|v| v.as_f64()))
+                .unwrap_or(100.0);
+            serde_json::json!({
+                "total": s.total,
+                "pinned": s.pinned,
+                "today": s.today,
+                "db_size_kb": s.db_size_kb,
+                "max_size_mb": max_size_mb,
+            })
+        });
+
+    serde_json::json!({
+        "version": version,
+        "monitoring": monitoring,
+        "recents": recents_json,
+        "stats": stats,
+    })
+}
+
+/// 任务栏停靠边缘
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum TaskbarEdge {
+    Bottom,
+    Top,
+    Left,
+    Right,
+}
+
+/// 检测 Windows 任务栏停靠边缘（非 Windows 平台返回 Bottom）
+#[cfg(target_os = "windows")]
+fn get_taskbar_edge() -> TaskbarEdge {
+    use windows::Win32::UI::Shell::SHAppBarMessage;
+    use windows::Win32::UI::Shell::ABM_GETTASKBARPOS;
+    use windows::Win32::UI::Shell::APPBARDATA;
+
+    let mut abd = APPBARDATA {
+        cbSize: std::mem::size_of::<APPBARDATA>() as u32,
+        ..Default::default()
+    };
+
+    unsafe {
+        // ABM_GETTASKBARPOS 会填充 uEdge 字段
+        SHAppBarMessage(ABM_GETTASKBARPOS, &mut abd);
+    }
+
+    match abd.uEdge {
+        0 => TaskbarEdge::Left,    // ABE_LEFT
+        1 => TaskbarEdge::Top,     // ABE_TOP
+        2 => TaskbarEdge::Right,   // ABE_RIGHT
+        3 => TaskbarEdge::Bottom,  // ABE_BOTTOM
+        _ => TaskbarEdge::Bottom,  // 未知默认底部
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn get_taskbar_edge() -> TaskbarEdge {
+    TaskbarEdge::Bottom
+}
+
+/// 计算弹窗位置，与 Windows 原生托盘右键菜单逻辑一致：
+/// - 任务栏底部 → 弹窗在图标上方，右边缘对齐
+/// - 任务栏顶部 → 弹窗在图标下方，右边缘对齐
+/// - 任务栏左侧 → 弹窗在图标右侧，上边缘对齐
+/// - 任务栏右侧 → 弹窗在图标左侧，上边缘对齐
+fn calc_popup_position(
+    tray_rect: (f64, f64, f64, f64),  // (x, y, w, h)
+    popup_w: f64, popup_h: f64,
+    edge: TaskbarEdge,
+) -> tauri::PhysicalPosition<f64> {
+    let (tray_x, tray_y, tray_w, tray_h) = tray_rect;
+    let gap = 4.0; // 弹窗与图标之间的间距
+
+    let (x, y) = match edge {
+        TaskbarEdge::Bottom => {
+            // 弹窗在图标上方，右边缘对齐图标右边缘
+            let px = (tray_x + tray_w - popup_w).max(0.0);
+            let py = (tray_y - popup_h - gap).max(0.0);
+            (px, py)
+        }
+        TaskbarEdge::Top => {
+            // 弹窗在图标下方，右边缘对齐图标右边缘
+            let px = (tray_x + tray_w - popup_w).max(0.0);
+            let py = tray_y + tray_h + gap;
+            (px, py)
+        }
+        TaskbarEdge::Left => {
+            // 弹窗在图标右侧，上边缘对齐图标上边缘
+            let px = tray_x + tray_w + gap;
+            let py = tray_y.max(0.0);
+            (px, py)
+        }
+        TaskbarEdge::Right => {
+            // 弹窗在图标左侧，上边缘对齐图标上边缘
+            let px = (tray_x - popup_w - gap).max(0.0);
+            let py = tray_y.max(0.0);
+            (px, py)
+        }
+    };
+
+    log::info!(
+        "[TrayManager] 弹窗定位: taskbar={:?} tray=({:.0},{:.0} {:.0}x{:.0}) popup=({:.0},{:.0})",
+        edge, tray_x, tray_y, tray_w, tray_h, x, y
+    );
+    tauri::PhysicalPosition { x, y }
+}
+
+/// 打开自绘托盘弹出窗口（右键托盘图标触发）
+/// 使用 tray_rect（从 Enter/Move 事件记录的托盘图标完整矩形）定位弹窗
+fn show_tray_popup(app: &AppHandle, tray_rect: (f64, f64, f64, f64)) {
+    let popup_label = "tray-popup";
+    let popup_w = 280.0;
+    let popup_h = 420.0;
+
+    log::info!("[TrayManager] show_tray_popup 被调用, tray_rect=({:.0},{:.0} {:.0}x{:.0})", tray_rect.0, tray_rect.1, tray_rect.2, tray_rect.3);
+
+    // 如果已有弹窗，先关闭并销毁
+    if let Some(existing) = app.get_webview_window(popup_label) {
+        log::info!("[TrayManager] 关闭已有弹窗，准备重建");
+        let _ = existing.close();
+        std::thread::sleep(std::time::Duration::from_millis(80));
+    }
+
+    let monitoring = is_monitoring(app);
+    let recents = get_recent_texts(app, 5);
+    let popup_data = build_popup_data(app, &recents, monitoring);
+    let taskbar_edge = get_taskbar_edge();
+    let popup_pos = calc_popup_position(tray_rect, popup_w, popup_h, taskbar_edge);
+
+    log::info!("[TrayManager] 开始创建弹窗窗口...");
+
+    match WebviewWindowBuilder::new(app, popup_label, tauri::WebviewUrl::App("popup.html".into()))
+        .title("")
+        .inner_size(popup_w, popup_h)
+        .resizable(false)
+        .decorations(false)
+        .always_on_top(true)
+        .skip_taskbar(true)
+        .shadow(false)
+        .visible(false)
+        .build()
+    {
+        Ok(window) => {
+            log::info!("[TrayManager] 弹窗窗口创建成功");
+
+            // 设置位置
+            let _ = window.set_position(popup_pos);
+
+            // 应用 DWM 圆角（Windows 11）
+            #[cfg(target_os = "windows")]
+            set_dwm_round_corners(&window);
+
+            // 显示窗口
+            let show_result = window.show();
+            log::info!("[TrayManager] show() 结果: {:?}", show_result);
+            let _ = window.set_focus();
+
+            // ★ 延迟注册失焦监听，避免 show()/set_focus() 过程中误触发 Focused(false) 导致闪退
+            let w_for_event = window.clone();
+            let w_for_thread = window.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(300));
+                let hide_flag = Arc::new(AtomicBool::new(false));
+                let flag = hide_flag.clone();
+                let flag2 = hide_flag.clone();
+                w_for_event.on_window_event(move |event| {
+                    if let tauri::WindowEvent::Focused(false) = event {
+                        if flag.swap(true, Ordering::SeqCst) {
+                            return;
+                        }
+                        let w3 = w_for_thread.clone();
+                        let f2 = flag2.clone();
+                        std::thread::spawn(move || {
+                            std::thread::sleep(std::time::Duration::from_millis(30));
+                            let _ = w3.hide();
+                            f2.store(false, Ordering::SeqCst);
+                        });
+                    }
+                });
+                log::info!("[TrayManager] 失焦监听已注册");
+            });
+
+            // 延迟发送初始化数据，确保前端 React 已挂载、listen 已注册
+            let app_clone = app.clone();
+            let popup_data_clone = popup_data.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_millis(200));
+                let _ = app_clone.emit("tray-popup-init", &popup_data_clone);
+                log::info!("[TrayManager] 已发送 tray-popup-init");
+            });
+        }
+        Err(e) => {
+            log::warn!("[TrayManager] 创建托盘弹出窗口失败: {}", e);
+        }
+    }
+}
+
+/// 为弹窗窗口设置 DWM 圆角（Windows 11）
+#[cfg(target_os = "windows")]
+fn set_dwm_round_corners(window: &tauri::WebviewWindow) {
+    use windows::Win32::Graphics::Dwm::{DwmSetWindowAttribute, DWMWA_WINDOW_CORNER_PREFERENCE};
+    if let Ok(hwnd) = window.hwnd() {
+        let preference: i32 = 2; // DWMWCP_ROUNDSMALL
+        unsafe {
+            if let Err(e) = DwmSetWindowAttribute(
+                windows::Win32::Foundation::HWND(hwnd.0 as *mut _),
+                DWMWA_WINDOW_CORNER_PREFERENCE,
+                &preference as *const i32 as *const _,
+                std::mem::size_of::<i32>() as u32,
+            ) {
+                log::warn!("[TrayManager] DWM 圆角设置失败: {:?}", e);
+            }
+        }
+    }
+}
+
+#[cfg(not(target_os = "windows"))]
+fn set_dwm_round_corners(_window: &tauri::WebviewWindow) {}
+
+/// 初始化系统托盘图标（纯自绘弹窗，无原生菜单）
+pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
+    let icon = Image::from_bytes(include_bytes!("../icons/icon.png"))
+        .unwrap_or_else(|e| {
+            log::error!("[TrayManager] 加载托盘图标失败: {}", e);
+            let mut pixels = vec![0u8; 32 * 32 * 4];
+            for y in 8..24 {
+                for x in 8..24 {
+                    let idx = (y * 32 + x) * 4;
+                    pixels[idx] = 200;
+                    pixels[idx + 1] = 200;
+                    pixels[idx + 2] = 200;
+                    pixels[idx + 3] = 200;
+                }
+            }
+            Image::new_owned(pixels, 32, 32)
+        });
+
+    let version = crate::commands::APP_VERSION;
+
+    // 记录最后一次托盘图标完整矩形 (x, y, w, h)（从 Enter/Move 事件获取）
+    let tray_rect: Arc<Mutex<(f64, f64, f64, f64)>> = Arc::new(Mutex::new((0.0, 0.0, 24.0, 24.0)));
+
+    let _tray = TrayIconBuilder::with_id("main-tray")
+        .icon(icon)
+        .tooltip(format!("剪贴板管理 v{}", version))
+        .show_menu_on_left_click(false)
+        .on_tray_icon_event(move |tray, event| {
+            match event {
+                // 记录托盘图标完整矩形（Enter/Move 事件提供 rect.position + rect.size）
+                TrayIconEvent::Enter { rect, .. } | TrayIconEvent::Move { rect, .. } => {
+                    let (x, y) = match rect.position {
+                        tauri::Position::Physical(p) => (p.x as f64, p.y as f64),
+                        tauri::Position::Logical(l) => (l.x, l.y),
+                    };
+                    let (w, h) = match rect.size {
+                        tauri::Size::Physical(s) => (s.width as f64, s.height as f64),
+                        tauri::Size::Logical(s) => (s.width, s.height),
+                    };
+                    if let Ok(mut r) = tray_rect.lock() {
+                        *r = (x, y, w, h);
+                    }
+                }
+                TrayIconEvent::Click {
+                    button: MouseButton::Left,
+                    button_state: MouseButtonState::Up,
+                    ..
+                } => {
+                    let app = tray.app_handle();
+                    // 隐藏 popup（如果正在显示）
+                    if let Some(popup) = app.get_webview_window("tray-popup") {
+                        if popup.is_visible().unwrap_or(false) {
+                            popup.hide().ok();
+                        }
+                    }
+                    if let Some(window) = app.get_webview_window("main") {
+                        if window.is_visible().unwrap_or(false) {
+                            window.hide().ok();
+                        } else {
+                            if let Some(engine) = app.try_state::<crate::paste_engine::PasteEngine>() {
+                                engine.save_foreground_hwnd();
+                            }
+                            window.unminimize().ok();
+                            if let Err(e) = window.show() {
+                                log::warn!("[TrayManager] 托盘左键-显示窗口失败: {}", e);
+                            }
+                            window.set_focus().ok();
+                        }
+                    }
+                }
+                TrayIconEvent::Click {
+                    button: MouseButton::Right,
+                    button_state: MouseButtonState::Up,
+                    rect,
+                    ..
+                } => {
+                    // ★ 优先使用 Click 事件自带的 rect 获取托盘图标位置，
+                    //    因为用户可能快速右键（未触发 Enter/Move），缓存 tray_rect 还是默认值 (0,0)
+                    let (x, y) = match rect.position {
+                        tauri::Position::Physical(p) => (p.x as f64, p.y as f64),
+                        tauri::Position::Logical(l) => (l.x, l.y),
+                    };
+                    let (w, h) = match rect.size {
+                        tauri::Size::Physical(s) => (s.width as f64, s.height as f64),
+                        tauri::Size::Logical(s) => (s.width, s.height),
+                    };
+                    let tray_rect = (x, y, w, h);
+                    log::info!(
+                        "[TrayManager] 右键点击 — 直接从 Click rect 获取位置: ({:.0},{:.0} {:.0}x{:.0})",
+                        x, y, w, h
+                    );
+                    // 右键 → 打开自绘弹出菜单，传递托盘完整矩形
+                    show_tray_popup(tray.app_handle(), tray_rect);
+                }
+                _ => {}
+            }
+        })
+        .build(app)?;
+
+    log::info!("[TrayManager] 系统托盘已初始化 (纯自绘弹窗)");
+    Ok(())
+}

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>置顶图片</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+  background: #1a1a2e;
+  overflow: hidden;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: #2d2d44;
+  -webkit-app-region: drag;
+  user-select: none;
+  flex-shrink: 0;
+}
+.titlebar-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #e2e8f0;
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 0;
+}
+.titlebar-left span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+.titlebar-right {
+  display: flex;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+}
+.tb-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+.tb-btn:hover { background: rgba(255,255,255,0.1); color: #e2e8f0; }
+.tb-btn.close:hover { background: #ef4444; color: #fff; }
+.tb-btn.active { background: rgba(99,102,241,0.3); color: #818cf8; }
+
+.image-area {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+  background: #0f0f1a;
+}
+.image-area.grabbing { cursor: grabbing; }
+.image-area img {
+  display: block;
+  user-select: none;
+  pointer-events: none;
+  max-width: none;
+  max-height: none;
+}
+
+/* 状态覆盖层 */
+.status-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #64748b;
+  font-size: 13px;
+  background: #0f0f1a;
+  z-index: 10;
+}
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #334155;
+  border-top-color: #6366f1;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.status-icon { font-size: 36px; }
+.status-text { text-align: center; line-height: 1.5; }
+.status-sub { font-size: 11px; color: #475569; }
+
+/* OCR 区域 */
+.ocr-area {
+  background: #1e293b;
+  border-top: 1px solid #334155;
+  flex-shrink: 0;
+  max-height: 35%;
+  display: flex;
+  flex-direction: column;
+}
+.ocr-area.hidden { display: none; }
+.ocr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-bottom: 1px solid #334155;
+  flex-shrink: 0;
+}
+.ocr-title {
+  font-size: 11px;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ocr-badge {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  background: #334155;
+  color: #818cf8;
+  font-weight: 500;
+}
+.ocr-actions { display: flex; gap: 4px; }
+.ocr-btn {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid #475569;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.ocr-btn:hover { background: #334155; color: #e2e8f0; }
+.ocr-btn.copied { background: #10b981; border-color: #10b981; color: #fff; }
+.ocr-body {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+/* Toast */
+.toast {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: #e2e8f0;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 11px;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* 底部提示 */
+.hint-bar {
+  position: absolute;
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: #475569;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.hint-bar.hidden { opacity: 0; }
+</style>
+</head>
+<body>
+
+<div class="titlebar" id="titlebar">
+  <div class="titlebar-left">
+    <span>📌</span>
+    <span id="titleText">置顶图片</span>
+  </div>
+  <div class="titlebar-right">
+    <button class="tb-btn" id="btnToggleOcr" title="显示/隐藏识别文字">📝</button>
+    <button class="tb-btn close" id="btnClose" title="关闭">✕</button>
+  </div>
+</div>
+
+<div class="image-area" id="imageArea">
+  <!-- 状态覆盖层 -->
+  <div class="status-overlay" id="statusOverlay">
+    <div class="spinner" id="loadingSpinner"></div>
+    <span class="status-icon" id="statusIcon" style="display:none;"></span>
+    <span class="status-text" id="statusText">正在加载图片…</span>
+    <span class="status-sub" id="statusSub"></span>
+  </div>
+  <img id="mainImage" style="display:none;" draggable="false">
+  <div class="hint-bar" id="hintBar">🖱 滚轮缩放 · 拖拽移动 · 双击还原</div>
+</div>
+
+<div class="ocr-area hidden" id="ocrArea">
+  <div class="ocr-header">
+    <span class="ocr-title">📝 识别文字 <span class="ocr-badge" id="ocrBadge"></span></span>
+    <div class="ocr-actions">
+      <button class="ocr-btn" id="btnCopyOcr">📋 复制</button>
+    </div>
+  </div>
+  <div class="ocr-body" id="ocrBody"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// Tauri 内建 API（webview 中自动注入）
+const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
+const { emit } = window.__TAURI__.event;
+
+let currentPath = '';
+let ocrText = '';
+let showOcr = true;  // 默认展开 OCR
+let hasReceivedImage = false;  // 防止重复加载
+
+let scale = 1;
+let offsetX = 0, offsetY = 0;
+let isDragging = false, dragStartX, dragStartY, dragStartOffX, dragStartOffY;
+
+const img = document.getElementById('mainImage');
+const imageArea = document.getElementById('imageArea');
+const statusOverlay = document.getElementById('statusOverlay');
+const statusText = document.getElementById('statusText');
+const statusSub = document.getElementById('statusSub');
+const statusIcon = document.getElementById('statusIcon');
+const loadingSpinner = document.getElementById('loadingSpinner');
+const ocrArea = document.getElementById('ocrArea');
+const ocrBody = document.getElementById('ocrBody');
+const titleText = document.getElementById('titleText');
+const hintBar = document.getElementById('hintBar');
+const btnToggleOcr = document.getElementById('btnToggleOcr');
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function setStatus(icon, text, sub, showSpinner) {
+  loadingSpinner.style.display = showSpinner ? 'block' : 'none';
+  statusIcon.style.display = icon && !showSpinner ? 'inline' : 'none';
+  if (icon && !showSpinner) statusIcon.textContent = icon;
+  statusText.textContent = text;
+  statusSub.textContent = sub || '';
+  statusOverlay.style.display = 'flex';
+}
+
+function hideStatus() {
+  statusOverlay.style.display = 'none';
+  hintBar.classList.remove('hidden');
+}
+
+function updateTransform() {
+  img.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
+}
+
+// 加载图片
+async function loadImage(path) {
+  if (hasReceivedImage && currentPath === path) return; // 防止重复
+  currentPath = path;
+  hasReceivedImage = true;
+  showOcr = true;
+  ocrArea.classList.add('hidden');
+  btnToggleOcr.classList.remove('active');
+  ocrBody.textContent = '';
+  ocrText = '';
+  document.getElementById('ocrBadge').textContent = '';
+
+  // 重置变换
+  scale = 1;
+  offsetX = 0;
+  offsetY = 0;
+  updateTransform();
+
+  setStatus('', '正在加载图片…', path, true);
+
+  try {
+    // 加载图片
+    const dataUrl = await invoke('get_image_data_url', { path });
+    img.src = dataUrl;
+    img.style.display = 'block';
+    hideStatus();
+
+    // 获取文件信息
+    try {
+      const info = await invoke('get_image_info', { path });
+      const w = info.width || '?';
+      const h = info.height || '?';
+      const name = info.file_name || '图片';
+      titleText.textContent = '📌 ' + name;
+      statusSub.textContent = `${w}×${h} · ${info.size_str || ''}`;
+    } catch (e) {
+      titleText.textContent = '📌 图片';
+    }
+  } catch (e) {
+    img.style.display = 'none';
+    const errMsg = e instanceof Error ? e.message : String(e);
+    setStatus('❌', '加载失败', errMsg, false);
+    return;
+  }
+
+  // 后台执行 OCR
+  try {
+    setStatus('', '正在识别文字…', '', true);
+    const result = await invoke('ocr_image', { path });
+    ocrText = result.full_text || '';
+    ocrBody.textContent = ocrText || '(未识别到文字)';
+    hideStatus();
+    if (ocrText) {
+      // 识别到文字：自动展开 OCR 面板，显示字符数
+      showOcr = true;
+      ocrArea.classList.remove('hidden');
+      btnToggleOcr.classList.add('active');
+      document.getElementById('ocrBadge').textContent = ocrText.length + ' 字符';
+    }
+  } catch (e) {
+    ocrBody.textContent = 'OCR 识别失败: ' + (e instanceof Error ? e.message : String(e));
+    hideStatus();
+  }
+}
+
+// ========== 事件监听 ==========
+
+// 主事件：收到图片路径
+listen('pinned-image-update', async (event) => {
+  const path = event.payload;
+  if (path && typeof path === 'string') {
+    await loadImage(path);
+  }
+});
+
+// 兜底事件：防止 ready 事件丢失
+listen('pinned-image-update-fallback', async (event) => {
+  if (hasReceivedImage) return; // 已经加载过了
+  const path = event.payload;
+  if (path && typeof path === 'string') {
+    await loadImage(path);
+  }
+});
+
+// ========== 窗口就绪后通知主进程 ==========
+window.addEventListener('DOMContentLoaded', () => {
+  // 等一小段时间确保事件监听注册完毕
+  setTimeout(() => {
+    emit('pinned-image-ready').catch(() => {});
+  }, 100);
+});
+
+// ========== 交互 ==========
+
+// 缩放
+imageArea.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  if (e.ctrlKey || e.metaKey) {
+    const delta = e.deltaY < 0 ? 0.08 : -0.08;
+    scale = Math.max(0.1, Math.min(10, scale + delta));
+  } else {
+    offsetY -= e.deltaY * 0.5;
+  }
+  updateTransform();
+  hintBar.classList.add('hidden');
+}, { passive: false });
+
+// 拖拽
+imageArea.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragStartOffX = offsetX;
+  dragStartOffY = offsetY;
+  imageArea.classList.add('grabbing');
+  hintBar.classList.add('hidden');
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  offsetX = dragStartOffX + (e.clientX - dragStartX);
+  offsetY = dragStartOffY + (e.clientY - dragStartY);
+  updateTransform();
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+  imageArea.classList.remove('grabbing');
+});
+
+// 双击还原
+imageArea.addEventListener('dblclick', () => {
+  scale = 1;
+  offsetX = 0;
+  offsetY = 0;
+  updateTransform();
+  hintBar.classList.remove('hidden');
+});
+
+// 切换 OCR 面板
+btnToggleOcr.addEventListener('click', () => {
+  showOcr = !showOcr;
+  if (showOcr) {
+    ocrArea.classList.remove('hidden');
+    btnToggleOcr.classList.add('active');
+  } else {
+    ocrArea.classList.add('hidden');
+    btnToggleOcr.classList.remove('active');
+  }
+});
+
+// 复制 OCR 文字
+document.getElementById('btnCopyOcr').addEventListener('click', async () => {
+  if (!ocrText) {
+    showToast('没有可复制的文字');
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(ocrText);
+    const btn = document.getElementById('btnCopyOcr');
+    btn.textContent = '✅ 已复制';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 复制';
+      btn.classList.remove('copied');
+    }, 1500);
+  } catch (e) {
+    showToast('复制失败');
+  }
+});
+
+// 关闭窗口
+document.getElementById('btnClose').addEventListener('click', async () => {
+  try {
+    await invoke('close_pinned_image');
+  } catch (e) {
+    // 如果后端关闭失败，尝试直接关闭
+    showToast('关闭失败，请重试');
+  }
+});
+
+// 键盘快捷键
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('btnClose').click();
+  }
+});
+
+// 3 秒后隐藏操作提示
+setTimeout(() => {
+  hintBar.classList.add('hidden');
+}, 5000);
+</script>
+
+</body>
+</html>
