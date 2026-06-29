@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Copy, ClipboardPaste, Loader2 } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { pasteText } from "@/lib/api";
-import { detectLanguage, highlightCode } from "@/lib/utils";
+import { highlightCode, getLangLabel } from "@/lib/utils";
 
 /**
  * 快速预览面板 — 按 Space 键弹出，显示选中文本的完整内容
@@ -40,21 +40,20 @@ export function QuickPreview() {
     };
   }, [visible]);
 
-  // 文本变化时检测语言并高亮
+  // 文本变化时高亮
   useEffect(() => {
     if (!text || !visible) return;
 
-    const lang = detectLanguage(text);
-    setLangInfo(lang);
-
-    if (lang.name !== "plain" && text.length <= 5000) {
+    if (text.length <= 5000) {
       setHighlighting(true);
-      highlightCode(text, lang.name).then((html) => {
-        setHighlightedHtml(html);
+      highlightCode(text).then((result) => {
+        setHighlightedHtml(result.html);
+        setLangInfo({ name: result.language, label: getLangLabel(result.language) });
         setHighlighting(false);
       });
     } else {
       setHighlightedHtml("");
+      setLangInfo({ name: "plain", label: "文本" });
       setHighlighting(false);
     }
   }, [text, visible]);

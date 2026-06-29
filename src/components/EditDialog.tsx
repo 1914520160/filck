@@ -4,15 +4,22 @@ import { X, Copy, ClipboardPaste, Bookmark, Type, Scissors, Quote, AlignLeft, Ca
 import { useToast } from "@/components/Toast";
 import { pasteText } from "@/lib/api";
 import { useAppStore, HistoryItem } from "@/stores/appStore";
-import { detectLanguage } from "@/lib/utils";
+import { highlightCode, getLangLabel } from "@/lib/utils";
 
 export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () => void }) {
   const [text, setText] = useState(item?.text || "");
   const [showOriginal, setShowOriginal] = useState(false);
   const { toast } = useToast();
   const originalText = item?.text || "";
-  // 语言检测
-  const langInfo = detectLanguage(text);
+  // 语言检测（异步高亮检测）
+  const [langLabel, setLangLabel] = useState("检测中…");
+  useEffect(() => {
+    if (text.length <= 5000) {
+      highlightCode(text).then(r => setLangLabel(getLangLabel(r.language)));
+    } else {
+      setLangLabel("文本");
+    }
+  }, [text]);
   // 撤销/重做历史
   const historyRef = useRef<string[]>([item?.text || ""]);
   const historyIdxRef = useRef(0);
@@ -163,7 +170,7 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
                 {isModified && <div className="code-meta-item" style={{ color: "var(--accent)" }}><span className="code-meta-label">状态</span><span className="code-meta-val">已修改</span></div>}
               </div>
               <div className="code-type-badge">
-                {langInfo.name !== "plain" ? <>🔧 {langInfo.label}</> : "✏️ 编辑"}
+                {langLabel !== "文本" && langLabel !== "检测中…" ? <>🔧 {langLabel}</> : "✏️ 编辑"}
               </div>
             </div>
 

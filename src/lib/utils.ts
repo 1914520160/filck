@@ -82,133 +82,6 @@ export const TYPE_ICONS: Record<string, { icon: string; color: string }> = {
 
 // ==================== 代码高亮 ====================
 
-/** 语言检测规则：通过正则匹配推断代码语言 */
-interface LanguageRule {
-  name: string;
-  label: string;
-  patterns: RegExp[];
-  weight: number;
-}
-
-const LANGUAGE_RULES: LanguageRule[] = [
-  {
-    name: "python", label: "Python",
-    patterns: [/^(def |class |import |from |print\(|elif |except |finally |async def |with |yield )/m, /^\s*#.*coding[:=]/m, /if __name__ == ['"]__main__['"]/],
-    weight: 4,
-  },
-  {
-    name: "javascript", label: "JavaScript",
-    patterns: [/^(const |let |var |function |import |export |class |async |await |console\.|document\.|window\.)/m, /=>\s*[{(\[]/, /module\.exports/],
-    weight: 4,
-  },
-  {
-    name: "typescript", label: "TypeScript",
-    patterns: [/^(interface |type |enum |namespace |declare )/m, /:\s*(string|number|boolean|void|any|never|unknown|Promise|Array)<|>/, /as\s+(string|number|boolean)/],
-    weight: 5,
-  },
-  {
-    name: "rust", label: "Rust",
-    patterns: [/^(fn |let mut |pub |impl |struct |enum |trait |use |mod |crate::)/m, /fn\s+\w+\s*<[^>]*>\s*\(/, /#!\[.*\]/],
-    weight: 4,
-  },
-  {
-    name: "go", label: "Go",
-    patterns: [/^(package |import |func |type |var |const |go |defer |chan |select {)/m, /func\s+\w+\s*\([^)]*\)\s*(\([^)]*\)|[^\s(]+)\s*{/, /:=/],
-    weight: 4,
-  },
-  {
-    name: "java", label: "Java",
-    patterns: [/^(public |private |protected |class |interface |package |import java)/m, /public\s+static\s+void\s+main/, /@Override|@Autowired|@Service|@Component/],
-    weight: 4,
-  },
-  {
-    name: "cpp", label: "C++",
-    patterns: [/^#include\s*</m, /^(int\s+main|void\s+main)\s*\(/, /std::|cout\s*<</, /#pragma\s+/],
-    weight: 4,
-  },
-  {
-    name: "c", label: "C",
-    patterns: [/^#include\s*<.*\.h>/m, /^(int\s+main|void\s+main)\s*\(/, /printf\s*\(|scanf\s*\(/],
-    weight: 3,
-  },
-  {
-    name: "sql", label: "SQL",
-    patterns: [/^\s*(SELECT|INSERT|UPDATE|DELETE|CREATE TABLE|ALTER TABLE|DROP TABLE|JOIN|WHERE|GROUP BY|ORDER BY)\s/im, /CREATE\s+(TABLE|INDEX|VIEW)/im, /PRIMARY KEY|FOREIGN KEY|AUTO_INCREMENT/],
-    weight: 4,
-  },
-  {
-    name: "bash", label: "Bash",
-    patterns: [/^(#!)/, /^(sudo |apt |brew |npm |yarn |pnpm |git |docker |kubectl |curl |wget )/m, /\$\{[^}]+\}/, /^\s*(if \[|while |for |do|done|fi|esac)/m],
-    weight: 4,
-  },
-  {
-    name: "json", label: "JSON",
-    patterns: [/^\s*\{\s*"/, /^\s*\[\s*\{/, /"(\w+)":\s*("[^"]*"|\d+|true|false|null)/],
-    weight: 5,
-  },
-  {
-    name: "xml", label: "XML/HTML",
-    patterns: [/^\s*<!DOCTYPE html>/i, /^\s*<html\b/i, /^\s*<\?xml/, /<\/\w+>\s*$/m],
-    weight: 5,
-  },
-  {
-    name: "yaml", label: "YAML",
-    patterns: [/^\s*[\w-]+:\s*(\||>|$)/m, /^\s*-\s+[\w-]+:\s/m, /^apiVersion:|^kind:|^metadata:|^spec:/m],
-    weight: 5,
-  },
-  {
-    name: "css", label: "CSS",
-    patterns: [/^\s*[.#@][\w-]+\s*{/m, /^\s*@media\s/, /:\s*(#[0-9a-fA-F]{3,8}|rgb\(|hsl\()/, /^\s*@import\s/],
-    weight: 4,
-  },
-  {
-    name: "markdown", label: "Markdown",
-    patterns: [/^#{1,6}\s+/m, /^[-*+]\s+/m, /^\|.*\|.*\|/m, /\[.*\]\(.*\)/],
-    weight: 3,
-  },
-];
-
-/** 错误日志检测规则 */
-const ERROR_PATTERNS = [
-  /ERROR/i, /WARN/i, /FATAL/i, /Exception/i, /Traceback/i, /panic/i, /stack trace/i,
-  /at\s+\S+\.\w+:\d+:\d+/,
-];
-
-/**
- * 检测代码语言（返回语言标识和显示名称）
- * 返回 { name: string, label: string } 或 { name: "plain", label: "文本" }
- */
-export function detectLanguage(text: string): { name: string; label: string } {
-  if (!text || text.length < 5) return { name: "plain", label: "文本" };
-
-  // 超长文本跳过检测
-  if (text.length > 5000) return { name: "plain", label: "文本" };
-
-  const t = text.trim();
-
-  // 先检查是否错误日志
-  const errorScore = ERROR_PATTERNS.filter(p => p.test(t)).length;
-  if (errorScore >= 2) return { name: "errorlog", label: "错误日志" };
-
-  // 遍历语言规则，计算加权分数
-  let bestMatch: { name: string; label: string; score: number } = { name: "plain", label: "文本", score: 0 };
-
-  for (const rule of LANGUAGE_RULES) {
-    let score = 0;
-    for (const pattern of rule.patterns) {
-      if (pattern.test(t)) score += rule.weight;
-    }
-    if (score > bestMatch.score) {
-      bestMatch = { name: rule.name, label: rule.label, score };
-    }
-  }
-
-  // 需要至少2个模式匹配才认为是该语言
-  if (bestMatch.score < 8) return { name: "plain", label: "文本" };
-
-  return { name: bestMatch.name, label: bestMatch.label };
-}
-
 /**
  * 高亮代码并返回 HTML 字符串
  * 使用 highlight.js core + 按需注册语言，避免 tree-shaking 丢失语言模块
@@ -249,24 +122,60 @@ async function getHljs() {
   return hljsCore;
 }
 
-export async function highlightCode(text: string, language?: string): Promise<string> {
+export interface HighlightResult {
+  html: string;
+  language: string;
+  relevance: number;
+}
+
+/** 语言名称 → 显示标签映射 */
+const LANG_LABELS: Record<string, string> = {
+  python: "Python", javascript: "JavaScript", typescript: "TypeScript",
+  rust: "Rust", go: "Go", java: "Java", cpp: "C++", c: "C",
+  sql: "SQL", bash: "Bash", json: "JSON", xml: "XML/HTML",
+  yaml: "YAML", css: "CSS", markdown: "Markdown",
+};
+
+/** 错误日志关键词 */
+const ERROR_KEYWORDS = /\b(ERROR|FATAL|Exception|Traceback|panic|stack trace|WARN)\b/i;
+
+/**
+ * 高亮代码并返回结构化结果
+ * 使用 highlight.js highlightAuto 自动检测语言，根据 relevance 判断置信度
+ */
+export async function highlightCode(text: string): Promise<HighlightResult> {
   try {
     const hljs = await getHljs();
 
-    if (language && language !== "plain" && language !== "errorlog") {
-      if (hljs.getLanguage(language)) {
-        const result = hljs.highlight(text, { language });
-        return result.value;
+    // 先用 highlightAuto 检测语言并高亮
+    const result = hljs.highlightAuto(text, [
+      "python", "javascript", "typescript", "rust", "go", "java",
+      "cpp", "c", "sql", "bash", "json", "xml", "yaml", "css", "markdown",
+    ]);
+
+    const relevance = result.relevance || 0;
+    const language = result.language || "plain";
+
+    // relevance ≥ 3 认为检测可信，返回高亮结果
+    if (relevance >= 3 && language !== "plain") {
+      // 检查是否错误日志：如果错误关键词密集，降级为 errorlog
+      const errorMatches = (text.match(ERROR_KEYWORDS) || []).length;
+      if (errorMatches >= 2 && text.length < 500) {
+        return { html: "", language: "errorlog", relevance: 0 };
       }
+      return { html: result.value, language, relevance };
     }
 
-    // 自动检测语言
-    const result = hljs.highlightAuto(text);
-    return result.value;
+    // 低置信度：返回空 HTML，让 UI 显示原始文本
+    return { html: "", language: "plain", relevance: 0 };
   } catch {
-    // 回退：转义 HTML 返回
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return { html: "", language: "plain", relevance: 0 };
   }
+}
+
+/** 根据语言名获取显示标签 */
+export function getLangLabel(language: string): string {
+  return LANG_LABELS[language] || (language === "errorlog" ? "错误日志" : "文本");
 }
 
 /**
