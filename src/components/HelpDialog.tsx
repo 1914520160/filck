@@ -40,7 +40,7 @@ export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => vo
 
   // 从 config 读取动态快捷键，回退默认值
   const hotkeyShow = (config.hotkey as string) || "ctrl+shift+v";
-  const hotkeySeq = (config.sequential_hotkey as string) || "ctrl+shift+b";
+  const hotkeySeq = (config.sequential_hotkey as string) || "ctrl+q";
   const hotkeySelectAll = (config.select_all_hotkey as string) || "ctrl+a";
 
   if (!open) return null;
@@ -117,7 +117,7 @@ export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => vo
             {/* Footer */}
             <div className="h-footer">
               <button onClick={onClose} className="h-close-btn">我知道了</button>
-              <span className="h-ver">剪贴板管理 v{appVersion}</span>
+              <span className="h-ver">Filck v{appVersion}</span>
             </div>
           </motion.div>
         </motion.div>

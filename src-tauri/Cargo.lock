@@ -676,37 +676,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "clipboard-manager-tauri"
-version = "5.0.33"
-dependencies = [
- "arboard",
- "base64 0.22.1",
- "chrono",
- "env_logger",
- "hostname",
- "image",
- "log",
- "md-5",
- "pinyin",
- "rusqlite",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-opener",
- "tauri-plugin-shell",
- "tauri-plugin-updater",
- "tokio",
- "uuid",
- "windows 0.58.0",
- "winreg 0.52.0",
-]
-
-[[package]]
 name = "clipboard-win"
 version = "5.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1385,6 +1354,37 @@ checksum = "38e2275cc4e4fc009b0669731a1e5ab7ebf11f469eaede2bab9309a5b4d6057f"
 dependencies = [
  "memoffset",
  "rustc_version",
+]
+
+[[package]]
+name = "filck"
+version = "5.0.33"
+dependencies = [
+ "arboard",
+ "base64 0.22.1",
+ "chrono",
+ "env_logger",
+ "hostname",
+ "image",
+ "log",
+ "md-5",
+ "pinyin",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-opener",
+ "tauri-plugin-shell",
+ "tauri-plugin-updater",
+ "tokio",
+ "uuid",
+ "windows 0.58.0",
+ "winreg 0.52.0",
 ]
 
 [[package]]

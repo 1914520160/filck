@@ -85,7 +85,7 @@ export async function initBackend(): Promise<() => void> {
     window.dispatchEvent(new CustomEvent("app-toast", { detail: { message: msg, type: isLanSync ? "info" : "success" } }));
   });
 
-  // 监听依次粘贴热键 (Ctrl+Shift+B)
+  // 监听依次粘贴热键 (Ctrl+Q)
   const unlisten2 = await listen("hotkey-sequential-paste", async () => {
     await sequentialPaste();
   });

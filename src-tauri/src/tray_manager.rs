@@ -22,7 +22,7 @@ fn truncate_preview(text: &str, max_len: usize) -> String {
 
 /// 获取最近 N 条文本记录用于自绘弹窗预览
 /// 返回 (id, item_type, preview_text, full_text)，item_type 用于前端图标渲染
-fn get_recent_texts(app: &AppHandle, limit: usize) -> Vec<(String, String, String, String)> {
+pub fn get_recent_texts_public(app: &AppHandle, limit: usize) -> Vec<(String, String, String, String)> {
     let store = match app.try_state::<crate::data_store::DataStore>() {
         Some(s) => s,
         None => return Vec::new(),
@@ -53,7 +53,7 @@ fn get_recent_texts(app: &AppHandle, limit: usize) -> Vec<(String, String, Strin
 }
 
 /// 获取当前剪贴板监听状态
-fn is_monitoring(app: &AppHandle) -> bool {
+pub fn is_monitoring_public(app: &AppHandle) -> bool {
     app.try_state::<crate::clipboard_monitor::ClipboardMonitor>()
         .map(|m| m.is_running())
         .unwrap_or(true)
@@ -62,7 +62,7 @@ fn is_monitoring(app: &AppHandle) -> bool {
 
 
 /// 构建弹窗数据 JSON（统一复用，消除重复查询）
-fn build_popup_data(app: &AppHandle, recents: &[(String, String, String, String)], monitoring: bool) -> serde_json::Value {
+pub fn build_popup_data_public(app: &AppHandle, recents: &[(String, String, String, String)], monitoring: bool) -> serde_json::Value {
     let version = crate::commands::APP_VERSION.to_string();
 
     let recents_json: Vec<serde_json::Value> = recents.iter().map(|(id, item_type, preview, text)| {
@@ -70,22 +70,32 @@ fn build_popup_data(app: &AppHandle, recents: &[(String, String, String, String)
     }).collect();
 
     let store = app.try_state::<crate::data_store::DataStore>();
-    let stats = store.as_ref()
-        .and_then(|s| s.get_stats("默认").ok())
-        .map(|s| {
-            // 从配置中读取数据库上限（MB），默认 100
-            let max_size_mb = store
-                .and_then(|s| s.get_config().ok())
-                .and_then(|c| c.get("db_max_size_mb").and_then(|v| v.as_f64()))
-                .unwrap_or(100.0);
-            serde_json::json!({
-                "total": s.total,
-                "pinned": s.pinned,
-                "today": s.today,
-                "db_size_kb": s.db_size_kb,
-                "max_size_mb": max_size_mb,
-            })
-        });
+    let stats = match store.as_ref() {
+        Some(s) => match s.get_stats("默认") {
+            Ok(s) => {
+                log::info!("[TrayManager] stats 获取成功: total={}, pinned={}, today={}", s.total, s.pinned, s.today);
+                let max_size_mb = store
+                    .and_then(|s| s.get_config().ok())
+                    .and_then(|c| c.get("db_max_size_mb").and_then(|v| v.as_f64()))
+                    .unwrap_or(100.0);
+                Some(serde_json::json!({
+                    "total": s.total,
+                    "pinned": s.pinned,
+                    "today": s.today,
+                    "db_size_kb": s.db_size_kb,
+                    "max_size_mb": max_size_mb,
+                }))
+            }
+            Err(e) => {
+                log::warn!("[TrayManager] get_stats 失败: {}", e);
+                None
+            }
+        }
+        None => {
+            log::warn!("[TrayManager] DataStore 未初始化，无法获取统计");
+            None
+        }
+    };
 
     serde_json::json!({
         "version": version,
@@ -140,6 +150,7 @@ fn get_taskbar_edge() -> TaskbarEdge {
 /// - 任务栏顶部 → 弹窗在图标下方，右边缘对齐
 /// - 任务栏左侧 → 弹窗在图标右侧，上边缘对齐
 /// - 任务栏右侧 → 弹窗在图标左侧，上边缘对齐
+/// 增加屏幕边界约束（8px 安全边距），防止弹窗被裁剪或贴边
 fn calc_popup_position(
     tray_rect: (f64, f64, f64, f64),  // (x, y, w, h)
     popup_w: f64, popup_h: f64,
@@ -147,39 +158,72 @@ fn calc_popup_position(
 ) -> tauri::PhysicalPosition<f64> {
     let (tray_x, tray_y, tray_w, tray_h) = tray_rect;
     let gap = 4.0; // 弹窗与图标之间的间距
+    let margin = 8.0; // 屏幕边缘安全边距
 
-    let (x, y) = match edge {
+    // 获取主显示器工作区尺寸（排除任务栏区域）
+    let (screen_w, screen_h) = get_work_area_size();
+
+    let (raw_x, raw_y) = match edge {
         TaskbarEdge::Bottom => {
             // 弹窗在图标上方，右边缘对齐图标右边缘
-            let px = (tray_x + tray_w - popup_w).max(0.0);
-            let py = (tray_y - popup_h - gap).max(0.0);
+            let px = tray_x + tray_w - popup_w;
+            let py = tray_y - popup_h - gap;
             (px, py)
         }
         TaskbarEdge::Top => {
             // 弹窗在图标下方，右边缘对齐图标右边缘
-            let px = (tray_x + tray_w - popup_w).max(0.0);
+            let px = tray_x + tray_w - popup_w;
             let py = tray_y + tray_h + gap;
             (px, py)
         }
         TaskbarEdge::Left => {
             // 弹窗在图标右侧，上边缘对齐图标上边缘
             let px = tray_x + tray_w + gap;
-            let py = tray_y.max(0.0);
+            let py = tray_y;
             (px, py)
         }
         TaskbarEdge::Right => {
             // 弹窗在图标左侧，上边缘对齐图标上边缘
-            let px = (tray_x - popup_w - gap).max(0.0);
-            let py = tray_y.max(0.0);
+            let px = tray_x - popup_w - gap;
+            let py = tray_y;
             (px, py)
         }
     };
 
+    // 屏幕边界约束：确保弹窗不超出屏幕，留 margin 边距
+    let x = raw_x.max(margin).min(screen_w - popup_w - margin);
+    let y = raw_y.max(margin).min(screen_h - popup_h - margin);
+
     log::info!(
-        "[TrayManager] 弹窗定位: taskbar={:?} tray=({:.0},{:.0} {:.0}x{:.0}) popup=({:.0},{:.0})",
-        edge, tray_x, tray_y, tray_w, tray_h, x, y
+        "[TrayManager] 弹窗定位: taskbar={:?} tray=({:.0},{:.0} {:.0}x{:.0}) raw=({:.0},{:.0}) final=({:.0},{:.0}) screen=({:.0},{:.0})",
+        edge, tray_x, tray_y, tray_w, tray_h, raw_x, raw_y, x, y, screen_w, screen_h
     );
     tauri::PhysicalPosition { x, y }
+}
+
+/// 获取主显示器工作区尺寸（排除任务栏）
+#[cfg(target_os = "windows")]
+fn get_work_area_size() -> (f64, f64) {
+    use windows::Win32::UI::WindowsAndMessaging::SystemParametersInfoW;
+    use windows::Win32::UI::WindowsAndMessaging::SPI_GETWORKAREA;
+    use windows::Win32::Foundation::RECT;
+    use windows::Win32::UI::WindowsAndMessaging::SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS;
+
+    let mut rect = RECT::default();
+    unsafe {
+        let _ = SystemParametersInfoW(
+            SPI_GETWORKAREA,
+            0,
+            Some(&mut rect as *mut _ as *mut _),
+            SYSTEM_PARAMETERS_INFO_UPDATE_FLAGS(0),
+        );
+    }
+    ((rect.right - rect.left) as f64, (rect.bottom - rect.top) as f64)
+}
+
+#[cfg(not(target_os = "windows"))]
+fn get_work_area_size() -> (f64, f64) {
+    (1920.0, 1080.0) // 非 Windows 平台回退值
 }
 
 /// 打开自绘托盘弹出窗口（右键托盘图标触发）
@@ -187,7 +231,7 @@ fn calc_popup_position(
 fn show_tray_popup(app: &AppHandle, tray_rect: (f64, f64, f64, f64)) {
     let popup_label = "tray-popup";
     let popup_w = 280.0;
-    let popup_h = 420.0;
+    let popup_h = 470.0;
 
     log::info!("[TrayManager] show_tray_popup 被调用, tray_rect=({:.0},{:.0} {:.0}x{:.0})", tray_rect.0, tray_rect.1, tray_rect.2, tray_rect.3);
 
@@ -198,9 +242,10 @@ fn show_tray_popup(app: &AppHandle, tray_rect: (f64, f64, f64, f64)) {
         std::thread::sleep(std::time::Duration::from_millis(80));
     }
 
-    let monitoring = is_monitoring(app);
-    let recents = get_recent_texts(app, 5);
-    let popup_data = build_popup_data(app, &recents, monitoring);
+    let monitoring = is_monitoring_public(app);
+    let recents = get_recent_texts_public(app, 3);
+    log::info!("[TrayManager] 最近记录: {} 条", recents.len());
+    let popup_data = build_popup_data_public(app, &recents, monitoring);
     let taskbar_edge = get_taskbar_edge();
     let popup_pos = calc_popup_position(tray_rect, popup_w, popup_h, taskbar_edge);
 
@@ -226,6 +271,10 @@ fn show_tray_popup(app: &AppHandle, tray_rect: (f64, f64, f64, f64)) {
             // 应用 DWM 圆角（Windows 11）
             #[cfg(target_os = "windows")]
             set_dwm_round_corners(&window);
+
+            // ★ 先发送初始化数据，再显示窗口 — 确保前端渲染时数据已就绪
+            let _ = app.emit("tray-popup-init", &popup_data);
+            log::info!("[TrayManager] 已发送 tray-popup-init（在 show 之前）");
 
             // 显示窗口
             let show_result = window.show();
@@ -255,15 +304,6 @@ fn show_tray_popup(app: &AppHandle, tray_rect: (f64, f64, f64, f64)) {
                     }
                 });
                 log::info!("[TrayManager] 失焦监听已注册");
-            });
-
-            // 延迟发送初始化数据，确保前端 React 已挂载、listen 已注册
-            let app_clone = app.clone();
-            let popup_data_clone = popup_data.clone();
-            std::thread::spawn(move || {
-                std::thread::sleep(std::time::Duration::from_millis(200));
-                let _ = app_clone.emit("tray-popup-init", &popup_data_clone);
-                log::info!("[TrayManager] 已发送 tray-popup-init");
             });
         }
         Err(e) => {
@@ -319,7 +359,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     let _tray = TrayIconBuilder::with_id("main-tray")
         .icon(icon)
-        .tooltip(format!("剪贴板管理 v{}", version))
+        .tooltip(format!("Filck v{}", version))
         .show_menu_on_left_click(false)
         .on_tray_icon_event(move |tray, event| {
             match event {

@@ -274,7 +274,7 @@ function App() {
         <div className="app-shell">
           <div className="loading-screen">
             <Loader2 size={32} className="spin-icon" style={{ color: "var(--accent)" }} />
-            <p className="loading-text">正在加载剪贴板数据…</p>
+            <p className="loading-text">正在加载数据…</p>
           </div>
         </div>
       </ToastProvider>
@@ -288,7 +288,7 @@ function App() {
         <div className="app-shell">
           <div className="error-init-state">
             <div className="error-init-icon">⚠️</div>
-            <h3 className="error-init-title">无法加载剪贴板数据</h3>
+            <h3 className="error-init-title">无法加载数据</h3>
             <p className="error-init-desc">数据库文件可能已损坏，或应用没有读取权限。</p>
             <p className="error-init-detail">{initError}</p>
             <div className="error-init-actions">
@@ -376,7 +376,7 @@ function ShortcutPanel({ onClose }: { onClose: () => void }) {
   const allShortcuts = useMemo(() => {
     return [
       { desc: "唤出 / 隐藏窗口", keys: config.hotkey || "Ctrl+Shift+V" },
-      { desc: "依次粘贴", keys: config.sequential_hotkey || "Ctrl+Shift+B" },
+      { desc: "依次粘贴", keys: config.sequential_hotkey || "Ctrl+Q" },
       { desc: "全选", keys: config.select_all_hotkey || "Ctrl+A" },
       { desc: "粘贴第 N 条", keys: "Ctrl+Alt+1~9" },
       { desc: "上下导航", keys: "↑ / ↓" },

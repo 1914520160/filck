@@ -106,11 +106,11 @@ const DEFAULT_CONFIG: AppConfig = {
   lan_sync_enabled: false,
   always_on_top: false,
   auto_startup: false,
-  sequential_hotkey: "ctrl+shift+b",
+  sequential_hotkey: "ctrl+q",
   select_all_hotkey: "ctrl+a",
   current_workspace: "默认",
   workspaces: ["默认"],
-  double_click_action: "copy",
+  double_click_action: "preview",
 };
 
 // ===== Store =====

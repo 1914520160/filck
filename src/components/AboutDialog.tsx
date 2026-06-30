@@ -64,7 +64,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
               }}>📋</div>
 
               <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
-                剪贴板管理
+                Filck
               </div>
               <span style={{
                 fontSize: 13, color: "var(--text-secondary)",
@@ -75,7 +75,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
                 Tauri 2 · React 19 · Rust
               </div>
               <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                © 2026 Clipboard Manager
+                © 2026 Filck
               </div>
 
               {/* 技术栈 */}

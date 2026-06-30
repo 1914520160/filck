@@ -54,7 +54,7 @@ pub fn run() {
                     .to_string(),
                 seq_paste: saved_config.get("sequential_hotkey")
                     .and_then(|v| v.as_str())
-                    .unwrap_or("Ctrl+Shift+B")
+                    .unwrap_or("Ctrl+Q")
                     .to_string(),
                 index_prefix: "Ctrl+Alt".to_string(),
             };
@@ -131,7 +131,7 @@ pub fn run() {
                 }
             }
 
-            log::info!("剪贴板管理器 v{} 启动", commands::APP_VERSION);
+            log::info!("Filck v{} 启动", commands::APP_VERSION);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -175,6 +175,8 @@ pub fn run() {
             commands::open_pinned_image,
             commands::close_pinned_image,
             commands::hide_tray_popup,
+            commands::get_tray_popup_data,
+            commands::emit_tray_open_settings,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

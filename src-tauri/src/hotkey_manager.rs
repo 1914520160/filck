@@ -13,7 +13,7 @@ impl Default for HotkeyConfig {
     fn default() -> Self {
         Self {
             show_window: "Ctrl+Shift+V".to_string(),
-            seq_paste: "Ctrl+Shift+B".to_string(),
+            seq_paste: "Ctrl+Q".to_string(),
             index_prefix: "Ctrl+Alt".to_string(),
         }
     }

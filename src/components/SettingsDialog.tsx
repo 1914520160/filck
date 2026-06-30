@@ -414,7 +414,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <button onClick={onClose} className="s-save-btn">
                 关闭设置
               </button>
-              <span className="s-footer-ver">剪贴板管理 v{appVersion}</span>
+              <span className="s-footer-ver">Filck v{appVersion}</span>
             </div>
           </motion.div>
         </motion.div>

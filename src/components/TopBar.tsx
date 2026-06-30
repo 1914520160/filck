@@ -131,7 +131,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
       <div className="header-top" data-tauri-drag-region>
         <div className="header-title">
           <span className="header-title-icon">📋</span>
-          <span className="header-title-text">剪贴板管理</span>
+          <span className="header-title-text">Filck</span>
           <span className="header-badge">v{appVersion}</span>
         </div>
         <div className="header-icons" data-tauri-drag-region="false">
@@ -155,7 +155,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
               className="quit-confirm-box" onClick={(e) => e.stopPropagation()}>
               <button className="quit-confirm-close" onClick={() => setShowQuitConfirm(false)} aria-label="关闭"><X size={16} /></button>
               <div className="quit-confirm-icon">⚠️</div>
-              <h3 className="quit-confirm-title">退出剪贴板管理</h3>
+              <h3 className="quit-confirm-title">退出 Filck</h3>
               <p className="quit-confirm-desc">
                 退出后剪贴板监听将停止，托盘图标也会消失。<br />
                 如果只想让窗口在后台运行，请选择<b>「隐藏窗口」</b>，托盘图标仍会保留。

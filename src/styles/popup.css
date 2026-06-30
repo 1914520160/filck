@@ -28,7 +28,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 14px 16px 12px;
+  padding: 10px 14px 8px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -85,6 +85,17 @@
   line-height: 1.2;
 }
 
+.version-badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--section-bg);
+  border-radius: 6px;
+  padding: 2px 10px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
 /* 监听状态指示点 */
 .tray-popup-status-dot {
   width: 8px;
@@ -104,19 +115,19 @@
 .tray-popup-cards {
   display: flex;
   gap: 6px;
-  padding: 10px 12px;
+  padding: 6px 10px;
 }
 
 .tray-popup-card {
   flex: 1;
-  padding: 12px 8px 10px;
+  padding: 8px 6px 6px;
   background: var(--section-bg);
   border-radius: 10px;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 3px;
   transition: background 0.2s;
 }
 
@@ -246,7 +257,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  padding: 10px 16px 4px;
+  padding: 6px 14px 2px;
   font-size: 10.5px;
   font-weight: 600;
   color: var(--text-muted);
@@ -296,7 +307,7 @@
 .tray-popup-actions {
   display: flex;
   flex-direction: column;
-  padding: 2px 6px 8px;
+  padding: 2px 6px 6px;
   flex: 1;
 }
 
@@ -306,7 +317,7 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: none;
   border-radius: 8px;
   background: transparent;
@@ -441,19 +452,19 @@
 .tray-popup-divider {
   height: 1px;
   background: var(--border-color);
-  margin: 4px 12px;
+  margin: 2px 12px;
   opacity: 0.6;
 }
 
 /* ===== 底部状态栏 ===== */
 .tray-popup-footer {
-  padding: 10px 14px;
+  padding: 8px 12px;
   font-size: 10.5px;
   color: var(--text-muted);
   border-top: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .tray-popup-footer .footer-icon {
@@ -551,6 +562,62 @@
 .tray-popup-root::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 2px;
+}
+
+/* ===== Toast 提示 ===== */
+.tray-popup-toast {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  white-space: nowrap;
+  z-index: 100;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.tray-popup-toast.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.tray-popup-toast .toast-icon {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.tray-popup-toast .toast-message {
+  line-height: 1.3;
+}
+
+/* Toast 类型颜色 */
+.tray-popup-toast.toast-success {
+  background: rgba(52, 199, 89, 0.9);
+}
+.tray-popup-toast.toast-error {
+  background: rgba(239, 68, 68, 0.9);
+}
+.tray-popup-toast.toast-info {
+  background: rgba(59, 130, 246, 0.9);
+}
+
+/* ===== 操作加载态 ===== */
+.tray-popup-item.loading {
+  opacity: 0.5;
+  pointer-events: none;
+  cursor: default;
 }
 
 /* ===== 主题过渡 ===== */

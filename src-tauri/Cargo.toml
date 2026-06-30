@@ -1,16 +1,16 @@
 [package]
-name = "clipboard-manager-tauri"
+name = "filck"
 version = "5.0.33"
-description = "剪贴板管理器 - Tauri 2 Edition"
+description = "Filck - Smart Clipboard Manager"
 authors = ["you"]
 edition = "2021"
 
 [[bin]]
-name = "剪贴板管理"
+name = "Filck"
 path = "src/main.rs"
 
 [lib]
-name = "clipboard_manager_tauri_lib"
+name = "filck_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

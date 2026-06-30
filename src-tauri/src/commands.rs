@@ -379,7 +379,7 @@ pub fn reregister_hotkeys(app: tauri::AppHandle, store: State<DataStore>) -> Res
         .to_string();
     let seq_paste = config.get("sequential_hotkey")
         .and_then(|v| v.as_str())
-        .unwrap_or("Ctrl+Shift+B")
+        .unwrap_or("Ctrl+Q")
         .to_string();
     let hotkey_config = crate::hotkey_manager::HotkeyConfig {
         show_window,
@@ -771,6 +771,28 @@ pub fn hide_tray_popup(app: tauri::AppHandle) -> Result<(), String> {
         if popup.is_visible().unwrap_or(false) {
             popup.hide().ok();
         }
+    }
+    Ok(())
+}
+
+/// 前端主动获取托盘弹窗初始化数据（解决事件时序竞态问题）
+#[tauri::command]
+pub fn get_tray_popup_data(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    use crate::tray_manager;
+
+    let monitoring = tray_manager::is_monitoring_public(&app);
+    let recents = tray_manager::get_recent_texts_public(&app, 3);
+    let popup_data = tray_manager::build_popup_data_public(&app, &recents, monitoring);
+    Ok(popup_data)
+}
+
+/// 从托盘弹窗触发：通过 Rust 中转 emit "tray-open-settings" 事件到主窗口
+/// 避免前端弹窗 hide() 后 emit 事件丢失的问题
+#[tauri::command]
+pub fn emit_tray_open_settings(app: tauri::AppHandle) -> Result<(), String> {
+    if let Some(main_window) = app.get_webview_window("main") {
+        main_window.emit("tray-open-settings", ())
+            .map_err(|e| format!("发送设置事件失败: {}", e))?;
     }
     Ok(())
 }

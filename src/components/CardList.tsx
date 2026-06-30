@@ -233,7 +233,7 @@ export function CardList() {
 
   const handleDoubleClick = useCallback(async (item: HistoryItem) => {
     if (item.type === "image" && item.content) {
-      const action = useAppStore.getState().config.double_click_action || "copy";
+      const action = useAppStore.getState().config.double_click_action || "preview";
       if (action === "copy") {
         // 复制图片到剪贴板 — 通过 Rust 后端获取 base64
         setPastingId(item.id);
@@ -259,7 +259,7 @@ export function CardList() {
     } else if (item.type === "file") {
       setFileDetailItem(item);
     } else if (item.type === "text") {
-      const action = useAppStore.getState().config.double_click_action || "copy";
+      const action = useAppStore.getState().config.double_click_action || "preview";
       if (action === "preview") {
         // 预览 = 进入编辑模式
         setEditItem(item);

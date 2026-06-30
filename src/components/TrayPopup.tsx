@@ -28,6 +28,15 @@ interface PopupInitData {
   stats?: StatsData;
 }
 
+// ===== Toast 提示 =====
+type ToastType = "success" | "error" | "info";
+
+interface ToastState {
+  visible: boolean;
+  message: string;
+  type: ToastType;
+}
+
 // ===== 菜单项定义 =====
 interface MenuItemDef {
   id: string;
@@ -134,22 +143,60 @@ const IconActivity = () => (
 );
 
 export function TrayPopup() {
-  const [version, setVersion] = useState("");
+  const [version, setVersion] = useState("...");
   const [monitoring, setMonitoring] = useState(true);
   const [recents, setRecents] = useState<RecentItem[]>([]);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [activeIdx, setActiveIdx] = useState(0); // 默认高亮第一项
   const [themeKey, setThemeKey] = useState<ThemeKey>(DEFAULT_THEME);
+  const [toast, setToast] = useState<ToastState>({ visible: false, message: "", type: "info" });
+  const [operationLoading, setOperationLoading] = useState<string | null>(null); // 正在执行的操作 id
   const menuRef = useRef<HTMLDivElement>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 监听初始化数据
+  // Toast 辅助函数
+  const showToast = useCallback((message: string, type: ToastType = "info", duration = 1500) => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToast({ visible: true, message, type });
+    toastTimerRef.current = setTimeout(() => {
+      setToast((prev) => ({ ...prev, visible: false }));
+    }, duration);
+  }, []);
+
+  // 安全隐藏弹窗（通过 Rust 命令，避免竞态）
+  const safeHide = useCallback(async () => {
+    try {
+      await invoke("hide_tray_popup");
+    } catch {
+      // 兜底：直接隐藏
+      try { getCurrentWindow().hide(); } catch { /* ignore */ }
+    }
+  }, []);
+
+  // 主动获取数据 + 事件监听兜底
   useEffect(() => {
     let unlisten1: UnlistenFn | null = null;
     let unlisten2: UnlistenFn | null = null;
+    let cancelled = false;
 
     async function setup() {
-      // 接收数据（Rust 端在窗口创建后直接发送）
+      // ★ 方案1：主动 invoke 获取数据（解决时序竞态，最可靠）
+      try {
+        const data = await invoke<PopupInitData>("get_tray_popup_data");
+        if (cancelled) return;
+        setVersion(data.version);
+        setMonitoring(data.monitoring);
+        setRecents(data.recents);
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      } catch (e) {
+        console.warn("[TrayPopup] invoke get_tray_popup_data 失败:", e);
+      }
+
+      // ★ 方案2：事件监听兜底（如果 invoke 失败或后续需要更新）
       unlisten1 = await listen<PopupInitData>("tray-popup-init", (event) => {
+        if (cancelled) return;
         setVersion(event.payload.version);
         setMonitoring(event.payload.monitoring);
         setRecents(event.payload.recents);
@@ -159,11 +206,13 @@ export function TrayPopup() {
       });
       // 监听状态变化
       unlisten2 = await listen<boolean>("monitor-status-changed", (event) => {
+        if (cancelled) return;
         setMonitoring(event.payload);
       });
     }
     setup();
     return () => {
+      cancelled = true;
       if (unlisten1) unlisten1();
       if (unlisten2) unlisten2();
     };
@@ -213,54 +262,93 @@ export function TrayPopup() {
     return () => observer.disconnect();
   }, []); // 移除 themeKey 依赖，避免死循环
 
-  // 操作函数
+  // 操作函数（带 Toast 反馈 + 时序修复）
   const doShow = useCallback(async () => {
+    setOperationLoading("show");
     try {
+      // ★ save_foreground 和 toggle_window 顺序调用，await 确保完成
       await invoke("save_foreground");
       await invoke("toggle_window");
-    } catch (e) { /* ignore */ }
-    // 延迟隐藏弹窗，确保主窗口已获得焦点
-    setTimeout(() => {
-      getCurrentWindow().hide();
-    }, 100);
-  }, []);
+      // toggle_window 完成后弹窗内的 setTimeout 确保主窗口已获得焦点再隐藏
+      setTimeout(async () => {
+        await safeHide();
+      }, 80);
+    } catch (e) {
+      console.error("[TrayPopup] 显示主窗口失败:", e);
+      showToast("显示主窗口失败", "error");
+      setOperationLoading(null);
+    }
+  }, [safeHide, showToast]);
 
   const doToggleMonitor = useCallback(async () => {
+    setOperationLoading("toggle_monitor");
     try {
-      await invoke("toggle_monitor");
-    } catch (e) { /* ignore */ }
-    // 模拟原生菜单：点击后立即关闭弹窗
-    getCurrentWindow().hide();
-  }, []);
+      const newState: boolean = await invoke("toggle_monitor");
+      // 更新本地状态
+      setMonitoring(newState);
+      const msg = newState ? "监听已恢复" : "监听已暂停";
+      showToast(msg, "success", 1200);
+      // 等待 toast 显示一小段时间后关闭弹窗
+      setTimeout(async () => {
+        await safeHide();
+        setOperationLoading(null);
+      }, 600);
+    } catch (e) {
+      console.error("[TrayPopup] 切换监听失败:", e);
+      showToast("操作失败，请重试", "error");
+      setOperationLoading(null);
+    }
+  }, [safeHide, showToast]);
 
   const doSettings = useCallback(async () => {
+    setOperationLoading("settings");
     try {
+      // ★ 先 emit 事件到主窗口（通过 Rust 命令中转，确保可靠送达）
+      await invoke("emit_tray_open_settings");
+      // 短暂延迟确保事件被主窗口接收
+      await new Promise((r) => setTimeout(r, 50));
+      // 显示主窗口
       await invoke("toggle_window");
-    } catch (e) { /* ignore */ }
-    // 先隐藏弹窗
-    getCurrentWindow().hide();
-    // 延迟发射事件，确保主窗口已显示
-    setTimeout(async () => {
-      try {
-        const { emit } = await import("@tauri-apps/api/event");
-        await emit("tray-open-settings", {});
-      } catch (e) { /* ignore */ }
-    }, 300);
-  }, []);
+      // 主窗口显示后再关闭弹窗
+      setTimeout(async () => {
+        await safeHide();
+        setOperationLoading(null);
+      }, 100);
+    } catch (e) {
+      console.error("[TrayPopup] 打开设置失败:", e);
+      showToast("打开设置失败", "error");
+      setOperationLoading(null);
+    }
+  }, [safeHide, showToast]);
 
   const doExit = useCallback(async () => {
+    setOperationLoading("exit");
     try {
+      showToast("正在退出...", "info", 800);
+      // 短暂延迟让 toast 显示出来
+      await new Promise((r) => setTimeout(r, 300));
       await invoke("exit_app");
-    } catch (e) { /* ignore */ }
-  }, []);
+    } catch (e) {
+      console.error("[TrayPopup] 退出失败:", e);
+      showToast("退出失败", "error");
+      setOperationLoading(null);
+    }
+  }, [showToast]);
 
   const doPaste = useCallback(async (itemText: string) => {
     try {
       await invoke("save_foreground");
       await pasteText(itemText);
-    } catch (e) { /* ignore */ }
-    getCurrentWindow().hide();
-  }, []);
+      showToast("已粘贴", "success", 800);
+    } catch (e) {
+      console.error("[TrayPopup] 粘贴失败:", e);
+      showToast("粘贴失败", "error");
+    }
+    // 粘贴后关闭弹窗
+    setTimeout(async () => {
+      await safeHide();
+    }, 300);
+  }, [safeHide, showToast]);
 
   // 格式化数据库大小
   const formatDbSize = (kb: number): string => {
@@ -352,8 +440,10 @@ export function TrayPopup() {
           <IconClipboard />
         </div>
         <div className="tray-popup-title">
-          <span className="tray-popup-name">剪贴板管理</span>
-          <span className="tray-popup-version">v{version}</span>
+          <span className="tray-popup-name">Filck</span>
+          <span className="tray-popup-version">
+            <span className="version-badge">v{version}</span>
+          </span>
         </div>
         <span className={`tray-popup-status-dot ${monitoring ? "active" : ""}`} />
       </div>
@@ -454,6 +544,26 @@ export function TrayPopup() {
           <span className="footer-text">{memPercent.toFixed(1)}%</span>
         </div>
       )}
+
+      {/* Toast 提示 */}
+      <div className={`tray-popup-toast ${toast.visible ? "visible" : ""} toast-${toast.type}`}>
+        <span className="toast-icon">
+          {toast.type === "success" ? (
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          ) : toast.type === "error" ? (
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+          )}
+        </span>
+        <span className="toast-message">{toast.message}</span>
+      </div>
     </div>
   );
 }
