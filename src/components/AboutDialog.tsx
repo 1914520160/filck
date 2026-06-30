@@ -2,11 +2,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, RefreshCw, ExternalLink, CheckCircle } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
-import { useState } from "react";
+import { getAppVersion } from "@/lib/api";
+import { useState, useEffect } from "react";
 
 export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { toast } = useToast();
   const [checkingUpdate, setCheckingUpdate] = useState(false);
+  const [appVersion, setAppVersion] = useState("");
 
   const handleCheckUpdate = async () => {
     setCheckingUpdate(true);
@@ -25,6 +27,12 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
       setCheckingUpdate(false);
     }
   };
+
+  useEffect(() => {
+    if (open) {
+      getAppVersion().then(setAppVersion).catch(() => setAppVersion(""));
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -61,7 +69,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
               <span style={{
                 fontSize: 13, color: "var(--text-secondary)",
                 background: "var(--section-bg)", borderRadius: 6, padding: "2px 10px",
-              }}>v4.3.0</span>
+              }}>v{appVersion}</span>
 
               <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 16 }}>
                 Tauri 2 · React 19 · Rust
@@ -104,7 +112,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
                 <div style={{ flex: 1, fontSize: 13, color: "var(--text-primary)", textAlign: "left" }}>
                   <div style={{ fontWeight: 600 }}>已是最新版本</div>
                   <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                    当前版本 v4.3.0
+                    当前版本 v{appVersion}
                   </div>
                 </div>
                 <button

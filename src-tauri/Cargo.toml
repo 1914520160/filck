@@ -1,6 +1,6 @@
 [package]
 name = "clipboard-manager-tauri"
-version = "4.7.0"
+version = "5.0.33"
 description = "剪贴板管理器 - Tauri 2 Edition"
 authors = ["you"]
 edition = "2021"
