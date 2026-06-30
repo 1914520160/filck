@@ -36,7 +36,10 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: 安装前端依赖
-        run: npm ci
+        run: |
+          rm package-lock.json -ErrorAction SilentlyContinue
+          rm -r node_modules -ErrorAction SilentlyContinue
+          npm install
 
       - name: 构建 Tauri 应用
         env:
@@ -46,15 +49,22 @@ jobs:
 
       - name: 列出构建产物（调试）
         if: always()
+        shell: pwsh
         run: |
-          echo "=== nsis 目录 ==="
-          ls -la src-tauri/target/release/bundle/nsis/ 2>/dev/null || echo "nsis 目录不存在"
-          echo ""
-          echo "=== 查找 .sig 文件 ==="
-          find src-tauri/target/release/bundle/ -name "*.sig" 2>/dev/null || echo "未找到 .sig 文件"
-          echo ""
-          echo "=== 查找 .exe 文件 ==="
-          find src-tauri/target/release/bundle/ -name "*.exe" 2>/dev/null || echo "未找到 .exe 文件"
+          Write-Host "=== nsis 目录 ==="
+          if (Test-Path src-tauri/target/release/bundle/nsis/) {
+            Get-ChildItem src-tauri/target/release/bundle/nsis/
+          } else {
+            Write-Host "nsis 目录不存在"
+          }
+          Write-Host ""
+          Write-Host "=== 查找 .sig 文件 ==="
+          $sigFiles = Get-ChildItem -Recurse src-tauri/target/release/bundle/ -Filter "*.sig" -ErrorAction SilentlyContinue
+          if ($sigFiles) { $sigFiles } else { Write-Host "未找到 .sig 文件" }
+          Write-Host ""
+          Write-Host "=== 查找 .exe 文件 ==="
+          $exeFiles = Get-ChildItem -Recurse src-tauri/target/release/bundle/ -Filter "*.exe" -ErrorAction SilentlyContinue
+          if ($exeFiles) { $exeFiles } else { Write-Host "未找到 .exe 文件" }
 
       - name: 生成 updater.json
         run: node scripts/generate-updater-json.mjs
