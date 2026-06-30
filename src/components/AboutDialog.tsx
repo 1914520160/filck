@@ -1,32 +1,11 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { X, RefreshCw, ExternalLink, CheckCircle } from "lucide-react";
-import { useToast } from "@/components/Toast";
-import { logger } from "@/lib/logger";
+import { X, ExternalLink } from "lucide-react";
 import { getAppVersion } from "@/lib/api";
+import { UpdateBanner } from "@/components/UpdateBadge";
 import { useState, useEffect } from "react";
 
 export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { toast } = useToast();
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
   const [appVersion, setAppVersion] = useState("");
-
-  const handleCheckUpdate = async () => {
-    setCheckingUpdate(true);
-    try {
-      const { check } = await import("@tauri-apps/plugin-updater");
-      const update = await check();
-      if (update) {
-        toast(`发现新版本 ${update.version}`, "info");
-      } else {
-        toast("当前已是最新版本", "success");
-      }
-    } catch (e) {
-      logger.warn("检查更新失败", e);
-      toast("检查更新失败，请稍后重试", "error");
-    } finally {
-      setCheckingUpdate(false);
-    }
-  };
 
   useEffect(() => {
     if (open) {
@@ -99,55 +78,25 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
               </div>
 
               {/* 更新横幅 */}
-              <div style={{
-                marginTop: 24, width: "100%",
-                background: "linear-gradient(135deg, var(--accent-light), #E8F0FE)",
-                border: "1px solid #B4D4F7", borderRadius: 12,
-                padding: "12px 16px", display: "flex", alignItems: "center", gap: 10,
-              }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: "50%",
-                  background: "var(--accent)", flexShrink: 0,
-                }} />
-                <div style={{ flex: 1, fontSize: 13, color: "var(--text-primary)", textAlign: "left" }}>
-                  <div style={{ fontWeight: 600 }}>已是最新版本</div>
-                  <div style={{ fontSize: 11, color: "var(--text-secondary)" }}>
-                    当前版本 v{appVersion}
-                  </div>
-                </div>
-                <button
-                  onClick={async () => {
-                    try {
-                      const { openUrl } = await import("@tauri-apps/plugin-opener");
-                      await openUrl("https://github.com");
-                    } catch (e) {
-                      toast("无法打开浏览器", "error");
-                    }
-                  }}
-                  style={{
-                    fontSize: 12, color: "var(--accent)", fontWeight: 600,
-                    background: "none", border: "none", cursor: "pointer",
-                    display: "flex", alignItems: "center", gap: 4,
-                    fontFamily: "inherit",
-                  }}>
-                  项目主页 <ExternalLink size={12} />
-                </button>
+              <div style={{ marginTop: 24, width: "100%" }}>
+                <UpdateBanner />
               </div>
 
-              {/* 检查更新按钮 */}
-              <button
-                onClick={handleCheckUpdate}
-                disabled={checkingUpdate}
+              {/* 项目主页链接 */}
+              <a
+                href="https://github.com/1914520160/filck"
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
                   marginTop: 16, padding: "8px 18px", borderRadius: 10,
                   border: "1px solid var(--border-color)",
                   background: "var(--card-bg)", color: "var(--text-secondary)",
-                  fontSize: 12, fontWeight: 600, cursor: checkingUpdate ? "not-allowed" : "pointer",
-                  display: "flex", alignItems: "center", gap: 6,
-                  fontFamily: "inherit", opacity: checkingUpdate ? 0.6 : 1,
+                  fontSize: 12, fontWeight: 600, cursor: "pointer",
+                  display: "inline-flex", alignItems: "center", gap: 6,
+                  fontFamily: "inherit", textDecoration: "none",
                 }}>
-                {checkingUpdate ? <><RefreshCw size={12} className="spin-icon" /> 检查中…</> : <><CheckCircle size={12} /> 检查更新</>}
-              </button>
+                项目主页 <ExternalLink size={12} />
+              </a>
             </div>
           </motion.div>
         </motion.div>

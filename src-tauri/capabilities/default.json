@@ -18,6 +18,11 @@
     "clipboard-manager:default",
     "global-shortcut:default",
     "dialog:default",
-    "fs:default"
+    "fs:default",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download",
+    "updater:allow-install",
+    "updater:allow-download-and-install"
   ]
 }

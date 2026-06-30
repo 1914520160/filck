@@ -7,6 +7,7 @@ import { CardList } from "@/components/CardList";
 import { QuickPreview } from "@/components/QuickPreview";
 import { ToastProvider, useToast } from "@/components/Toast";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { UpdateProvider } from "@/contexts/UpdateContext";
 import { logger } from "@/lib/logger";
 import { pasteText, pasteImage, deleteHistory, togglePin, toggleWindow, sequentialPaste } from "@/lib/api";
 import { ClipboardList, RotateCcw, Loader2 } from "lucide-react";
@@ -316,6 +317,7 @@ function App() {
 
   return (
     <ToastProvider>
+      <UpdateProvider>
       <div className="app-shell">
         <TopBar
           onSettings={() => setShowSettings(true)}
@@ -363,6 +365,7 @@ function App() {
           <ShortcutPanel onClose={() => setShowShortcuts(false)} />
         )}
       </div>
+      </UpdateProvider>
     </ToastProvider>
   );
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Filck",
-  "version": "5.0.35",
+  "version": "5.0.36",
   "identifier": "com.filck.app",
   "build": {
     "beforeBuildCommand": "npm run build",
@@ -36,13 +36,13 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://releases.example.com/{{target}}/{{arch}}/{{current_version}}"
+        "https://github.com/1914520160/filck/releases/latest/download/updater.json"
       ],
-      "pubkey": "REPLACE_WITH_YOUR_PUBLIC_KEY",
+      "pubkey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEP90fRiyuwGHSjxu2kj72CTXKYZ7FruQTZsLRf1UHy4gF3tbPpnUUU9cYsHa0uiOs2TBzsyi8Qsy305yDLN7Hyg==",
       "windows": {
         "installMode": "passive"
       },
-      "active": false
+      "active": true
     }
   },
   "bundle": {

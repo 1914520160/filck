@@ -3850,3 +3850,165 @@ button:disabled,
   font-weight: var(--shiki-sunset-font-weight) !important;
   text-decoration: var(--shiki-sunset-text-decoration) !important;
 }
+
+/* ===== 33. Update Badge & Banner ===== */
+
+/* TopBar 更新徽章 */
+.update-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  cursor: default;
+  transition: all 0.15s;
+}
+
+.update-badge-available {
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  animation: badge-pulse 2s infinite;
+}
+.update-badge-available:hover {
+  filter: brightness(1.1);
+}
+
+.update-badge-downloading {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.update-badge-ready {
+  background: #34C759;
+  color: #fff;
+  cursor: pointer;
+  animation: badge-pulse 2s infinite;
+}
+.update-badge-ready:hover {
+  filter: brightness(1.1);
+}
+
+.update-badge-error {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+/* AboutDialog 更新横幅 */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+.update-banner-idle {
+  background: linear-gradient(135deg, var(--accent-light), #E8F0FE);
+  border: 1px solid #B4D4F7;
+}
+
+.update-banner-checking {
+  background: var(--section-bg);
+  border: 1px solid var(--border-color);
+}
+
+.update-banner-available {
+  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+  border: 1px solid #FCD34D;
+}
+
+.update-banner-downloading {
+  background: var(--section-bg);
+  border: 1px solid var(--accent);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.update-banner-ready {
+  background: linear-gradient(135deg, #ECFDF5, #D1FAE5);
+  border: 1px solid #6EE7B7;
+}
+
+.update-banner-error {
+  background: linear-gradient(135deg, #FEF2F2, #FEE2E2);
+  border: 1px solid #FECACA;
+}
+
+.update-banner-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.update-banner-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.update-banner-desc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+.update-banner-btn {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  background: var(--accent);
+  color: #fff;
+  transition: all 0.15s;
+}
+.update-banner-btn:hover {
+  filter: brightness(1.1);
+}
+
+.update-banner-btn-restart {
+  background: #34C759;
+}
+
+/* 下载进度条 */
+.update-progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-color);
+  margin: 8px 0 4px;
+  overflow: hidden;
+}
+
+.update-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.3s ease;
+}

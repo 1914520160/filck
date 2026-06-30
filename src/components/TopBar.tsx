@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore, FilterType, TimeFilter, SourceFilter, HistoryItem } from "@/stores/appStore";
 import { getAppVersion } from "@/lib/api";
+import { UpdateBadge } from "@/components/UpdateBadge";
 import { logger } from "@/lib/logger";
 import { X, ChevronDown } from "lucide-react";
 
@@ -133,6 +134,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
           <span className="header-title-icon">📋</span>
           <span className="header-title-text">Filck</span>
           <span className="header-badge">v{appVersion}</span>
+          <UpdateBadge />
         </div>
         <div className="header-icons" data-tauri-drag-region="false">
           <IconBtn icon="📝" tip="片段库" onClick={onSnippets} />
