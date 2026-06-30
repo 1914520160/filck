@@ -27,51 +27,53 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 🔑 验证签名密钥格式
+      - name: 🔑 准备签名密钥（文件路径方式）
         shell: pwsh
         run: |
           $raw = '${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}'
+          $keyFile = "${{ runner.temp }}\tauri-signing.key"
+
+          # 写入密钥文件（二进制安全）
+          [System.IO.File]::WriteAllText($keyFile, $raw, [System.Text.Encoding]::ASCII)
+
+          # 验证文件
+          $content = Get-Content $keyFile -Raw
           $expectedPrefix = 'dW50cnVzdGVk'
           $expectedLength = 348
 
           Write-Host "========================================"
           Write-Host "  密钥验证"
           Write-Host "========================================"
-          Write-Host "长度: $($raw.Length) (期望: $expectedLength)"
-          Write-Host "以 '$expectedPrefix' 开头: $($raw.StartsWith($expectedPrefix))"
+          Write-Host "Secret 长度: $($raw.Length)"
+          Write-Host "文件长度: $($content.Length)"
+          Write-Host "期望长度: $expectedLength"
+          Write-Host "以 '$expectedPrefix' 开头: $($content.StartsWith($expectedPrefix))"
 
-          # 严格验证
-          $errors = @()
-          if ($raw.Length -ne $expectedLength) {
-            $errors += "长度错误! 当前 $($raw.Length), 期望 $expectedLength"
-          }
-          if (-not $raw.StartsWith($expectedPrefix)) {
-            $errors += "格式错误! 不是 minisign 格式密钥"
+          if ($content.Length -ne $expectedLength -or -not $content.StartsWith($expectedPrefix)) {
+            Write-Host "`n❌ 密钥格式不正确!"
+            Write-Host "前30字符: $($content.Substring(0, [Math]::Min(30, $content.Length)))"
+            Write-Host "`n修复: 去 GitHub Secrets 更新 TAURI_SIGNING_PRIVATE_KEY"
+            Write-Host "值必须以 'dW50cnVzdGVk' 开头, 长度 348 字符"
+            Write-Host "正确值来自: npx tauri signer generate --ci 生成的 .key 文件"
+            exit 1
           }
 
-          # 验证 base64 解码
           try {
-            $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($raw))
+            $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($content))
             if ($decoded.StartsWith('untrusted comment: rsign encrypted secret key')) {
-              Write-Host "✅ Base64解码成功, 密钥格式正确 (minisign)"
+              Write-Host "✅ 密钥验证通过 (minisign 格式)"
             } else {
-              $errors += "解码后内容格式不正确: $($decoded.Substring(0, [Math]::Min(40, $decoded.Length)))"
+              Write-Host "❌ 解码后格式不对: $($decoded.Substring(0, [Math]::Min(40, $decoded.Length)))"
+              exit 1
             }
           } catch {
-            $errors += "Base64解码失败: $($_.Exception.Message)"
+            Write-Host "❌ Base64 解码失败: $($_.Exception.Message)"
+            exit 1
           }
 
-          if ($errors.Count -gt 0) {
-            Write-Host "`n❌ 验证失败:"
-            $errors | ForEach-Object { Write-Host "  - $_" }
-            Write-Host "`n修复方法:"
-            Write-Host "  1. 确保运行了 'npx tauri signer generate --ci' 生成新密钥"
-            Write-Host "  2. 把 .key 文件内容完整复制到 GitHub Secrets → TAURI_SIGNING_PRIVATE_KEY"
-            Write-Host "  3. 密钥应以 'dW50cnVzdGVk' 开头, 长度 348 字符"
-            exit 1
-          } else {
-            Write-Host "`n✅ 密钥验证全部通过, 继续构建..."
-          }
+          # 设置文件路径供后续步骤使用
+          "TAURI_KEY_FILE=$keyFile" >> $env:GITHUB_ENV
+          Write-Host "密钥文件: $keyFile"
           Write-Host "========================================"
 
       - name: 安装 Node.js
@@ -89,9 +91,10 @@ jobs:
           npm install
 
       - name: 构建 Tauri 应用
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-        run: npx tauri build
+        shell: pwsh
+        run: |
+          $env:TAURI_SIGNING_PRIVATE_KEY = $env:TAURI_KEY_FILE
+          npx tauri build
 
       - name: 列出构建产物（调试）
         if: always()
