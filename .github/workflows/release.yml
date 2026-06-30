@@ -41,6 +41,22 @@ jobs:
           rm -r node_modules -ErrorAction SilentlyContinue
           npm install
 
+      - name: 调试 - 检查密钥格式
+        shell: pwsh
+        run: |
+          $raw = '${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}'
+          Write-Host "密钥长度: $($raw.Length)"
+          Write-Host "前30字符: $($raw.Substring(0, [Math]::Min(30, $raw.Length)))"
+          Write-Host "后10字符: $($raw.Substring([Math]::Max(0, $raw.Length-10)))"
+          Write-Host "以dW50开头: $($raw.StartsWith('dW50cnVzdGVk'))"
+          try {
+            $decoded = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($raw))
+            Write-Host "Base64解码成功! 前50字符: $($decoded.Substring(0, [Math]::Min(50, $decoded.Length)))"
+          } catch {
+            Write-Host "Base64解码失败: $($_.Exception.Message)"
+          }
+        continue-on-error: true
+
       - name: 构建 Tauri 应用
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
