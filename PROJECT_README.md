@@ -9,7 +9,7 @@
 | 项目 | 说明 |
 |------|------|
 | **名称** | 剪贴板管理器 (Clipboard Manager) |
-| **版本** | v4.4.0 |
+| **版本** | v5.0.36 |
 | **架构** | Tauri 2 (桌面壳) + React 19 (前端) + Rust (后端) |
 | **数据库** | SQLite (rusqlite, bundled 模式) |
 | **平台** | Windows 10/11 (核心功能 Windows-only) |
@@ -60,7 +60,10 @@ clipboard-manager-tauri/          # ← 工作根目录
 │   │   ├── StatsBar.tsx          # 统计栏
 │   │   ├── Toast.tsx             # Toast 通知
 │   │   ├── TopBar.tsx            # 顶栏（搜索/过滤/设置按钮）
+│   │   ├── UpdateBadge.tsx       # 更新徽章+横幅+进度条（v5.0.36 新增）
 │   │   └── ui/                   # Radix UI 基础组件封装
+│   ├── contexts/
+│   │   └── UpdateContext.tsx     # 更新状态管理（v5.0.36 新增）
 │   ├── hooks/
 │   ├── lib/
 │   │   ├── api.ts                # Tauri 后端 API 封装（核心桥梁）
@@ -138,6 +141,7 @@ clipboard-manager-tauri/          # ← 工作根目录
 - `tauri-plugin-shell` — Shell 命令
 - `tauri-plugin-dialog` — 文件对话框
 - `tauri-plugin-fs` — 文件系统
+- `tauri-plugin-updater` — 自动更新（v5.0.36 新增）
 
 ---
 
@@ -395,7 +399,7 @@ npm run tauri build
 3. ~~**图片粘贴**仅支持文本的 WM_PASTE，不支持粘贴图片到目标窗口~~ ✅ v4.4.0 已修复
 4. ~~**LAN 同步**目前仅支持文本，不支持图片/文件同步~~ ✅ v4.4.0 已修复
 5. **`tray_manager.rs`** 的"极简模式"菜单项未实现功能
-6. **无自动更新机制**
+6. ~~**无自动更新机制**~~ ✅ v5.0.36 已实现（GitHub Actions + updater 插件）
 7. **日志文件**没有自动清理机制
 8. ~~**版本号硬编码**~~ ✅ v4.4.0 改为动态获取
 
@@ -408,6 +412,20 @@ npm run tauri build
 3. **版本号动态获取** — SettingsDialog/HelpDialog 通过 `getAppVersion()` 命令动态获取，不再硬编码
 4. **前端按类型粘贴** — App.tsx Enter 键处理按 item.type 分发到 `pasteText`/`pasteImage`
 5. **文档更新** — 命令清单、AppConfig 接口、粘贴流程说明已同步至 v4.4.0
+
+---
+
+## 十三、v5.0.36 更新日志（自动更新体系）
+
+1. **签名密钥** — 生成 ECDSA P-256 密钥对，公钥写入 tauri.conf.json，私钥存入 GitHub Secrets
+2. **updater 配置** — 端点指向 GitHub Releases，NSIS passive 静默安装模式
+3. **UpdateContext** — 启动时自动检查 + 每 24h 定时检查 + 下载/安装/重启完整流程
+4. **UpdateBadge** — TopBar 版本号旁显示更新提示徽章（新版本/下载中/就绪/错误）
+5. **UpdateBanner** — AboutDialog 完整更新横幅（检查/下载进度条/安装/重启）
+6. **GitHub Actions** — Tag 推送自动构建 NSIS → 签名 → 发布 Release → 生成 updater.json
+7. **权限配置** — capabilities 添加 updater 全部权限
+
+> 📖 完整运维文档：[docs/AUTO_UPDATE.md](docs/AUTO_UPDATE.md)
 
 ---
 
