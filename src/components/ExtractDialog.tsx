@@ -1,9 +1,11 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Link2, AtSign, Phone, Code2, Hash, Copy, CheckSquare, LucideIcon } from "lucide-react";
+import { X, Link2, AtSign, Phone, Code2, Hash, Copy, CheckSquare, Save, LucideIcon } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { useAppStore } from "@/stores/appStore";
 import { logger } from "@/lib/logger";
 
+// v5.0.39 方案A渐进式优化：结果项存为片段+底部批量操作栏+active实色填充
 type ExtractType = "url" | "email" | "phone" | "ip" | "code";
 
 const EXTRACT_CONFIGS: { key: ExtractType; label: string; Icon: LucideIcon; regex: RegExp }[] = [
@@ -14,11 +16,26 @@ const EXTRACT_CONFIGS: { key: ExtractType; label: string; Icon: LucideIcon; rege
   { key: "code",  label: "代码块", Icon: Code2, regex: /```[\s\S]*?```/g },
 ];
 
+// 各类型数量统计
+const useTypeCounts = (history: any[], ws: string) => {
+  const allText = history
+    .filter((h) => h.workspace === ws && h.type === "text")
+    .map((h) => h.text)
+    .join("\n");
+  return EXTRACT_CONFIGS.map((cfg) => ({
+    ...cfg,
+    count: new Set((allText.match(cfg.regex) || []).map((m) => m.trim()).filter(Boolean)).size,
+  }));
+};
+
 export function ExtractDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const history = useAppStore((s) => s.history);
   const ws = useAppStore((s) => s.config.current_workspace);
   const [type, setType] = useState<ExtractType>("url");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [saving, setSaving] = useState(false);
+
+  const typeCounts = useTypeCounts(history, ws);
 
   const results = useMemo(() => {
     const cfg = EXTRACT_CONFIGS.find((c) => c.key === type)!;
@@ -27,7 +44,6 @@ export function ExtractDialog({ open, onClose }: { open: boolean; onClose: () =>
       .map((h) => h.text)
       .join("\n");
     const matches = allText.match(cfg.regex) || [];
-    // 去重
     return [...new Set(matches)].map((m) => m.trim()).filter(Boolean);
   }, [history, ws, type]);
 
@@ -49,6 +65,34 @@ export function ExtractDialog({ open, onClose }: { open: boolean; onClose: () =>
 
   const copyAll = async () => {
     try { await navigator.clipboard.writeText(results.join("\n")); } catch { logger.warn("复制全部内容失败"); }
+  };
+
+  // 保存选中项为片段
+  const saveSelectedAsSnippets = async () => {
+    if (selected.size === 0) return;
+    setSaving(true);
+    try {
+      const cfg = EXTRACT_CONFIGS.find((c) => c.key === type)!;
+      for (const item of selected) {
+        const name = item.length > 50 ? item.slice(0, 47) + "..." : item;
+        await invoke("add_snippet", { name, content: item });
+      }
+      setSelected(new Set());
+    } catch (e) {
+      logger.warn("保存片段失败", e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // 保存单条为片段
+  const saveSingleAsSnippet = async (item: string) => {
+    try {
+      const name = item.length > 50 ? item.slice(0, 47) + "..." : item;
+      await invoke("add_snippet", { name, content: item });
+    } catch (e) {
+      logger.warn("保存片段失败", e);
+    }
   };
 
   if (!open) return null;
@@ -80,47 +124,27 @@ export function ExtractDialog({ open, onClose }: { open: boolean; onClose: () =>
 
             {/* Type selector */}
             <div className="extract-types">
-              {EXTRACT_CONFIGS.map((cfg) => {
+              {typeCounts.map((cfg) => {
                 const active = type === cfg.key;
                 const Icon = cfg.Icon;
                 return (
                   <button key={cfg.key} onClick={() => { setType(cfg.key); setSelected(new Set()); }}
                     className={`extract-type-btn${active ? " active" : ""}`}
                     style={{
-                      color: active ? "var(--primary)" : "var(--text-sec)",
-                      background: active ? "var(--primary-light)" : "transparent",
+                      background: active ? "var(--accent)" : "transparent",
+                      color: active ? "#fff" : "var(--text-secondary)",
                     }}
                     onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = "var(--hover)"; }}
                     onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = "transparent"; }}>
                     <Icon size={13} /> {cfg.label}
+                    <span className="tab-count">{cfg.count}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Results count + actions */}
-            <div className="extract-actions">
-              <span className="snippet-item-sub">找到 <b className="snippet-item-title" style={{ fontWeight: 600 }}>{results.length}</b> 个结果</span>
-              <div className="extract-btn-group">
-                <button onClick={selectAll}
-                  className="extract-btn-sm primary-light">
-                  {selected.size === results.length ? "取消全选" : "全选"}
-                </button>
-                {selected.size > 0 && (
-                  <button onClick={copySelected}
-                    className="extract-btn-sm primary">
-                    <Copy size={10} /> 复制 {selected.size} 项
-                  </button>
-                )}
-                <button onClick={copyAll}
-                  className="extract-btn-sm ghost">
-                  复制全部
-                </button>
-              </div>
-            </div>
-
             {/* Results list */}
-            <div className="dialog-body" style={{ padding: "0 16px 16px", gap: "4px" }}>
+            <div className="dialog-body" style={{ padding: "8px 16px", gap: "4px" }}>
               {results.length === 0 ? (
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0", gap: "8px" }}>
                   <p className="snippet-item-sub">未找到匹配的内容</p>
@@ -132,24 +156,64 @@ export function ExtractDialog({ open, onClose }: { open: boolean; onClose: () =>
                     <div key={i} onClick={() => toggleSelect(item)}
                       className={`extract-result${isSel ? " selected" : ""}`}
                       style={{
-                        background: isSel ? "var(--primary-light)" : "var(--card)",
-                        border: `1px solid ${isSel ? "var(--primary)" : "var(--border)"}`,
+                        background: isSel ? "var(--accent-light)" : "var(--card-bg)",
+                        border: `1px solid ${isSel ? "var(--accent)" : "var(--border-color)"}`,
                       }}
                       onMouseEnter={(e) => { if (!isSel) e.currentTarget.style.background = "var(--hover)"; }}
-                      onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "var(--card)"; }}>
+                      onMouseLeave={(e) => { if (!isSel) e.currentTarget.style.background = "var(--card-bg)"; }}>
                       <div className={`extract-checkbox${isSel ? " checked" : ""}`}
                         style={{
-                          background: isSel ? "var(--primary)" : "transparent",
-                          border: `1.5px solid ${isSel ? "var(--primary)" : "var(--border)"}`,
+                          background: isSel ? "var(--accent)" : "transparent",
+                          border: `1.5px solid ${isSel ? "var(--accent)" : "var(--border-color)"}`,
                         }}>
                         {isSel && <CheckSquare size={10} color="#fff" />}
                       </div>
                       <span className="extract-result-text">{item}</span>
+                      <div className="extract-item-actions">
+                        <button className="extract-item-action-btn copy"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigator.clipboard.writeText(item).catch(() => {});
+                          }}
+                          title="复制">
+                          <Copy size={12} />
+                        </button>
+                        <button className="extract-item-action-btn save"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            saveSingleAsSnippet(item);
+                          }}
+                          title="存为片段">
+                          <Save size={12} />
+                        </button>
+                      </div>
                     </div>
                   );
                 })
               )}
             </div>
+
+            {/* 底部操作栏 */}
+            {results.length > 0 && (
+              <div className="extract-footer-bar">
+                <div className="extract-footer-left">
+                  <span>已选 <strong>{selected.size}</strong> / {results.length} 项</span>
+                  <button className="btn-sm-v2 ghost" onClick={selectAll}>
+                    {selected.size === results.length ? "取消全选" : "全选"}
+                  </button>
+                </div>
+                <div className="extract-footer-right">
+                  <button className="btn-sm-v2 outline" onClick={copySelected}
+                    disabled={selected.size === 0}>
+                    <Copy size={12} /> 复制选中
+                  </button>
+                  <button className="btn-sm-v2 primary" onClick={saveSelectedAsSnippets}
+                    disabled={selected.size === 0 || saving}>
+                    <Save size={12} /> {saving ? "保存中..." : "全部存为片段"}
+                  </button>
+                </div>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}

@@ -1,15 +1,37 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Plus, Trash2, Copy, Edit3, ClipboardList } from "lucide-react";
+import { X, Plus, Trash2, Copy, Edit3, ClipboardList, Check, Download, CheckSquare } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { logger } from "@/lib/logger";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+
+// v5.0.39 方案A渐进式优化：卡片布局+分类标签+常驻操作栏+快速预览弹窗
+const TAG_OPTIONS = ["API", "SQL", "配置", "模板", "命令"] as const;
+type TagType = (typeof TAG_OPTIONS)[number] | "";
+const FILTER_TAGS = ["全部", ...TAG_OPTIONS];
 
 interface Snippet {
   id: string;
   name: string;
   content: string;
+  tag: string;
 }
+
+const TAG_COLORS: Record<string, string> = {
+  API: "api",
+  SQL: "sql",
+  "配置": "config",
+  "模板": "template",
+  "命令": "cmd",
+};
+
+const TAG_DOT_COLORS: Record<string, string> = {
+  API: "var(--accent)",
+  SQL: "var(--green)",
+  "配置": "var(--orange)",
+  "模板": "#a855f7",
+  "命令": "var(--danger)",
+};
 
 export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
@@ -17,6 +39,10 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
   const [editing, setEditing] = useState<Snippet | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Snippet | null>(null);
+  const [activeTag, setActiveTag] = useState<string>("全部");
+  const [previewSnippet, setPreviewSnippet] = useState<Snippet | null>(null);
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // 从后端加载片段
   const loadSnippets = useCallback(async () => {
@@ -35,7 +61,6 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
   useEffect(() => {
     if (!open) return;
     (async () => {
-      // 迁移 localStorage 旧数据到后端
       try {
         const legacy = localStorage.getItem("snippets");
         if (legacy) {
@@ -50,24 +75,48 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
     })();
   }, [open, loadSnippets]);
 
+  // 关闭时重置状态
+  useEffect(() => {
+    if (!open) {
+      setBatchMode(false);
+      setSelectedIds(new Set());
+      setPreviewSnippet(null);
+    }
+  }, [open]);
+
+  // 统计各标签数量
+  const counts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const s of snippets) {
+      const t = s.tag || "";
+      if (t) map[t] = (map[t] || 0) + 1;
+    }
+    return map;
+  }, [snippets]);
+
   const filtered = snippets.filter((s) => {
     const kw = search.toLowerCase();
-    return s.name.toLowerCase().includes(kw) ||
+    const matchSearch = s.name.toLowerCase().includes(kw) ||
       s.content.toLowerCase().includes(kw);
+    const matchTag = activeTag === "全部" || (s.tag || "") === activeTag;
+    return matchSearch && matchTag;
   });
 
   const handleAdd = () => {
-    setEditing({ id: "", name: "", content: "" });
+    setEditing({ id: "", name: "", content: "", tag: "" });
   };
 
   const handleSaveEdit = async () => {
     if (!editing || !editing.name.trim()) return;
     try {
       if (editing.id) {
-        // 更新已有片段
-        await invoke("update_snippet", { id: editing.id, name: editing.name, content: editing.content });
+        await invoke("update_snippet", {
+          id: editing.id,
+          name: editing.name,
+          content: editing.content,
+          tag: editing.tag || "",
+        });
       } else {
-        // 新增片段
         await invoke("add_snippet", { name: editing.name, content: editing.content });
       }
       await loadSnippets();
@@ -92,6 +141,25 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
     try { await navigator.clipboard.writeText(content); } catch { logger.warn("复制片段失败"); }
   };
 
+  const toggleBatchSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    setSelectedIds(next);
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      for (const id of selectedIds) {
+        await invoke("delete_snippet", { id });
+      }
+      await loadSnippets();
+      setSelectedIds(new Set());
+    } catch (e) {
+      logger.warn("批量删除片段失败", e);
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -111,16 +179,27 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
-              <div className="dialog-header">
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <ClipboardList size={16} style={{ color: "var(--primary)" }} />
+              <div className="dialog-header snippets-header">
+                <div className="snippets-header-left">
+                  <ClipboardList size={16} style={{ color: "var(--accent)" }} />
                   <h2 className="dialog-title">片段库</h2>
-                  <span className="version-label">{snippets.length}</span>
+                  <span className="panel-count">{snippets.length}</span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
-                  <button onClick={handleAdd} className="dialog-close"
-                    style={{ color: "var(--primary)", background: "var(--primary-light)" }}>
-                    <Plus size={15} />
+                <div className="snippets-header-right">
+                  <button
+                    onClick={() => { setBatchMode(!batchMode); setSelectedIds(new Set()); }}
+                    className={`btn-sm-v2 outline compact${batchMode ? " active" : ""}`}
+                    title={batchMode ? "退出管理" : "批量管理"}>
+                    <CheckSquare size={13} />
+                    <span>批量</span>
+                  </button>
+                  <button className="btn-sm-v2 outline compact" title="导出">
+                    <Download size={13} />
+                    <span>导出</span>
+                  </button>
+                  <button onClick={handleAdd} className="btn-sm-v2 primary compact">
+                    <Plus size={13} />
+                    <span>新建</span>
                   </button>
                   <button onClick={onClose} className="dialog-close"
                     onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover)")}
@@ -137,6 +216,26 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
                   className="snippet-search" />
               </div>
 
+              {/* Tag Filter */}
+              <div className="snippet-filter-bar">
+                {FILTER_TAGS.map((tag) => {
+                  const count = tag === "全部" ? snippets.length : (counts[tag] || 0);
+                  const dotColor = TAG_DOT_COLORS[tag];
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => setActiveTag(tag)}
+                      className={`snippet-filter-chip${activeTag === tag ? " active" : ""}`}>
+                      {dotColor && (
+                        <span className="chip-dot" style={{ backgroundColor: dotColor }} />
+                      )}
+                      {tag}
+                      <span className="chip-count">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
               {/* List */}
               <div className="dialog-body" style={{ padding: "0 16px 16px" }}>
                 {loading ? (
@@ -145,13 +244,27 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
                   </div>
                 ) : editing ? (
                   <div className="snippet-edit-form">
-                    <input type="text" value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                    <input type="text" value={editing.name}
+                      onChange={(e) => setEditing({ ...editing, name: e.target.value })}
                       placeholder="片段名称"
                       className="snippet-edit-input" />
-                    <textarea value={editing.content} onChange={(e) => setEditing({ ...editing, content: e.target.value })}
+                    <textarea value={editing.content}
+                      onChange={(e) => setEditing({ ...editing, content: e.target.value })}
                       placeholder="片段内容..."
                       rows={4}
                       className="snippet-edit-textarea" />
+                    <div className="snippet-edit-tag-row">
+                      <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>标签：</span>
+                      <select
+                        value={editing.tag || ""}
+                        onChange={(e) => setEditing({ ...editing, tag: e.target.value })}
+                        className="snippet-edit-tag-select">
+                        <option value="">无标签</option>
+                        {TAG_OPTIONS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                    </div>
                     <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
                       <button onClick={() => setEditing(null)}
                         className="extract-btn-sm ghost">取消</button>
@@ -161,41 +274,129 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
                   </div>
                 ) : filtered.length === 0 ? (
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "48px 0", gap: "8px" }}>
-                    <ClipboardList size={20} style={{ color: "var(--text-ter)" }} />
+                    <ClipboardList size={20} style={{ color: "var(--text-muted)" }} />
                     <p className="snippet-item-sub">{search ? "没有匹配的片段" : "暂无片段，点击 + 添加"}</p>
                   </div>
                 ) : (
-                  filtered.map((s) => (
-                    <div key={s.id} className="snippet-item"
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover)")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "var(--card)")}>
-                      <div className="snippet-item-content">
-                        <p className="snippet-item-title">{s.name}</p>
-                        <p className="snippet-item-sub">{s.content}</p>
-                      </div>
-                      <div className="snippet-actions">
-                        <button onClick={() => handleCopy(s.content)} className="snippet-action-btn"
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
-                          <Copy size={13} />
-                        </button>
-                        <button onClick={() => setEditing(s)} className="snippet-action-btn"
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--card)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
-                          <Edit3 size={13} />
-                        </button>
-                        <button onClick={() => setDeleteTarget(s)} className="snippet-action-btn danger"
-                          onMouseEnter={(e) => (e.currentTarget.style.background = "color-mix(in srgb, var(--danger) 10%, transparent)")}
-                          onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                    {filtered.map((s) => {
+                      const tagClass = TAG_COLORS[s.tag || ""] || "";
+                      return (
+                        <div key={s.id} className="snippet-card-v2"
+                          onClick={() => {
+                            if (batchMode) {
+                              toggleBatchSelect(s.id);
+                            } else {
+                              setPreviewSnippet(s);
+                            }
+                          }}>
+                          <div className="snippet-card-v2-header">
+                            <div className="snippet-card-v2-title">
+                              {batchMode && (
+                                <div
+                                  className={`snippet-batch-checkbox${selectedIds.has(s.id) ? " checked" : ""}`}
+                                  onClick={(e) => { e.stopPropagation(); toggleBatchSelect(s.id); }}>
+                                  {selectedIds.has(s.id) ? "✓" : ""}
+                                </div>
+                              )}
+                              <span className="snippet-card-v2-title-text">{s.name}</span>
+                              {s.tag && (
+                                <span className={`snippet-tag ${tagClass}`}>{s.tag}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="snippet-card-v2-body">{s.content}</div>
+                          <div className="snippet-card-v2-footer">
+                            <span className="snippet-card-v2-meta">
+                              <span>🕐 片段</span>
+                              <span>📋 已复制 0 次</span>
+                            </span>
+                            <div className="snippet-card-v2-actions">
+                              <button className="snippet-action-btn-v2 copy"
+                                onClick={(e) => { e.stopPropagation(); handleCopy(s.content); }}
+                                title="复制">
+                                <Copy size={13} />
+                              </button>
+                              <button className="snippet-action-btn-v2"
+                                onClick={(e) => { e.stopPropagation(); setEditing(s); }}
+                                title="编辑">
+                                <Edit3 size={13} />
+                              </button>
+                              <button className="snippet-action-btn-v2 danger"
+                                onClick={(e) => { e.stopPropagation(); setDeleteTarget(s); }}
+                                title="删除">
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* 最近使用 */}
+                {snippets.length > 0 && !editing && (
+                  <>
+                    <div className="recent-section-label">最近使用</div>
+                    <div className="recent-tags">
+                      {snippets.slice(0, 5).map((s) => (
+                        <span key={s.id} className="recent-tag"
+                          onClick={() => setPreviewSnippet(s)}>
+                          {s.name}
+                        </span>
+                      ))}
                     </div>
-                  ))
+                  </>
                 )}
               </div>
             </motion.div>
           </motion.div>
+
+          {/* 快速预览弹窗 */}
+          {previewSnippet && (
+            <div className="snippet-preview-overlay" onClick={() => setPreviewSnippet(null)}>
+              <div className="snippet-preview-modal" onClick={(e) => e.stopPropagation()}>
+                <div className="snippet-preview-header">
+                  <div className="snippet-preview-title">
+                    {previewSnippet.name}
+                    {previewSnippet.tag && (
+                      <span className={`snippet-tag ${TAG_COLORS[previewSnippet.tag] || ""}`}>
+                        {previewSnippet.tag}
+                      </span>
+                    )}
+                  </div>
+                  <button className="dialog-close" onClick={() => setPreviewSnippet(null)}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = "var(--hover)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "")}>
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="snippet-preview-body">{previewSnippet.content}</div>
+                <div className="snippet-preview-footer">
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>🕐 片段 · 📋 已复制 0 次</span>
+                  <div style={{ display: "flex", gap: "6px" }}>
+                    <button className="btn-sm-v2 outline"
+                      onClick={() => { handleCopy(previewSnippet.content); }}>
+                      <Copy size={12} /> 复制
+                    </button>
+                    <button className="btn-sm-v2 outline"
+                      onClick={() => { setEditing(previewSnippet); setPreviewSnippet(null); }}>
+                      <Edit3 size={12} /> 编辑
+                    </button>
+                    <button className="btn-sm-v2 ghost"
+                      style={{ color: "var(--danger)" }}
+                      onClick={() => {
+                        setDeleteTarget(previewSnippet);
+                        setPreviewSnippet(null);
+                      }}>
+                      <Trash2 size={12} /> 删除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 删除确认弹窗 */}
           <ConfirmDialog

@@ -233,7 +233,7 @@ pub fn add_snippet(
     store: State<DataStore>,
     name: String,
     content: String,
-) -> Result<(), String> {
+) -> Result<String, String> {
     store.add_snippet(&name, &content)
 }
 
@@ -252,8 +252,9 @@ pub fn update_snippet(
     id: String,
     name: String,
     content: String,
+    tag: String,
 ) -> Result<(), String> {
-    store.update_snippet(&id, &name, &content)
+    store.update_snippet(&id, &name, &content, &tag)
 }
 
 /// 删除片段

@@ -1,6 +1,6 @@
 [package]
 name = "filck"
-version = "5.0.37"
+version = "5.0.42"
 description = "Filck - Smart Clipboard Manager"
 authors = ["you"]
 edition = "2021"

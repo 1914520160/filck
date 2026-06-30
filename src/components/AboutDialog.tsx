@@ -2,10 +2,45 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink } from "lucide-react";
 import { getAppVersion } from "@/lib/api";
 import { UpdateBanner } from "@/components/UpdateBadge";
-import { useState, useEffect } from "react";
+import { useUpdate } from "@/contexts/UpdateContext";
+import { useState, useEffect, useMemo } from "react";
+
+const TECH_STACK = [
+  { label: "Tauri 2", desc: "桌面框架", color: "#FFC131", icon: "⚙️" },
+  { label: "React 19", desc: "UI 框架", color: "#61DAFB", icon: "⚛️" },
+  { label: "TypeScript", desc: "类型安全", color: "#3178C6", icon: "TS" },
+  { label: "SQLite", desc: "本地存储", color: "#4DB8BD", icon: "🗄️" },
+  { label: "Rust", desc: "后端核心", color: "#DEA584", icon: "🦀" },
+  { label: "Vite", desc: "构建工具", color: "#646CFF", icon: "⚡" },
+] as const;
+
+/** 根据更新状态返回版本标签 */
+function useVersionStatus() {
+  const { status, update } = useUpdate();
+
+  return useMemo(() => {
+    switch (status) {
+      case "checking":
+        return { label: "检查中…", cls: "update", dotCls: "orange" };
+      case "available":
+        return { label: `v${update?.version ?? "?"} 可用`, cls: "update", dotCls: "orange" };
+      case "downloading":
+        return { label: "下载中…", cls: "update", dotCls: "orange" };
+      case "ready":
+      case "installed":
+        return { label: "就绪", cls: "latest", dotCls: "green" };
+      case "error":
+        return { label: "错误", cls: "update", dotCls: "orange" };
+      case "idle":
+      default:
+        return { label: "已是最新", cls: "latest", dotCls: "green" };
+    }
+  }, [status, update]);
+}
 
 export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [appVersion, setAppVersion] = useState("");
+  const versionStatus = useVersionStatus();
 
   useEffect(() => {
     if (open) {
@@ -15,92 +50,87 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
 
   if (!open) return null;
 
+  const handleOpenProject = async () => {
+    try {
+      const { openUrl } = await import("@tauri-apps/plugin-opener");
+      await openUrl("https://github.com/1914520160/filck");
+    } catch (e) {
+      console.warn("打开项目主页失败", e);
+    }
+  };
+
   return (
     <AnimatePresence>
-      {open && (
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="dialog-backdrop" onClick={onClose}
+      >
         <motion.div
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="dialog-backdrop" onClick={onClose}>
-          <motion.div
-            initial={{ scale: 0.96, opacity: 0, y: 10 }} animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.96, opacity: 0, y: 10 }}
-            transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="dialog-box w480" onClick={(e) => e.stopPropagation()}>
+          initial={{ scale: 0.96, opacity: 0, y: 10 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.96, opacity: 0, y: 10 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          className="dialog-box w480"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* 头部 */}
+          <div className="dialog-header">
+            <h2 className="dialog-title">关于 Filck</h2>
+            <button onClick={onClose} className="dialog-close"><X size={16} /></button>
+          </div>
 
-
-            <div className="dialog-header">
-              <h2 className="dialog-title">ℹ️ 关于</h2>
-              <button onClick={onClose} className="dialog-close"><X size={16} /></button>
+          <div className="dialog-body" style={{ padding: "28px 28px 24px" }}>
+            {/* 英雄区 */}
+            <div className="about-hero">
+              <div className="about-icon">📋</div>
+              <div className="about-meta">
+                <div className="about-name">Filck</div>
+                <div className="about-version-row">
+                  <span className="about-version-badge">v{appVersion}</span>
+                  <span className={`about-version-status ${versionStatus.cls}`}>
+                    <span className={`about-status-dot ${versionStatus.dotCls}`} />
+                    {versionStatus.label}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="dialog-body" style={{ alignItems: "center", textAlign: "center", padding: "32px 20px" }}>
-              {/* 图标 */}
-              <div style={{
-                width: 72, height: 72, borderRadius: 20,
-                background: "linear-gradient(135deg, #0078D4, #005A9E)",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                margin: "0 auto 16px", fontSize: 32, color: "#fff",
-              }}>📋</div>
+            {/* 分割线 */}
+            <div className="about-divider" />
 
-              <div style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)", marginBottom: 4 }}>
-                Filck
-              </div>
-              <span style={{
-                fontSize: 13, color: "var(--text-secondary)",
-                background: "var(--section-bg)", borderRadius: 6, padding: "2px 10px",
-              }}>v{appVersion}</span>
-
-              <div style={{ fontSize: 12, color: "var(--text-secondary)", marginTop: 16 }}>
-                Tauri 2 · React 19 · Rust
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                © 2026 Filck
-              </div>
-
-              {/* 技术栈 */}
-              <div style={{
-                display: "flex", gap: 8, marginTop: 20, flexWrap: "wrap", justifyContent: "center",
-              }}>
-                {[
-                  { label: "Tauri 2", color: "#FFC131" },
-                  { label: "React 19", color: "#61DAFB" },
-                  { label: "TypeScript", color: "#3178C6" },
-                  { label: "SQLite", color: "#003B57" },
-                  { label: "Rust", color: "#DEA584" },
-                  { label: "Vite", color: "#646CFF" },
-                ].map((t) => (
-                  <span key={t.label} style={{
-                    fontSize: 11, fontWeight: 600, padding: "3px 10px",
-                    borderRadius: 8, border: `1px solid ${t.color}20`,
-                    background: `${t.color}10`, color: "var(--text-primary)",
-                  }}>{t.label}</span>
-                ))}
-              </div>
-
-              {/* 更新横幅 */}
-              <div style={{ marginTop: 24, width: "100%" }}>
-                <UpdateBanner />
-              </div>
-
-              {/* 项目主页链接 */}
-              <a
-                href="https://github.com/1914520160/filck"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  marginTop: 16, padding: "8px 18px", borderRadius: 10,
-                  border: "1px solid var(--border-color)",
-                  background: "var(--card-bg)", color: "var(--text-secondary)",
-                  fontSize: 12, fontWeight: 600, cursor: "pointer",
-                  display: "inline-flex", alignItems: "center", gap: 6,
-                  fontFamily: "inherit", textDecoration: "none",
-                }}>
-                项目主页 <ExternalLink size={12} />
-              </a>
+            {/* 技术栈 */}
+            <div className="about-section-label">技术栈</div>
+            <div className="about-tech-grid">
+              {TECH_STACK.map((t) => (
+                <div key={t.label} className="about-tech-card">
+                  <div
+                    className="about-tech-icon"
+                    style={{ background: `${t.color}20`, color: t.color }}
+                  >
+                    {t.icon}
+                  </div>
+                  <div className="about-tech-info">
+                    <div className="about-tech-name">{t.label}</div>
+                    <div className="about-tech-desc">{t.desc}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </motion.div>
+
+            {/* 更新横幅（复用现有 UpdateBanner） */}
+            <UpdateBanner />
+
+            {/* 底部 */}
+            <div className="about-footer">
+              <button className="about-footer-link" onClick={handleOpenProject}>
+                <ExternalLink size={14} />
+                项目主页
+              </button>
+              <span className="about-copyright">© 2026 Filck</span>
+            </div>
+          </div>
         </motion.div>
-      )}
+      </motion.div>
     </AnimatePresence>
   );
 }

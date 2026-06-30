@@ -71,7 +71,8 @@ impl DataStore {
             CREATE TABLE IF NOT EXISTS snippets (
                 id TEXT PRIMARY KEY,
                 name TEXT NOT NULL,
-                content TEXT NOT NULL
+                content TEXT NOT NULL,
+                tag TEXT NOT NULL DEFAULT ''
             );",
         )?;
 
@@ -86,6 +87,20 @@ impl DataStore {
         if !has_pinyin {
             if let Err(e) = conn.execute_batch("ALTER TABLE history ADD COLUMN pinyin_initials TEXT;") {
                 log::warn!("[DataStore] 添加 pinyin_initials 列失败: {}", e);
+            }
+        }
+
+        // 数据库迁移：为旧 snippets 表添加 tag 列（如果不存在）
+        let has_tag: bool = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('snippets') WHERE name = 'tag'",
+                [],
+                |row| row.get::<_, i32>(0),
+            )
+            .unwrap_or(0) > 0;
+        if !has_tag {
+            if let Err(e) = conn.execute_batch("ALTER TABLE snippets ADD COLUMN tag TEXT NOT NULL DEFAULT '';") {
+                log::warn!("[DataStore] 添加 snippets.tag 列失败: {}", e);
             }
         }
 
@@ -487,7 +502,7 @@ impl DataStore {
         Ok(count)
     }
 
-    pub fn add_snippet(&self, name: &str, content: &str) -> Result<(), String> {
+    pub fn add_snippet(&self, name: &str, content: &str) -> Result<String, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         let id = uuid::Uuid::new_v4().to_string();
         conn.execute(
@@ -495,13 +510,13 @@ impl DataStore {
             params![id, name, content],
         )
         .map_err(|e| e.to_string())?;
-        Ok(())
+        Ok(id)
     }
 
     pub fn get_snippets(&self) -> Result<Vec<Snippet>, String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         let mut stmt = conn
-            .prepare("SELECT id, name, content FROM snippets ORDER BY rowid DESC")
+            .prepare("SELECT id, name, content, tag FROM snippets ORDER BY rowid DESC")
             .map_err(|e| e.to_string())?;
         let items = stmt
             .query_map([], |row| {
@@ -509,6 +524,7 @@ impl DataStore {
                     id: row.get(0)?,
                     name: row.get(1)?,
                     content: row.get(2)?,
+                    tag: row.get::<_, String>(3).unwrap_or_default(),
                 })
             })
             .map_err(|e| e.to_string())?
@@ -517,11 +533,11 @@ impl DataStore {
         Ok(items)
     }
 
-    pub fn update_snippet(&self, id: &str, name: &str, content: &str) -> Result<(), String> {
+    pub fn update_snippet(&self, id: &str, name: &str, content: &str, tag: &str) -> Result<(), String> {
         let conn = self.conn.lock().map_err(|e| e.to_string())?;
         conn.execute(
-            "UPDATE snippets SET name = ?1, content = ?2 WHERE id = ?3",
-            params![name, content, id],
+            "UPDATE snippets SET name = ?1, content = ?2, tag = ?3 WHERE id = ?4",
+            params![name, content, tag, id],
         )
         .map_err(|e| e.to_string())?;
         Ok(())
@@ -570,6 +586,8 @@ pub struct Snippet {
     pub id: String,
     pub name: String,
     pub content: String,
+    #[serde(default)]
+    pub tag: String,
 }
 
 /// 计算文本的拼音首字母（仅中文字符）
