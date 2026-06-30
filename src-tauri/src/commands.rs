@@ -174,6 +174,44 @@ pub fn toggle_window(
     Ok(())
 }
 
+/// 从托盘弹窗触发：显示主窗口（先隐藏弹窗，避免弹窗 always_on_top 阻挡主窗口）
+#[tauri::command]
+pub fn show_main_window(app: tauri::AppHandle) -> Result<(), String> {
+    // 1. 先隐藏托盘弹窗（弹窗是 always_on_top，必须先在 Rust 层关闭）
+    if let Some(popup) = app.get_webview_window("tray-popup") {
+        if popup.is_visible().unwrap_or(false) {
+            popup.hide().ok();
+        }
+    }
+
+    // 2. 显示主窗口
+    if let Some(window) = app.get_webview_window("main") {
+        // 保存前台窗口句柄（粘贴目标）
+        if let Some(engine) = app.try_state::<crate::paste_engine::PasteEngine>() {
+            engine.save_foreground_hwnd();
+        }
+
+        // 如果窗口最小化，先恢复
+        window.unminimize().ok();
+
+        // 临时置顶确保获得焦点，随后恢复
+        let _ = window.set_always_on_top(true);
+        if let Err(e) = window.show() {
+            log::warn!("[Commands] show_main_window 显示失败: {}", e);
+        }
+        window.set_focus().ok();
+
+        // 延迟恢复置顶状态
+        let w = window.clone();
+        std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(150));
+            let _ = w.set_always_on_top(false);
+        });
+    }
+
+    Ok(())
+}
+
 /// 退出应用程序
 #[tauri::command]
 pub fn exit_app(app: tauri::AppHandle) {

@@ -266,19 +266,14 @@ export function TrayPopup() {
   const doShow = useCallback(async () => {
     setOperationLoading("show");
     try {
-      // ★ save_foreground 和 toggle_window 顺序调用，await 确保完成
-      await invoke("save_foreground");
-      await invoke("toggle_window");
-      // toggle_window 完成后弹窗内的 setTimeout 确保主窗口已获得焦点再隐藏
-      setTimeout(async () => {
-        await safeHide();
-      }, 80);
+      // ★ 全部由 Rust show_main_window 统一处理：隐藏弹窗 → 恢复/显示主窗口 → 置顶聚焦
+      await invoke("show_main_window");
     } catch (e) {
       console.error("[TrayPopup] 显示主窗口失败:", e);
       showToast("显示主窗口失败", "error");
-      setOperationLoading(null);
     }
-  }, [safeHide, showToast]);
+    setOperationLoading(null);
+  }, [showToast]);
 
   const doToggleMonitor = useCallback(async () => {
     setOperationLoading("toggle_monitor");

@@ -177,6 +177,7 @@ pub fn run() {
             commands::hide_tray_popup,
             commands::get_tray_popup_data,
             commands::emit_tray_open_settings,
+            commands::show_main_window,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
