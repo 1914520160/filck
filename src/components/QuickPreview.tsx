@@ -127,7 +127,7 @@ export function QuickPreview() {
                   {lines.map((_, i) => <span key={i} className="code-ln">{i + 1}</span>)}
                 </div>
                 {highlightedHtml ? (
-                  <pre className="code-text code-highlighted">
+                  <pre className="code-text code-highlighted shiki">
                     <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
                   </pre>
                 ) : (

@@ -81,20 +81,44 @@ export const TYPE_ICONS: Record<string, { icon: string; color: string }> = {
 };
 
 // ==================== 代码高亮 ====================
+// 策略：highlight.js 做语言检测 + Shiki 做语法高亮渲染
+// hljs.highlightAuto 的 relevance 计分机制检测语言，Shiki 的 TextMate 引擎渲染精准高亮
 
-/**
- * 高亮代码并返回 HTML 字符串
- * 使用 highlight.js core + 按需注册语言，避免 tree-shaking 丢失语言模块
- */
+import type { HighlighterCore } from "shiki/core";
+import { createHighlighterCore } from "shiki/core";
+import { createOnigurumaEngine } from "shiki/engine/oniguruma";
+import type { ThemeKey } from "./theme";
+
+/** 支持的语言列表（hljs 和 Shiki 共用） */
+const LANG_NAMES = [
+  "python", "javascript", "typescript", "rust", "go", "java",
+  "cpp", "c", "sql", "bash", "json", "xml", "yaml", "css", "markdown",
+] as const;
+
+/** 语言名称 → 显示标签映射 */
+const LANG_LABELS: Record<string, string> = {
+  python: "Python", javascript: "JavaScript", typescript: "TypeScript",
+  rust: "Rust", go: "Go", java: "Java", cpp: "C++", c: "C",
+  sql: "SQL", bash: "Bash", json: "JSON", xml: "XML/HTML",
+  yaml: "YAML", css: "CSS", markdown: "Markdown",
+};
+
+export interface HighlightResult {
+  html: string;
+  language: string;
+  relevance: number;
+}
+
+// ---- hljs 检测器（只做语言检测，不做高亮） ----
+
 let hljsCore: typeof import("highlight.js/lib/core").default | null = null;
-let languagesRegistered = false;
+let hljsReady = false;
 
-async function getHljs() {
+async function getHljsDetector() {
   if (!hljsCore) {
     hljsCore = (await import("highlight.js/lib/core")).default;
   }
-  if (!languagesRegistered) {
-    // 按需注册所有支持的语言（显式 import 确保不被 tree-shake）
+  if (!hljsReady) {
     const langModules = await Promise.all([
       import("highlight.js/lib/languages/python"),
       import("highlight.js/lib/languages/javascript"),
@@ -112,62 +136,118 @@ async function getHljs() {
       import("highlight.js/lib/languages/css"),
       import("highlight.js/lib/languages/markdown"),
     ]);
-    const langNames = [
-      "python", "javascript", "typescript", "rust", "go", "java",
-      "cpp", "c", "sql", "bash", "json", "xml", "yaml", "css", "markdown",
-    ];
-    langNames.forEach((name, i) => hljsCore!.registerLanguage(name, langModules[i].default));
-    languagesRegistered = true;
+    LANG_NAMES.forEach((name, i) => hljsCore!.registerLanguage(name, langModules[i].default));
+    hljsReady = true;
   }
   return hljsCore;
 }
 
-export interface HighlightResult {
-  html: string;
-  language: string;
-  relevance: number;
-}
+// ---- Shiki 高亮器（只做渲染） ----
 
-/** 语言名称 → 显示标签映射 */
-const LANG_LABELS: Record<string, string> = {
-  python: "Python", javascript: "JavaScript", typescript: "TypeScript",
-  rust: "Rust", go: "Go", java: "Java", cpp: "C++", c: "C",
-  sql: "SQL", bash: "Bash", json: "JSON", xml: "XML/HTML",
-  yaml: "YAML", css: "CSS", markdown: "Markdown",
+/** 软件主题 → Shiki 主题映射（每个软件主题对应一个独立 Shiki 主题） */
+const THEME_MAP: Record<string, string> = {
+  ocean: "github-light-default",
+  forest: "everforest-light",
+  blossom: "rose-pine-dawn",
+  midnight: "github-dark-default",
+  terminal: "dark-plus",
+  sunset: "dracula",
 };
+
+let highlighter: HighlighterCore | null = null;
+let highlighterInitPromise: Promise<HighlighterCore> | null = null;
+
+async function getHighlighter(): Promise<HighlighterCore> {
+  if (highlighter) return highlighter;
+  if (!highlighterInitPromise) {
+    highlighterInitPromise = (async () => {
+      const h = await createHighlighterCore({
+        themes: [
+          import("shiki/themes/github-light-default.mjs"),
+          import("shiki/themes/everforest-light.mjs"),
+          import("shiki/themes/rose-pine-dawn.mjs"),
+          import("shiki/themes/github-dark-default.mjs"),
+          import("shiki/themes/dark-plus.mjs"),
+          import("shiki/themes/dracula.mjs"),
+        ],
+        langs: [
+          import("shiki/langs/python.mjs"),
+          import("shiki/langs/javascript.mjs"),
+          import("shiki/langs/typescript.mjs"),
+          import("shiki/langs/rust.mjs"),
+          import("shiki/langs/go.mjs"),
+          import("shiki/langs/java.mjs"),
+          import("shiki/langs/cpp.mjs"),
+          import("shiki/langs/c.mjs"),
+          import("shiki/langs/sql.mjs"),
+          import("shiki/langs/bash.mjs"),
+          import("shiki/langs/json.mjs"),
+          import("shiki/langs/xml.mjs"),
+          import("shiki/langs/yaml.mjs"),
+          import("shiki/langs/css.mjs"),
+          import("shiki/langs/markdown.mjs"),
+        ],
+        engine: createOnigurumaEngine(() => import("shiki/wasm")),
+      });
+      return h;
+    })();
+  }
+  highlighter = await highlighterInitPromise;
+  return highlighter;
+}
 
 /** 错误日志关键词 */
 const ERROR_KEYWORDS = /\b(ERROR|FATAL|Exception|Traceback|panic|stack trace|WARN)\b/i;
 
 /**
  * 高亮代码并返回结构化结果
- * 使用 highlight.js highlightAuto 自动检测语言，根据 relevance 判断置信度
+ * hljs.highlightAuto 检测语言 → Shiki.codeToHtml 渲染高亮
  */
 export async function highlightCode(text: string): Promise<HighlightResult> {
+  if (!text || text.length > 5000) {
+    return { html: "", language: "plain", relevance: 0 };
+  }
+
   try {
-    const hljs = await getHljs();
-
-    // 先用 highlightAuto 检测语言并高亮
-    const result = hljs.highlightAuto(text, [
-      "python", "javascript", "typescript", "rust", "go", "java",
-      "cpp", "c", "sql", "bash", "json", "xml", "yaml", "css", "markdown",
-    ]);
-
-    const relevance = result.relevance || 0;
-    const language = result.language || "plain";
-
-    // relevance ≥ 3 认为检测可信，返回高亮结果
-    if (relevance >= 3 && language !== "plain") {
-      // 检查是否错误日志：如果错误关键词密集，降级为 errorlog
-      const errorMatches = (text.match(ERROR_KEYWORDS) || []).length;
-      if (errorMatches >= 2 && text.length < 500) {
-        return { html: "", language: "errorlog", relevance: 0 };
-      }
-      return { html: result.value, language, relevance };
+    // 错误日志检测
+    const errorMatches = (text.match(ERROR_KEYWORDS) || []).length;
+    if (errorMatches >= 2 && text.length < 500) {
+      return { html: "", language: "errorlog", relevance: 0 };
     }
 
-    // 低置信度：返回空 HTML，让 UI 显示原始文本
-    return { html: "", language: "plain", relevance: 0 };
+    // 1. hljs 检测语言
+    const hljs = await getHljsDetector();
+    const detectResult = hljs.highlightAuto(text, [...LANG_NAMES]);
+    const lang = detectResult.language || "plain";
+    const relevance = detectResult.relevance || 0;
+
+    // 低置信度 → 不显示高亮
+    if (relevance < 3 || lang === "plain") {
+      return { html: "", language: "plain", relevance: 0 };
+    }
+
+    // 2. Shiki 用检测到的语言做高亮（多主题：6 个软件主题各对应独立 Shiki 主题）
+    const h = await getHighlighter();
+    // Shiki 用 "html" 而 hljs 用 "xml"，做映射
+    const shikiLang = lang === "xml" ? "html" : lang;
+    // 构建多主题对象：每个软件主题 key → Shiki 主题名
+    const themeEntries = Object.entries(THEME_MAP) as [ThemeKey, string][];
+    const themes: Record<string, string> = {};
+    for (const [appTheme, shikiTheme] of themeEntries) {
+      themes[appTheme] = shikiTheme;
+    }
+    const result = h.codeToHtml(text, {
+      lang: shikiLang,
+      themes,
+      defaultColor: false, // 为所有主题生成 CSS 变量，由 data-theme + CSS 规则控制显示
+    });
+    // 提取 <pre> 内部 HTML（去掉外层 pre/code 标签）
+    const inner = result.replace(/^<pre[^>]*><code[^>]*>/, "").replace(/<\/code><\/pre>$/, "");
+
+    if (inner.includes("<span")) {
+      return { html: inner, language: lang, relevance };
+    }
+    return { html: "", language: lang, relevance };
   } catch {
     return { html: "", language: "plain", relevance: 0 };
   }
@@ -179,15 +259,9 @@ export function getLangLabel(language: string): string {
 }
 
 /**
- * 同步高亮（用于已知语言的情况，避免异步开销）
- * 仅在语言明确且非 plain 时使用
+ * 同步高亮（用于已知语言的情况）
+ * Shiki 不支持同步调用，返回转义后的纯文本
  */
-export function highlightCodeSync(text: string, language: string): string {
-  try {
-    // 动态导入在同步上下文不可用，使用简单转义回退
-    // highlight.js 的同步 API 需要预先注册语言，这里采用懒加载
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  } catch {
-    return text;
-  }
+export function highlightCodeSync(text: string, _language: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }

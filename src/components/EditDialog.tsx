@@ -1,42 +1,74 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Copy, ClipboardPaste, Bookmark, Type, Scissors, Quote, AlignLeft, CaseSensitive, Undo2, Redo2 } from "lucide-react";
+import Editor from "react-simple-code-editor";
 import { useToast } from "@/components/Toast";
 import { pasteText } from "@/lib/api";
 import { useAppStore, HistoryItem } from "@/stores/appStore";
 import { highlightCode, getLangLabel } from "@/lib/utils";
+
+// 高亮函数：接受代码字符串，返回 React 节点
+async function highlightFn(code: string): Promise<React.ReactNode> {
+  if (!code) return "";
+  if (code.length > 5000) return code;
+  try {
+    const r = await highlightCode(code);
+    // 如果无高亮结果（纯文本），返回原始文本，确保可见
+    if (!r.html) return code;
+    // 包装 shiki class 让 CSS 变量切换生效
+    return <span className="shiki" dangerouslySetInnerHTML={{ __html: r.html }} />;
+  } catch {
+    return code;
+  }
+}
+
+// 同步高亮包装器（用缓存避免闪烁）
+function useHighlight(code: string) {
+  const [highlighted, setHighlighted] = useState<React.ReactNode>(code);
+  useEffect(() => {
+    let cancelled = false;
+    highlightFn(code).then(r => {
+      if (!cancelled) setHighlighted(r);
+    });
+    return () => { cancelled = true; };
+  }, [code]);
+  return highlighted;
+}
 
 export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () => void }) {
   const [text, setText] = useState(item?.text || "");
   const [showOriginal, setShowOriginal] = useState(false);
   const { toast } = useToast();
   const originalText = item?.text || "";
-  // 语言检测 + 高亮预览
   const [langLabel, setLangLabel] = useState("检测中…");
-  const [highlightedHtml, setHighlightedHtml] = useState("");
-  const [showHighlight, setShowHighlight] = useState(true);
+
+  // 初始化语言检测
+  useEffect(() => {
+    highlightCode(item?.text || "").then(r => {
+      setLangLabel(getLangLabel(r.language));
+    });
+  }, []);
+
+  // 文本变化时更新语言标签
   useEffect(() => {
     if (text.length <= 5000) {
       highlightCode(text).then(r => {
         setLangLabel(getLangLabel(r.language));
-        setHighlightedHtml(r.html);
       });
     } else {
       setLangLabel("文本");
-      setHighlightedHtml("");
     }
   }, [text]);
-  // 撤销/重做历史
+
+  // 撤销/重做历史（纯文本级别）
   const historyRef = useRef<string[]>([item?.text || ""]);
   const historyIdxRef = useRef(0);
 
   const pushHistory = useCallback((newText: string) => {
     const stack = historyRef.current;
     const idx = historyIdxRef.current;
-    // 截断重做分支
     const newStack = stack.slice(0, idx + 1);
     newStack.push(newText);
-    // 限制最多 30 步
     if (newStack.length > 30) newStack.shift();
     historyRef.current = newStack;
     historyIdxRef.current = newStack.length - 1;
@@ -79,26 +111,15 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("update_history", { id: item.id, text });
       const store = useAppStore.getState();
-      // 后端 update_history 现在会同时更新 md5 和 pinyin_initials
-      // 前端也需要同步更新，确保后续智能合并和拼音搜索生效
-      // 用 naive 方法计算拼音首字母（纯前端近似）
-      const pinyinMatch = text.match(/[\u4e00-\u9fff]/g);
-      const initials = pinyinMatch ? pinyinMatch.map(c => {
-        // 简单映射：用 Unicode 码点近似拼音首字母（不完美但够用）
-        // 实际值由后端在下次读取时更新，这里给一个非空占位
-        return '?';
-      }).join('') : '';
       store.setHistory(store.history.map(h =>
         h.id === item.id
-          ? { ...h, text, md5: undefined, pinyin_initials: h.pinyin_initials }
+          ? { ...h, text, md5: undefined }
           : h
       ));
-      // 重新加载当前工作区数据以获取正确的 md5 和拼音（异步，不影响保存体验）
       invoke<HistoryItem[]>("get_history", {
         workspace: store.config.current_workspace, filter: "all",
         search: "", offset: 0, limit: 200
       }).then(items => {
-        // 合并更新：用后端返回的精确 md5/pinyin_initials 覆盖前端缓存
         const backendMap = new Map(items.map(i => [i.id, i]));
         store.setHistory(store.history.map(h => backendMap.get(h.id) || h));
       }).catch(() => {});
@@ -135,10 +156,8 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
   // 文本变换
   const transform = (fn: (s: string) => string) => pushHistory(fn(text));
 
-  // 手动编辑时记录历史
-  const handleTextChange = (newText: string) => {
-    pushHistory(newText);
-  };
+  // 语法高亮
+  const highlighted = useHighlight(text);
 
   const charCount = text.length;
   const lineCount = text.split("\n").length;
@@ -180,17 +199,28 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
               </div>
             </div>
 
-            {/* 带行号编辑区 */}
+            {/* 带行号 + 语法高亮的可编辑区（textarea+pre 叠加层） */}
             <div className="edit-code-area">
               <div className="code-lines">
                 {text.split("\n").map((_, i) => <span key={i} className="code-ln">{i + 1}</span>)}
               </div>
-              <textarea
-                value={text}
-                onChange={(e) => handleTextChange(e.target.value)}
-                className="code-textarea"
-                spellCheck={false}
-              />
+              <div className="edit-highlight-wrapper">
+                <Editor
+                  value={text}
+                  onValueChange={(newVal) => {
+                    pushHistory(newVal);
+                  }}
+                  highlight={(_code: string) => highlighted}
+                  padding={0}
+                  className="edit-highlight-editor"
+                  textareaId="edit-code-textarea"
+                  style={{
+                    fontFamily: "'SF Mono', Consolas, monospace",
+                    fontSize: 13,
+                    lineHeight: 1.7,
+                  }}
+                />
+              </div>
             </div>
 
             {/* 文本变换工具栏 */}
@@ -215,31 +245,6 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
               )}
             </div>
 
-            {/* 语法高亮预览 */}
-            {highlightedHtml && langLabel !== "文本" && (
-              <div style={{ marginTop: 4 }}>
-                <button
-                  onClick={() => setShowHighlight(!showHighlight)}
-                  style={{
-                    fontSize: 11, color: "var(--accent)", background: "none",
-                    border: "none", cursor: "pointer", fontFamily: "inherit",
-                    padding: "2px 0", marginBottom: showHighlight ? 4 : 0,
-                  }}>
-                  {showHighlight ? "▾ 隐藏高亮预览" : "▸ 显示高亮预览"}
-                </button>
-                {showHighlight && (
-                  <div className="code-viewer" style={{ maxHeight: 180 }}>
-                    <div className="code-lines">
-                      {text.split("\n").map((_, i) => <span key={i} className="code-ln">{i + 1}</span>)}
-                    </div>
-                    <pre className="code-text code-highlighted">
-                      <code dangerouslySetInnerHTML={{ __html: highlightedHtml }} />
-                    </pre>
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* 原文对比区 */}
             {showOriginal && isModified && (
               <div style={{
@@ -255,7 +260,7 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
             )}
           </div>
 
-          {/* Footer — 去掉取消按钮，操作下沉到工具栏 */}
+          {/* Footer */}
           <div className="dialog-footer">
             <span style={{ fontSize: 10, color: "var(--text-muted)" }}>Ctrl+Enter 保存 · Esc 取消</span>
             <div style={{ display: "flex", gap: 4, flexShrink: 0, alignItems: "center" }}>

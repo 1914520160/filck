@@ -1427,7 +1427,7 @@ button:disabled,
 .dialog-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1756,7 +1756,8 @@ button:disabled,
   background: var(--card-bg);
   min-height: 180px;
   max-height: 50vh;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   transition: border-color 0.2s;
 }
 .edit-code-area:focus-within {
@@ -1765,9 +1766,11 @@ button:disabled,
 .edit-code-area .code-lines {
   min-width: 36px;
   padding-top: 10px;
+  padding-bottom: 10px;
   background: var(--section-bg);
   border-right: 1px solid var(--border-color);
   border-radius: 10px 0 0 10px;
+  overflow: hidden;
 }
 .code-textarea {
   flex: 1;
@@ -1781,6 +1784,50 @@ button:disabled,
   resize: vertical;
   outline: none;
 }
+
+/* react-simple-code-editor 叠加层编辑区 */
+.edit-highlight-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: visible;
+  position: relative;
+}
+/* 覆盖 react-simple-code-editor 内部 container 的 overflow，
+   让内容自然撑开，滚动由外层 .edit-code-area 统一管理 */
+.edit-highlight-wrapper > div {
+  overflow: visible !important;
+}
+/* textarea 和 pre 不需要内部滚动，让它们自然撑开到内容高度 */
+#edit-code-textarea {
+  overflow: hidden !important;
+}
+.edit-highlight-wrapper > div > pre {
+  overflow: hidden !important;
+}
+/* textarea 本身透明，由底层 pre 显示高亮 */
+.edit-highlight-editor textarea,
+.edit-highlight-editor pre {
+  padding: 10px 14px !important;
+  font-family: 'SF Mono', Consolas, monospace !important;
+  font-size: 13px !important;
+  line-height: 1.7 !important;
+  tab-size: 2;
+  white-space: pre-wrap !important;
+  word-break: break-all !important;
+  outline: none !important;
+  border: none !important;
+  margin: 0 !important;
+}
+.edit-highlight-editor textarea {
+  caret-color: var(--text-primary);
+  color: transparent !important;
+  background: transparent !important;
+}
+/* 高亮层 pre：显示语法着色 */
+.edit-highlight-wrapper > div > pre {
+  pointer-events: none;
+}
+/* pre 内 span 保持各自颜色，不做额外覆盖 */
 
 /* 编辑工具栏 */
 .edit-toolbar {
@@ -3729,4 +3776,77 @@ button:disabled,
 .shortcut-desc {
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+/* ===== 32. Shiki 多主题 CSS 变量切换 ===== */
+/* Shiki Dual/Multi Themes 生成的每个 span 包含：
+   style="color:默认色;--shiki-ocean:#xxx;--shiki-forest:#xxx;..."
+   通过 data-theme 属性切换生效的 CSS 变量 */
+
+/* 所有包含 shiki 变量的 span 都适用（代码查看器 + 编辑区） */
+.shiki span,
+.edit-highlight-wrapper .shiki span,
+.code-highlighted .shiki span {
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+/* 每个软件主题使用对应的 Shiki 主题变量 */
+[data-theme="ocean"] .shiki span,
+[data-theme="ocean"] .edit-highlight-wrapper .shiki span,
+[data-theme="ocean"] .code-highlighted .shiki span {
+  color: var(--shiki-ocean) !important;
+  background-color: var(--shiki-ocean-bg) !important;
+  font-style: var(--shiki-ocean-font-style) !important;
+  font-weight: var(--shiki-ocean-font-weight) !important;
+  text-decoration: var(--shiki-ocean-text-decoration) !important;
+}
+
+[data-theme="forest"] .shiki span,
+[data-theme="forest"] .edit-highlight-wrapper .shiki span,
+[data-theme="forest"] .code-highlighted .shiki span {
+  color: var(--shiki-forest) !important;
+  background-color: var(--shiki-forest-bg) !important;
+  font-style: var(--shiki-forest-font-style) !important;
+  font-weight: var(--shiki-forest-font-weight) !important;
+  text-decoration: var(--shiki-forest-text-decoration) !important;
+}
+
+[data-theme="blossom"] .shiki span,
+[data-theme="blossom"] .edit-highlight-wrapper .shiki span,
+[data-theme="blossom"] .code-highlighted .shiki span {
+  color: var(--shiki-blossom) !important;
+  background-color: var(--shiki-blossom-bg) !important;
+  font-style: var(--shiki-blossom-font-style) !important;
+  font-weight: var(--shiki-blossom-font-weight) !important;
+  text-decoration: var(--shiki-blossom-text-decoration) !important;
+}
+
+[data-theme="midnight"] .shiki span,
+[data-theme="midnight"] .edit-highlight-wrapper .shiki span,
+[data-theme="midnight"] .code-highlighted .shiki span {
+  color: var(--shiki-midnight) !important;
+  background-color: var(--shiki-midnight-bg) !important;
+  font-style: var(--shiki-midnight-font-style) !important;
+  font-weight: var(--shiki-midnight-font-weight) !important;
+  text-decoration: var(--shiki-midnight-text-decoration) !important;
+}
+
+[data-theme="terminal"] .shiki span,
+[data-theme="terminal"] .edit-highlight-wrapper .shiki span,
+[data-theme="terminal"] .code-highlighted .shiki span {
+  color: var(--shiki-terminal) !important;
+  background-color: var(--shiki-terminal-bg) !important;
+  font-style: var(--shiki-terminal-font-style) !important;
+  font-weight: var(--shiki-terminal-font-weight) !important;
+  text-decoration: var(--shiki-terminal-text-decoration) !important;
+}
+
+[data-theme="sunset"] .shiki span,
+[data-theme="sunset"] .edit-highlight-wrapper .shiki span,
+[data-theme="sunset"] .code-highlighted .shiki span {
+  color: var(--shiki-sunset) !important;
+  background-color: var(--shiki-sunset-bg) !important;
+  font-style: var(--shiki-sunset-font-style) !important;
+  font-weight: var(--shiki-sunset-font-weight) !important;
+  text-decoration: var(--shiki-sunset-text-decoration) !important;
 }
