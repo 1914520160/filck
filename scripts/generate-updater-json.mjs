@@ -112,15 +112,17 @@ function findArtifacts(config) {
   );
 
   if (!sigFile) {
-    warn(`${config.name}: 找到 ${pkgFile} 但没有 .sig 签名文件`);
-    return null;
+    warn(`${config.name}: 找到 ${pkgFile} 但没有 .sig 签名文件 → updater 将无法验证签名`);
+    // 降级：签名文件缺失时仍返回空签名，确保 updater.json 能生成
+    // 用户端会在验证签名时失败，但至少不会报 404
+    return { fileName: pkgFile, signature: "" };
   }
 
   const sigPath = path.join(dirPath, sigFile);
   const signature = fs.readFileSync(sigPath, "utf-8").trim();
   if (!signature) {
-    warn(`${config.name}: 签名文件为空`);
-    return null;
+    warn(`${config.name}: 签名文件为空 → updater 将无法验证签名`);
+    return { fileName: pkgFile, signature: "" };
   }
 
   return { fileName: pkgFile, signature };
