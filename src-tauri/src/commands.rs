@@ -255,20 +255,19 @@ pub fn get_image_data_url(path: String) -> Result<String, String> {
     Ok(format!("data:{};base64,{}", mime, base64_str))
 }
 
-/// 缩略图临时目录名
-const THUMB_DIR: &str = "clipboard_thumbnails";
-
-/// 获取缩略图缓存目录（在系统临时目录下）
-fn get_thumb_dir() -> Result<std::path::PathBuf, String> {
-    let dir = std::env::temp_dir().join(THUMB_DIR);
+/// 获取缩略图缓存目录（在应用数据目录下，确保在 Tauri asset scope 内）
+fn get_thumb_dir(app_handle: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
+    let dir = app_handle.path().app_data_dir()
+        .map_err(|e| format!("无法获取应用数据目录: {}", e))?
+        .join("thumbnails");
     std::fs::create_dir_all(&dir).map_err(|e| format!("无法创建缩略图缓存目录: {}", e))?;
     Ok(dir)
 }
 
-/// 生成图片缩略图并写入临时文件，返回文件路径（最大宽度 300px，用于卡片列表）
+/// 生成图片缩略图并写入应用数据目录，返回文件路径（最大宽度 300px，用于卡片列表）
 /// 使用文件路径而非 base64 data URL，浏览器可原生缓存图片
 #[tauri::command]
-pub fn get_image_thumbnail(path: String) -> Result<String, String> {
+pub fn get_image_thumbnail(app_handle: tauri::AppHandle, path: String) -> Result<String, String> {
     use std::io::BufWriter;
     use std::io::Write;
     use image::GenericImageView;
@@ -293,7 +292,7 @@ pub fn get_image_thumbnail(path: String) -> Result<String, String> {
     let hash = hasher.finish();
     let thumb_name = format!("thumb_{:016x}.jpg", hash);
 
-    let thumb_dir = get_thumb_dir()?;
+    let thumb_dir = get_thumb_dir(&app_handle)?;
     let thumb_path = thumb_dir.join(&thumb_name);
 
     // 如果缩略图已存在且源文件未变化，直接返回路径
