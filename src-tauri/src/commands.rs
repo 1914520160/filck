@@ -255,11 +255,25 @@ pub fn get_image_data_url(path: String) -> Result<String, String> {
     Ok(format!("data:{};base64,{}", mime, base64_str))
 }
 
-/// 生成图片缩略图并返回 base64 data URL（最大宽度 300px，用于卡片列表）
+/// 缩略图临时目录名
+const THUMB_DIR: &str = "clipboard_thumbnails";
+
+/// 获取缩略图缓存目录（在系统临时目录下）
+fn get_thumb_dir() -> Result<std::path::PathBuf, String> {
+    let dir = std::env::temp_dir().join(THUMB_DIR);
+    std::fs::create_dir_all(&dir).map_err(|e| format!("无法创建缩略图缓存目录: {}", e))?;
+    Ok(dir)
+}
+
+/// 生成图片缩略图并写入临时文件，返回文件路径（最大宽度 300px，用于卡片列表）
+/// 使用文件路径而非 base64 data URL，浏览器可原生缓存图片
 #[tauri::command]
 pub fn get_image_thumbnail(path: String) -> Result<String, String> {
-    use std::io::Cursor;
+    use std::io::BufWriter;
+    use std::io::Write;
     use image::GenericImageView;
+    use std::hash::{Hash, Hasher};
+    use std::collections::hash_map::DefaultHasher;
 
     const MAX_WIDTH: u32 = 300;
     const MAX_FILE_SIZE: u64 = 20 * 1024 * 1024;
@@ -269,26 +283,43 @@ pub fn get_image_thumbnail(path: String) -> Result<String, String> {
         return Err(format!("图片文件过大 ({}MB)", metadata.len() / 1024 / 1024));
     }
 
+    // 用源路径 + 修改时间生成缩略图文件名（内容变化自动重建）
+    let mut hasher = DefaultHasher::new();
+    path.hash(&mut hasher);
+    let modified = metadata.modified().map(|t| {
+        t.duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0)
+    }).unwrap_or(0);
+    modified.hash(&mut hasher);
+    let hash = hasher.finish();
+    let thumb_name = format!("thumb_{:016x}.jpg", hash);
+
+    let thumb_dir = get_thumb_dir()?;
+    let thumb_path = thumb_dir.join(&thumb_name);
+
+    // 如果缩略图已存在且源文件未变化，直接返回路径
+    if thumb_path.exists() {
+        return Ok(thumb_path.to_string_lossy().to_string());
+    }
+
     let img = image::open(&path).map_err(|e| format!("无法打开图片: {}", e))?;
     let (w, h) = img.dimensions();
 
-    // 如果原图已经很小，直接返回原图
-    if w <= MAX_WIDTH {
-        let mut buf = Cursor::new(Vec::new());
-        img.write_to(&mut buf, image::ImageFormat::Png).map_err(|e| e.to_string())?;
-        let base64_str = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, buf.get_ref());
-        return Ok(format!("data:image/png;base64,{}", base64_str));
-    }
+    // 如果原图宽度 ≤ 300px，直接复制（转为 JPEG 减小体积）
+    let output_img = if w <= MAX_WIDTH {
+        img
+    } else {
+        let ratio = MAX_WIDTH as f64 / w as f64;
+        let new_h = (h as f64 * ratio) as u32;
+        img.resize_exact(MAX_WIDTH, new_h, image::imageops::FilterType::Lanczos3)
+    };
 
-    // 等比缩放
-    let ratio = MAX_WIDTH as f64 / w as f64;
-    let new_h = (h as f64 * ratio) as u32;
-    let thumbnail = img.resize_exact(MAX_WIDTH, new_h, image::imageops::FilterType::Lanczos3);
+    // 写入 JPEG 格式（比 PNG 小 3-5 倍，适合照片类图片）
+    let file = std::fs::File::create(&thumb_path).map_err(|e| format!("无法创建缩略图文件: {}", e))?;
+    let mut writer = BufWriter::new(file);
+    output_img.write_to(&mut writer, image::ImageFormat::Jpeg).map_err(|e| format!("无法写入缩略图: {}", e))?;
+    writer.flush().map_err(|e| e.to_string())?;
 
-    let mut buf = Cursor::new(Vec::new());
-    thumbnail.write_to(&mut buf, image::ImageFormat::Png).map_err(|e| e.to_string())?;
-    let base64_str = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, buf.get_ref());
-    Ok(format!("data:image/png;base64,{}", base64_str))
+    Ok(thumb_path.to_string_lossy().to_string())
 }
 
 /// 获取图片信息（尺寸、文件大小）

@@ -6,7 +6,7 @@ import { useToast } from "@/components/Toast";
 import { CardWithContext, ImgState } from "@/components/Card";
 import { ContextMenu } from "@/components/ContextMenu";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { pasteText, pasteImage, getImageThumbnail, getImageDataUrl, getImageInfo, loadMoreHistory, deleteHistory } from "@/lib/api";
+import { pasteText, pasteImage, getImageThumbnail, getImageDataUrl, getImageBase64, getImageInfo, loadMoreHistory, deleteHistory } from "@/lib/api";
 import { invoke } from "@tauri-apps/api/core";
 import { ClipboardList, Copy, Search, Zap, ZoomIn, ZoomOut, RotateCw, Download, X, Info, Trash2, FileDown, ScanText, Pin } from "lucide-react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -235,10 +235,10 @@ export function CardList() {
     if (item.type === "image" && item.content) {
       const action = useAppStore.getState().config.double_click_action || "copy";
       if (action === "copy") {
-        // 复制图片到剪贴板 — 通过 Rust 后端读取图片数据
+        // 复制图片到剪贴板 — 通过 Rust 后端获取 base64
         setPastingId(item.id);
         try {
-          const dataUrl = await getImageDataUrl(item.content);
+          const dataUrl = await getImageBase64(item.content);
           const mimeMatch = dataUrl.match(/^data:([^;]+);base64,/);
           const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
           const base64Data = dataUrl.split(",")[1];
@@ -909,7 +909,7 @@ export function CardList() {
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
                 <button className="btn-primary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={async () => {
                   try {
-                    const dataUrl = await invoke<string>("get_image_data_url", { path: previewContentRef.current });
+                    const dataUrl = await getImageBase64(previewContentRef.current!);
                     const mimeMatch = dataUrl.match(/^data:([^;]+);base64,/);
                     const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
                     const base64Data = dataUrl.split(",")[1];
@@ -927,7 +927,7 @@ export function CardList() {
                     const defaultName = String(previewInfo?.file_name || "image.png");
                     const path = await save({ defaultPath: defaultName, filters: [{ name: "图片", extensions: ["png", "jpg", "jpeg", "webp", "bmp"] }] });
                     if (path && previewContentRef.current) {
-                      const dataUrl = await invoke<string>("get_image_data_url", { path: previewContentRef.current });
+                      const dataUrl = await getImageBase64(previewContentRef.current);
                       const base64Data = dataUrl.split(",")[1];
                       const byteChars = atob(base64Data);
                       const bytes = new Uint8Array(byteChars.length);

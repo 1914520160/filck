@@ -266,51 +266,65 @@ export async function getStats(workspace: string): Promise<Stats> {
   }
 }
 
-/** 图片路径转 base64 data URL（原图） */
-const imageDataUrlCache = new Map<string, string>();
-const MAX_IMAGE_CACHE_SIZE = 20; // 最多缓存 20 张原图（原图可能很大，限制内存）
+/** 图片路径转文件 URL（使用 Tauri 的 asset 协议，浏览器原生缓存） */
+const imageUrlCache = new Map<string, string>();
+const MAX_IMAGE_CACHE_SIZE = 20;
 
 /** 清理图片缓存（页面卸载时调用） */
 export function clearImageCaches() {
-  imageDataUrlCache.clear();
-  thumbnailCache.clear();
+  imageUrlCache.clear();
+  thumbnailUrlCache.clear();
 }
 
+/** 获取原图 URL（用于 img src 显示，使用 Tauri asset 协议） */
 export async function getImageDataUrl(filePath: string): Promise<string> {
-  if (imageDataUrlCache.has(filePath)) {
-    return imageDataUrlCache.get(filePath)!;
+  if (imageUrlCache.has(filePath)) {
+    return imageUrlCache.get(filePath)!;
   }
   try {
-    const dataUrl = await invoke<string>("get_image_data_url", { path: filePath });
-    // LRU 淘汰：超过上限时删除最早添加的条目
-    if (imageDataUrlCache.size >= MAX_IMAGE_CACHE_SIZE) {
-      const firstKey = imageDataUrlCache.keys().next().value;
-      if (firstKey) imageDataUrlCache.delete(firstKey);
+    const { convertFileSrc } = await import("@tauri-apps/api/core");
+    const url = convertFileSrc(filePath);
+    if (imageUrlCache.size >= MAX_IMAGE_CACHE_SIZE) {
+      const firstKey = imageUrlCache.keys().next().value;
+      if (firstKey) imageUrlCache.delete(firstKey);
     }
-    imageDataUrlCache.set(filePath, dataUrl);
-    return dataUrl;
+    imageUrlCache.set(filePath, url);
+    return url;
   } catch (e) {
-    logger.error("读取图片失败", e);
+    logger.error("convertFileSrc 失败", e);
     return "";
   }
 }
 
-/** 获取图片缩略图（小尺寸，用于卡片列表，加载快） */
-const thumbnailCache = new Map<string, string>();
-const MAX_THUMBNAIL_CACHE_SIZE = 100; // 缩略图较小，可以多缓存一些
+/** 获取图片 base64 data URL（仅用于复制到剪贴板，不用于显示） */
+export async function getImageBase64(filePath: string): Promise<string> {
+  try {
+    return await invoke<string>("get_image_data_url", { path: filePath });
+  } catch (e) {
+    logger.error("读取图片 base64 失败", e);
+    return "";
+  }
+}
+
+/** 获取图片缩略图 URL（返回文件路径，由前端转 asset URL） */
+const thumbnailUrlCache = new Map<string, string>();
+const MAX_THUMBNAIL_CACHE_SIZE = 200;
 
 export async function getImageThumbnail(filePath: string): Promise<string> {
-  if (thumbnailCache.has(filePath)) {
-    return thumbnailCache.get(filePath)!;
+  if (thumbnailUrlCache.has(filePath)) {
+    return thumbnailUrlCache.get(filePath)!;
   }
   try {
-    const dataUrl = await invoke<string>("get_image_thumbnail", { path: filePath });
-    if (thumbnailCache.size >= MAX_THUMBNAIL_CACHE_SIZE) {
-      const firstKey = thumbnailCache.keys().next().value;
-      if (firstKey) thumbnailCache.delete(firstKey);
+    const thumbPath = await invoke<string>("get_image_thumbnail", { path: filePath });
+    // 将本地文件路径转为 Tauri asset:// URL
+    const { convertFileSrc } = await import("@tauri-apps/api/core");
+    const url = convertFileSrc(thumbPath);
+    if (thumbnailUrlCache.size >= MAX_THUMBNAIL_CACHE_SIZE) {
+      const firstKey = thumbnailUrlCache.keys().next().value;
+      if (firstKey) thumbnailUrlCache.delete(firstKey);
     }
-    thumbnailCache.set(filePath, dataUrl);
-    return dataUrl;
+    thumbnailUrlCache.set(filePath, url);
+    return url;
   } catch (e) {
     logger.error("生成缩略图失败", e);
     return "";
