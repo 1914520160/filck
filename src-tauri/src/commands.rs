@@ -2,8 +2,37 @@ use crate::data_store::{DataStore, HistoryItem, Snippet, Stats};
 use crate::paste_engine::PasteEngine;
 use tauri::{State, Manager, Emitter, Listener};
 
-/// 应用版本号（与 Cargo.toml 保持一致）
-pub const APP_VERSION: &str = env!("CARGO_PKG_VERSION");
+/// 应用版本号（从 tauri.conf.json 运行时读取，唯一版本来源）
+use std::sync::LazyLock;
+pub static APP_VERSION: LazyLock<String> = LazyLock::new(|| {
+    read_version_from_conf().unwrap_or_else(|_| "0.0.0".to_string())
+});
+
+fn read_version_from_conf() -> Result<String, Box<dyn std::error::Error>> {
+    let conf_path = std::env::current_exe()
+        .map(|p| p.parent().unwrap_or(std::path::Path::new(".")).join(".."))
+        .unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
+
+    // 开发时 CWD 就是项目根目录，运行时 exe 在 target/release
+    let candidates = vec![
+        std::path::PathBuf::from("tauri.conf.json"),
+        conf_path.join("tauri.conf.json"),
+    ];
+
+    for path in &candidates {
+        if path.exists() {
+            let content = std::fs::read_to_string(path)?;
+            if let Some(start) = content.find("\"version\"") {
+                let after_key = &content[start + 9..];
+                let trimmed = after_key.trim_start_matches(|c| c == ':' || c == ' ' || c == '"');
+                if let Some(end) = trimmed.find('"') {
+                    return Ok(trimmed[..end].to_string());
+                }
+            }
+        }
+    }
+    Err("version not found in tauri.conf.json".into())
+}
 
 /// 获取应用版本号
 #[tauri::command]

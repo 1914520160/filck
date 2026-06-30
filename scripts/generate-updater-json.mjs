@@ -130,20 +130,23 @@ function findArtifacts(config) {
 
 // ─── 主逻辑 ──────────────────────────────────────────────
 
-function main() {
-  const args = process.argv.slice(2);
-  const version = args[0] || process.env.APP_VERSION;
-
-  if (!version) {
-    fail(
-      "请指定版本号，例如：\n" +
-        "  node scripts/generate-updater-json.mjs 5.0.37\n" +
-        "  或设置环境变量 APP_VERSION=5.0.37"
-    );
+/** 从 tauri.conf.json 读取版本号（唯一版本来源） */
+function readVersionFromConf() {
+  const confPath = path.join(ROOT, "src-tauri", "tauri.conf.json");
+  if (!fs.existsSync(confPath)) {
+    fail(`找不到 tauri.conf.json: ${confPath}`);
   }
+  const conf = JSON.parse(fs.readFileSync(confPath, "utf-8"));
+  const version = conf.version;
+  if (!version) {
+    fail("tauri.conf.json 中未找到 version 字段");
+  }
+  return version;
+}
 
-  // 清理版本号前缀
-  const cleanVersion = version.replace(/^v/, "");
+function main() {
+  // 从 tauri.conf.json 读取版本号（唯一来源）
+  const cleanVersion = readVersionFromConf();
   const tag = process.env.GITHUB_RELEASE_TAG || `v${cleanVersion}`;
   const notes = process.env.UPDATER_NOTES || "";
 

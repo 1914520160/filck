@@ -118,7 +118,6 @@ jobs:
       - name: 生成 updater.json
         run: node scripts/generate-updater-json.mjs
         env:
-          APP_VERSION: ${{ github.ref_name }}
           GITHUB_RELEASE_TAG: ${{ github.ref_name }}
 
       - name: 发布 GitHub Release
