@@ -296,7 +296,7 @@ export function SnippetsDialog({ open, onClose }: { open: boolean; onClose: () =
                                 <div
                                   className={`snippet-batch-checkbox${selectedIds.has(s.id) ? " checked" : ""}`}
                                   onClick={(e) => { e.stopPropagation(); toggleBatchSelect(s.id); }}>
-                                  {selectedIds.has(s.id) ? "✓" : ""}
+                                  {selectedIds.has(s.id) ? <Check size={12} /> : ""}
                                 </div>
                               )}
                               <span className="snippet-card-v2-title-text">{s.name}</span>

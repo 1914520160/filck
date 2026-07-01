@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, FolderOpen, Copy, ExternalLink, Loader } from "lucide-react";
+import { X, FolderOpen, Copy, ExternalLink, Loader, Check } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { relativeTime } from "@/lib/utils";
 import { HistoryItem } from "@/stores/appStore";
@@ -160,7 +160,7 @@ export function FileDetailDialog({ item, onClose }: { item: HistoryItem; onClose
                   {fileName}
                 </div>
                 <div style={{ fontSize: 11, marginTop: 2, color: fileMissing ? "var(--danger, #EF4444)" : "var(--text-muted)" }}>
-                  {fileInfo === null ? "检查中…" : fileExists ? "✓ 文件正常" : "⚠ 文件不存在或已移动"}
+                  {fileInfo === null ? "检查中…" : fileExists ? <><Check size={12} style={{marginRight:2,color:"#34C759"}} /> 文件正常</> : "⚠ 文件不存在或已移动"}
                 </div>
               </div>
             </div>

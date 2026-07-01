@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { pasteText } from "@/lib/api";
+import { VersionBadge } from "@/components/VersionBadge";
 
 // ===== 数据类型 =====
 interface RecentItem {
@@ -441,7 +442,7 @@ export function TrayPopup() {
         <div className="tray-popup-title">
           <span className="tray-popup-name">{appName}</span>
           <span className="tray-popup-version">
-            <span className="version-badge">v{version}</span>
+            <VersionBadge version={version} compact />
           </span>
         </div>
         <span className={`tray-popup-status-dot ${monitoring ? "active" : ""}`} />

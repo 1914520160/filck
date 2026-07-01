@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Copy, ClipboardPaste, Bookmark, Type, Scissors, Quote, AlignLeft, CaseSensitive, Undo2, Redo2 } from "lucide-react";
+import { X, Copy, ClipboardPaste, Bookmark, Type, Scissors, Quote, AlignLeft, CaseSensitive, Undo2, Redo2, ChevronDown, ChevronUp } from "lucide-react";
 import Editor from "react-simple-code-editor";
 import { useToast } from "@/components/Toast";
 import { pasteText } from "@/lib/api";
@@ -240,7 +240,7 @@ export function EditDialog({ item, onClose }: { item: HistoryItem; onClose: () =
                     marginLeft: "auto", fontSize: 11, color: "var(--accent)", background: "none",
                     border: "none", cursor: "pointer", fontFamily: "inherit",
                   }}>
-                  {showOriginal ? "隐藏原文 ▴" : "对比原文 ▾"}
+                  {showOriginal ? <><ChevronUp size={12} style={{verticalAlign:"middle"}} /> 隐藏原文</> : <>对比原文 <ChevronDown size={12} style={{verticalAlign:"middle"}} /></>}
                 </button>
               )}
             </div>

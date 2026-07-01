@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { useUpdate } from "@/contexts/UpdateContext";
 import { ArrowDown, Loader2, CheckCircle, AlertCircle, RotateCcw } from "lucide-react";
+import { VersionBadge } from "@/components/VersionBadge";
 
 /**
  * TopBar 版本号融合徽章
@@ -73,17 +74,17 @@ export function UpdateBadge({ currentVersion }: { currentVersion: string }) {
     );
   }
 
-  // idle / checking / error：显示普通版本号
+  // idle / checking / error：显示统一版本徽章
   const idleTitle =
     status === "checking" ? "检查更新中…" :
     status === "error" ? "更新检查失败" :
     `v${currentVersion}`;
 
   return (
-    <span className="header-badge" title={idleTitle}>
-      {status === "checking" && <Loader2 size={10} className="spin-icon" />}
-      {status === "error" && <AlertCircle size={10} />}
-      {status !== "checking" && status !== "error" && `v${currentVersion}`}
+    <span className="version-badge-wrapper" title={idleTitle}>
+      {status === "checking" && <Loader2 size={10} className="spin-icon version-badge-spin" />}
+      {status === "error" && <AlertCircle size={10} className="version-badge-error-icon" />}
+      <VersionBadge version={currentVersion} />
     </span>
   );
 }

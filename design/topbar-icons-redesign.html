@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TopBar 图标彩色方案</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#0F172A;color:#E4E4E7;display:flex;flex-direction:column;align-items:center;padding:40px 20px;min-height:100vh}
+h2{font-size:12px;font-weight:600;color:#71717A;text-transform:uppercase;letter-spacing:.6px;margin:32px 0 10px;text-align:center}
+h2:first-child{margin-top:0}
+.desc{font-size:11px;color:#52525B;text-align:center;margin-bottom:12px;line-height:1.6;max-width:560px}
+.bar{display:flex;align-items:center;gap:4px;padding:8px 16px;background:#18181B;border:1px solid #27272A;border-radius:14px;margin-top:6px}
+.bar.full{justify-content:space-between;width:560px}
+.icon{width:34px;height:34px;border:none;background:transparent;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s;font-family:inherit}
+.icon:hover{background:rgba(129,140,248,.12);transform:scale(1.08)}
+.icon:active{transform:scale(.92)}
+.icon.danger:hover{background:rgba(239,68,68,.12)}
+.icon svg{width:18px;height:18px}
+.tb-l{display:flex;align-items:center;gap:8px}
+.tb-t{font-size:15px;font-weight:700}
+.tb-b{font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px;background:#818CF8;color:#fff}
+.tb-i2{display:flex;align-items:center;gap:2px}
+</style>
+</head>
+<body>
+
+<h2>方案 1：替换彩色 emoji</h2>
+<p class="desc">⚙→🔧 ℹ→💡 ✕→🔴   —→⬇   全部自然彩色 emoji</p>
+<div class="bar">
+  <button class="icon">📝</button><button class="icon">🧲</button><button class="icon">🔧</button>
+  <button class="icon">❓</button><button class="icon">💡</button><button class="icon">⬇</button>
+  <button class="icon danger">🔴</button>
+</div>
+<div class="bar full">
+  <div class="tb-l"><span style="font-size:18px">📋</span><span class="tb-t">PastePanda</span><span class="tb-b">v5.0.71</span></div>
+  <div class="tb-i2"><button class="icon">📝</button><button class="icon">🧲</button><button class="icon">🔧</button><button class="icon">❓</button><button class="icon">💡</button><button class="icon">⬇</button><button class="icon danger">🔴</button></div>
+</div>
+
+<h2>方案 2：彩色 SVG 图标</h2>
+<p class="desc">单色符号用带颜色的 SVG 替代，保留 📝🧲❓ 等彩色 emoji</p>
+<div class="bar">
+  <button class="icon">📝</button><button class="icon">🧲</button>
+  <button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+  <button class="icon">❓</button>
+  <button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#FACC15" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></button>
+  <button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+  <button class="icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+</div>
+<div class="bar full">
+  <div class="tb-l"><span style="font-size:18px">📋</span><span class="tb-t">PastePanda</span><span class="tb-b">v5.0.71</span></div>
+  <div class="tb-i2"><button class="icon">📝</button><button class="icon">🧲</button><button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button><button class="icon">❓</button><button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#FACC15" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></button><button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button><button class="icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button></div>
+</div>
+
+<h2>方案 3：混合方案（推荐）</h2>
+<p class="desc">彩色 emoji 保留（📝🧲❓），无色彩的换彩色 SVG（⚙→蓝齿轮 ℹ→黄圆圈 ✕→红叉 —→灰线）</p>
+<div class="bar full">
+  <div class="tb-l"><span style="font-size:18px">📋</span><span class="tb-t">PastePanda</span><span class="tb-b">v5.0.71</span></div>
+  <div class="tb-i2">
+    <button class="icon">📝</button><button class="icon">🧲</button>
+    <button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    <button class="icon">❓</button>
+    <button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#FACC15" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></button>
+    <button class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+    <button class="icon danger"><svg viewBox="0 0 24 24" fill="none" stroke="#F87171" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></button>
+  </div>
+</div>
+
+</body>
+</html>

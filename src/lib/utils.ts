@@ -69,15 +69,15 @@ export function detectTextType(text: string): string {
   return "text";
 }
 
-/** 类型图标配置 */
-export const TYPE_ICONS: Record<string, { icon: string; color: string }> = {
-  text: { icon: "☰", color: "#9E9E9E" },
-  link: { icon: "⛓", color: "#07C160" },
-  email: { icon: "@", color: "#007AFF" },
-  code: { icon: "</>", color: "#5856D6" },
-  phone: { icon: "☎", color: "#FF9500" },
-  image: { icon: "⬚", color: "#FF9500" },
-  file: { icon: "☷", color: "#FFCC00" },
+/** 类型图标配置 — SVG 路径数据 */
+export const TYPE_ICONS: Record<string, { svgPath: string; color: string }> = {
+  text:    { svgPath: "M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01", color: "#9E9E9E" },
+  link:    { svgPath: "M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71", color: "#07C160" },
+  email:   { svgPath: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z", color: "#007AFF" },
+  code:    { svgPath: "M16 18l6-6-6-6M8 6l-6 6 6 6", color: "#5856D6" },
+  phone:   { svgPath: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z", color: "#FF9500" },
+  image:   { svgPath: "M3 3h18v18H3V3zm0 0l13 10-5 4-3-2-5 4", color: "#FF9500" },
+  file:    { svgPath: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 0v6h6", color: "#FFCC00" },
 };
 
 // ==================== 代码高亮 ====================

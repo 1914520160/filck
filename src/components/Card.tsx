@@ -7,7 +7,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
 import { pasteText } from "@/lib/api";
-import { Pin, ImageIcon, Link2, AtSign, Code2, Phone, FileText, Terminal, Type } from "lucide-react";
+import { Pin, ImageIcon, Link2, AtSign, Code2, Phone, FileText, Terminal, Type, Check } from "lucide-react";
 
 const PALETTE = ["#3B82F6", "#8B5CF6", "#EC4899", "#10B981", "#F59E0B", "#EF4444", "#06B6D4", "#6366F1"];
 
@@ -185,7 +185,7 @@ export const Card = memo(function Card({ item, selected, onClick, onDoubleClick,
 
       {/* 时间 / 复制中指示器 */}
       <span className="card-time">
-        {pasting ? <span className="card-pasting">已复制 ✓</span> : time}
+        {pasting ? <span className="card-pasting"><Check size={10} style={{marginRight:2}} />已复制</span> : time}
       </span>
 
       {/* 悬停预览 — 最多5行，用CSS截断，保留完整文本用于复制 */}

@@ -10,7 +10,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { UpdateProvider } from "@/contexts/UpdateContext";
 import { logger } from "@/lib/logger";
 import { pasteText, pasteImage, deleteHistory, togglePin, toggleWindow, sequentialPaste } from "@/lib/api";
-import { ClipboardList, RotateCcw, Loader2 } from "lucide-react";
+import { ClipboardList, RotateCcw, Loader2, X } from "lucide-react";
 
 // 懒加载对话框组件 — 只在打开时才加载对应 JS chunk
 const SettingsDialog = lazy(() => import("@/components/SettingsDialog").then(m => ({ default: m.SettingsDialog })));
@@ -408,7 +408,7 @@ function ShortcutPanel({ onClose }: { onClose: () => void }) {
       <div className="shortcut-panel" onClick={(e) => e.stopPropagation()}>
         <div className="shortcut-panel-header">
           <span>⌨ 快捷键一览</span>
-          <button className="dialog-close" onClick={onClose}>✕</button>
+          <button className="dialog-close" onClick={onClose}><X size={14} /></button>
         </div>
         <div style={{ padding: "8px 16px 0" }}>
           <input

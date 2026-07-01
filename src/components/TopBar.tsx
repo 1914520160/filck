@@ -141,13 +141,21 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
           <UpdateBadge currentVersion={appVersion} />
         </div>
         <div className="header-icons" data-tauri-drag-region="false">
-          <IconBtn icon="📝" tip="片段库" onClick={onSnippets} />
-          <IconBtn icon="🧲" tip="内容提取" onClick={onExtract} />
-          <IconBtn icon="⚙" tip="设置" onClick={onSettings} />
-          <IconBtn icon="❓" tip="帮助" onClick={onHelp} />
-          <IconBtn icon="ℹ" tip="关于" onClick={onAbout} />
-          <IconBtn icon="—" tip="最小化到任务栏" onClick={minimizeWin} />
-          <IconBtn icon="✕" tip="退出程序" danger onClick={() => setShowQuitConfirm(true)} />
+          <IconBtn tip="片段库" onClick={onSnippets}><span className="icon-emoji">📝</span></IconBtn>
+          <IconBtn tip="内容提取" onClick={onExtract}><span className="icon-emoji">🧲</span></IconBtn>
+          <IconBtn tip="设置" onClick={onSettings}>
+            <svg className="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          </IconBtn>
+          <IconBtn tip="帮助" onClick={onHelp}><span className="icon-emoji">❓</span></IconBtn>
+          <IconBtn tip="关于" onClick={onAbout}>
+            <svg className="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#FACC15" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          </IconBtn>
+          <IconBtn tip="最小化到任务栏" onClick={minimizeWin}>
+            <svg className="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"><path d="M5 12h14"/></svg>
+          </IconBtn>
+          <IconBtn tip="退出程序" danger onClick={() => setShowQuitConfirm(true)}>
+            <svg className="icon-svg" viewBox="0 0 24 24" fill="none" stroke="#F87171" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </IconBtn>
         </div>
       </div>
 
@@ -202,7 +210,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
             aria-description="支持拼音首字母搜索" />
           {searchKeyword && (
             <button onClick={() => { setSearchKeyword(""); setShowHistory(searchHistory.length > 0); }} className="search-clear">
-              ✕
+              <X size={12} />
             </button>
           )}
           {/* 搜索历史下拉 */}
@@ -222,7 +230,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
                   <span className="search-history-text">{kw}</span>
                   <button className="search-history-remove"
                     onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); removeSearchHistory(kw); }}>
-                    ✕
+                    <X size={10} />
                   </button>
                 </div>
               ))}
@@ -319,13 +327,13 @@ function CircleTabs({ filterType, setFilterType, counts }: {
   );
 }
 
-function IconBtn({ icon, tip, danger, onClick, ariaLabel }: {
-  icon: React.ReactNode; tip: string; danger?: boolean; onClick?: () => void; ariaLabel?: string;
+function IconBtn({ children, tip, danger, onClick, ariaLabel }: {
+  children: React.ReactNode; tip: string; danger?: boolean; onClick?: () => void; ariaLabel?: string;
 }) {
   return (
     <button title={tip} aria-label={ariaLabel || tip} onClick={onClick}
       className={`icon-btn${danger ? " danger" : ""}`}>
-      {icon}
+      {children}
     </button>
   );
 }

@@ -329,11 +329,11 @@ export function createCardMenuItems(opts: {
       icon: <ClipboardPaste size={14} />,
       label: "粘贴并变换",
       children: [
-        { icon: <span style={{ fontSize: 12, fontWeight: 700 }}>A</span>, label: "粘贴为大写", onClick: () => opts.onPasteTransform!("upper") },
-        { icon: <span style={{ fontSize: 12, fontWeight: 700 }}>a</span>, label: "粘贴为小写", onClick: () => opts.onPasteTransform!("lower") },
-        { icon: <span style={{ fontSize: 12 }}>✂</span>, label: "粘贴并去空白", onClick: () => opts.onPasteTransform!("strip") },
-        { icon: <span style={{ fontSize: 12 }}>¶</span>, label: "粘贴并去空行", onClick: () => opts.onPasteTransform!("strip_lines") },
-        { icon: <span style={{ fontSize: 12 }}>"</span>, label: "粘贴为引号包裹", onClick: () => opts.onPasteTransform!("quote") },
+        { icon: <span className="ctx-text-icon ctx-text-upper">A</span>, label: "粘贴为大写", onClick: () => opts.onPasteTransform!("upper") },
+        { icon: <span className="ctx-text-icon ctx-text-lower">a</span>, label: "粘贴为小写", onClick: () => opts.onPasteTransform!("lower") },
+        { icon: <span className="ctx-text-icon ctx-text-scissor">✂</span>, label: "粘贴并去空白", onClick: () => opts.onPasteTransform!("strip") },
+        { icon: <span className="ctx-text-icon ctx-text-para">¶</span>, label: "粘贴并去空行", onClick: () => opts.onPasteTransform!("strip_lines") },
+        { icon: <span className="ctx-text-icon ctx-text-quote">"</span>, label: "粘贴为引号包裹", onClick: () => opts.onPasteTransform!("quote") },
         { icon: <span style={{ fontSize: 12 }}>🔗</span>, label: "粘贴为 Markdown 链接", onClick: () => opts.onPasteTransform!("md_link") },
       ],
     });

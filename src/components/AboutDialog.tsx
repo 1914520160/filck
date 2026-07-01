@@ -2,16 +2,17 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink } from "lucide-react";
 import { getAppVersion, getAppName } from "@/lib/api";
 import { UpdateBanner } from "@/components/UpdateBadge";
+import { VersionBadge } from "@/components/VersionBadge";
 import { useUpdate } from "@/contexts/UpdateContext";
 import { useState, useEffect, useMemo } from "react";
 
 const TECH_STACK = [
-  { label: "Tauri 2", desc: "桌面框架", color: "#FFC131", icon: "⚙️" },
-  { label: "React 19", desc: "UI 框架", color: "#61DAFB", icon: "⚛️" },
-  { label: "TypeScript", desc: "类型安全", color: "#3178C6", icon: "TS" },
-  { label: "SQLite", desc: "本地存储", color: "#4DB8BD", icon: "🗄️" },
-  { label: "Rust", desc: "后端核心", color: "#DEA584", icon: "🦀" },
-  { label: "Vite", desc: "构建工具", color: "#646CFF", icon: "⚡" },
+  { label: "Tauri 2", desc: "桌面框架", color: "#FFC131", icon: "⚙️" as React.ReactNode },
+  { label: "React 19", desc: "UI 框架", color: "#61DAFB", icon: "⚛️" as React.ReactNode },
+  { label: "TypeScript", desc: "类型安全", color: "#3178C6", icon: <svg viewBox="0 0 24 24" width="18" height="18"><rect width="24" height="24" rx="3" fill="#3178C6"/><text x="12" y="17" textAnchor="middle" fontSize="11" fontWeight="700" fill="#fff" fontFamily="system-ui">TS</text></svg> as React.ReactNode },
+  { label: "SQLite", desc: "本地存储", color: "#4DB8BD", icon: "🗄️" as React.ReactNode },
+  { label: "Rust", desc: "后端核心", color: "#DEA584", icon: "🦀" as React.ReactNode },
+  { label: "Vite", desc: "构建工具", color: "#646CFF", icon: "⚡" as React.ReactNode },
 ] as const;
 
 /** 根据更新状态返回版本标签 */
@@ -88,7 +89,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
               <div className="about-meta">
                 <div className="about-name">{appName}</div>
                 <div className="about-version-row">
-                  <span className="about-version-badge">v{appVersion}</span>
+                  <VersionBadge version={appVersion} />
                   <span className={`about-version-status ${versionStatus.cls}`}>
                     <span className={`about-status-dot ${versionStatus.dotCls}`} />
                     {versionStatus.label}

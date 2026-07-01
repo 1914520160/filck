@@ -80,21 +80,9 @@
 }
 
 .tray-popup-version {
-  font-size: 11px;
-  color: var(--text-muted);
   line-height: 1.2;
 }
-
-.version-badge {
-  display: inline-block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  background: var(--section-bg);
-  border-radius: 6px;
-  padding: 2px 10px;
-  transition: background 0.3s ease, color 0.3s ease;
-}
+/* version-badge 旧样式已由 VersionBadge 组件替代 */
 
 /* 监听状态指示点 */
 .tray-popup-status-dot {

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>全项目图标美化 — 方案 B</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#0F172A;color:#E4E4E7;padding:32px 24px;min-height:100vh}
+h1{font-size:18px;font-weight:700;text-align:center;margin-bottom:6px}
+h1 span{color:#818CF8}
+.sub{text-align:center;font-size:11px;color:#52525B;margin-bottom:28px}
+.section{margin-bottom:28px}
+.s-title{font-size:11px;font-weight:600;color:#71717A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.s-title .dot{width:6px;height:6px;border-radius:50%;background:#818CF8}
+.row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#18181B;border:1px solid #27272A;border-radius:12px;padding:10px 14px;margin-bottom:8px}
+.row-label{font-size:10px;color:#52525B;width:100px;flex-shrink:0;text-align:right}
+.comp{display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:8px;background:#27272A}
+.comp.old{border:1px dashed #52525B}
+.arrow{color:#52525B;font-size:12px;margin:0 2px}
+
+/* 旧版图标 */
+.old-icon{font-size:16px;color:#A1A1AA;width:28px;height:28px;display:flex;align-items:center;justify-content:center}
+
+/* 新版图标 */
+.new-icon{width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.new-icon svg{width:18px;height:18px}
+
+/* 彩色文字图标（A/a/" /¶ 保留文字但加颜色） */
+.text-icon{font-size:13px;font-weight:700;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:5px}
+.text-icon.upper{background:rgba(59,130,246,.15);color:#60A5FA}
+.text-icon.lower{background:rgba(16,185,129,.15);color:#34C759}
+.text-icon.quote{background:rgba(168,85,247,.15);color:#A855F7}
+.text-icon.scissor{background:rgba(245,158,11,.15);color:#F59E0B}
+.text-icon.para{background:rgba(236,72,153,.15);color:#EC4899}
+
+/* 彩色圆点 */
+.dot-online{width:10px;height:10px;border-radius:50%;background:#34C759;box-shadow:0 0 6px rgba(52,199,89,.5)}
+.dot-offline{width:10px;height:10px;border-radius:50%;background:#52525B}
+
+/* TYPE_ICONS 卡片 */
+.type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:6px}
+.type-card{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#27272A;border-radius:8px;font-size:11px}
+.type-card .tc-old{font-size:16px;color:#71717A}
+.type-card .tc-new{color:#A1A1AA}
+.type-card .tc-new svg{width:16px;height:16px}
+
+/* 上下文菜单模拟 */
+.ctx-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#27272A;border-radius:8px;font-size:11px;margin:2px 0}
+.ctx-row .ctx-label{color:#A1A1AA;flex:1}
+.ctx-row .ctx-shortcut{color:#52525B;font-size:10px}
+
+.tag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px}
+.tag.keep{background:rgba(16,185,129,.15);color:#34C759}
+.tag.svg{background:rgba(59,130,246,.15);color:#60A5FA}
+.tag.lucide{background:rgba(168,85,247,.15);color:#A855F7}
+.tag.css{background:rgba(245,158,11,.15);color:#F59E0B}
+</style>
+</head>
+<body>
+
+<h1>🎨 全项目图标美化 <span>方案 B</span></h1>
+<p class="sub">分类处理：lucide-react 组件 / 彩色 SVG / 保留文字加色 / CSS 圆点</p>
+
+<!-- ① ✕ → X -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>① ✕ 关闭/清除 <span class="tag lucide">lucide-react</span></div>
+  <div class="row">
+    <span class="row-label">搜索清除</span>
+    <div class="comp old"><span class="old-icon">✕</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+  <div class="row">
+    <span class="row-label">面板关闭</span>
+    <div class="comp old"><span class="old-icon">✕</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+</div>
+
+<!-- ② ✓ → Check -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>② ✓ 勾选 <span class="tag lucide">lucide-react</span></div>
+  <div class="row">
+    <span class="row-label">复选框</span>
+    <div class="comp old"><span class="old-icon">✓</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+  <div class="row">
+    <span class="row-label">已复制</span>
+    <div class="comp old"><span class="old-icon">✓</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+  <div class="row">
+    <span class="row-label">文件正常</span>
+    <div class="comp old"><span style="font-size:11px">✓ 文件正常</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span style="font-size:10px">文件正常</span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+</div>
+
+<!-- ③ ⚙ / ⌨ / ✂ → 彩色 SVG -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>③ ⚙ / ⌨ / ✂ 功能图标 <span class="tag svg">彩色SVG</span></div>
+  <div class="row">
+    <span class="row-label">设置 Section</span>
+    <div class="comp old"><span class="old-icon">⚙</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+  <div class="row">
+    <span class="row-label">快捷键图标</span>
+    <div class="comp old"><span class="old-icon">⌨</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#A78BFA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h8M6 12h.01M18 12h.01M6 16h12"/></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+  <div class="row">
+    <span class="row-label">剪切图标</span>
+    <div class="comp old"><span class="old-icon">✂</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 8.6 18 18M15.4 8.6 6 18"/></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+</div>
+
+<!-- ④ A/a/" /¶ /✂ 粘贴变换 → 保留文字+彩色 -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>④ A / a / " / ¶ 粘贴变换 <span class="tag keep">保留文字+彩色</span></div>
+  <p style="font-size:10px;color:#52525B;margin-bottom:8px">这些是文字操作语义，换成图标反而难懂。保留字母但加色彩背景。</p>
+  <div class="row">
+    <span class="row-label">粘贴变换菜单</span>
+    <div class="comp old">
+      <span style="font-size:12px;font-weight:700">A</span><span style="font-size:10px;color:#52525B">旧</span>
+    </div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="text-icon upper">A</span><span style="font-size:10px">粘贴为大写</span><span style="font-size:10px;color:#52525B">新</span></div>
+    <div class="comp"><span class="text-icon lower">a</span><span style="font-size:10px">粘贴为小写</span><span style="font-size:10px;color:#52525B">新</span></div>
+    <div class="comp"><span class="text-icon quote">"</span><span style="font-size:10px">加引号</span><span style="font-size:10px;color:#52525B">新</span></div>
+    <div class="comp"><span class="text-icon para">¶</span><span style="font-size:10px">去空行</span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+</div>
+
+<!-- ⑤ ▴▾ → Chevron -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>⑤ ▴ / ▾ 展开箭头 <span class="tag lucide">lucide-react</span></div>
+  <div class="row">
+    <span class="row-label">对比原文</span>
+    <div class="comp old"><span style="font-size:11px">对比原文 ▾</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span style="font-size:11px">对比原文 </span><span class="new-icon"><svg viewBox="0 0 24 24" fill="none" stroke="#A1A1AA" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+</div>
+
+<!-- ⑥ TS 纯文字 → 彩色 SVG -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>⑥ "TS" 纯文字 <span class="tag svg">彩色SVG</span></div>
+  <div class="row">
+    <span class="row-label">关于-技术栈</span>
+    <div class="comp old"><span class="old-icon" style="font-weight:700;font-size:14px">TS</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="new-icon"><svg viewBox="0 0 24 24" fill="#3178C6"><rect width="24" height="24" rx="3"/><text x="12" y="17" text-anchor="middle" font-size="11" font-weight="700" fill="#fff" font-family="system-ui">TS</text></svg></span><span style="font-size:10px;color:#52525B">新</span></div>
+  </div>
+</div>
+
+<!-- ⑦ ● → CSS 圆点 -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>⑦ ● 在线指示器 <span class="tag css">CSS圆点</span></div>
+  <div class="row">
+    <span class="row-label">设备状态</span>
+    <div class="comp old"><span class="old-icon">●</span><span style="font-size:10px;color:#52525B">旧</span></div>
+    <span class="arrow">→</span>
+    <div class="comp"><span class="dot-online"></span><span style="font-size:10px;color:#52525B">新(在线)</span></div>
+    <div class="comp"><span class="dot-offline"></span><span style="font-size:10px;color:#52525B">新(离线)</span></div>
+  </div>
+</div>
+
+<!-- ⑧ TYPE_ICONS → lucide-react -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>⑧ TYPE_ICONS 类型图标 <span class="tag lucide">lucide-react</span></div>
+  <p style="font-size:10px;color:#52525B;margin-bottom:8px">lib/utils.ts 中的 7 个纯文本符号，Card 组件实际使用时会渲染这些小图标</p>
+  <div class="type-grid">
+    <div class="type-card"><span class="tc-old">☰</span><span class="tc-new"><svg viewBox="0 0 24 24" fill="none" stroke="#9E9E9E" stroke-width="2" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span> text</div>
+    <div class="type-card"><span class="tc-old">⛓</span><span class="tc-new"><svg viewBox="0 0 24 24" fill="none" stroke="#07C160" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span> link</div>
+    <div class="type-card"><span class="tc-old">@</span><span class="tc-new"><svg viewBox="0 0 24 24" fill="none" stroke="#007AFF" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M16 8v5a3 3 0 0 0 6 0v-1a10 10 0 1 0-3.92 7.94"/></svg></span> email</div>
+    <div class="type-card"><span class="tc-old">&lt;/&gt;</span><span class="tc-new"><svg viewBox="0 0 24 24" fill="none" stroke="#5856D6" stroke-width="2" stroke-linecap="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span> code</div>
+    <div class="type-card"><span class="tc-old">☎</span><span class="tc-new"><svg viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2" stroke-linecap="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span> phone</div>
+    <div class="type-card"><span class="tc-old">⬚</span><span class="tc-new"><svg viewBox="0 0 24 24" fill="none" stroke="#FF9500" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></span> image</div>
+    <div class="type-card"><span class="tc-old">☷</span><span class="tc-new"><svg viewBox="0 0 24 24" fill="none" stroke="#FFCC00" stroke-width="2" stroke-linecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> file</div>
+  </div>
+</div>
+
+<!-- 完整对比预览 -->
+<div class="section">
+  <div class="s-title"><span class="dot"></span>TopBar 完整对比</div>
+  <div class="row" style="flex-direction:column;align-items:flex-start;gap:10px">
+    <div style="display:flex;align-items:center;gap:12px;width:100%">
+      <span style="font-size:10px;color:#EF4444;width:30px">旧</span>
+      <div style="display:flex;align-items:center;gap:4px;background:#1C1C1E;border-radius:10px;padding:6px 12px">
+        <span style="font-size:16px">📋</span><span style="font-size:13px;font-weight:700">PastePanda</span><span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:#818CF8;color:#fff">v5.0.72</span>
+        <span style="margin-left:8px;font-size:14px;color:#71717A">📝</span>
+        <span style="font-size:14px;color:#71717A">🧲</span>
+        <span style="font-size:14px;color:#71717A">⚙</span>
+        <span style="font-size:14px;color:#71717A">❓</span>
+        <span style="font-size:14px;color:#71717A">ℹ</span>
+        <span style="font-size:14px;color:#71717A">—</span>
+        <span style="font-size:14px;color:#71717A">✕</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;width:100%">
+      <span style="font-size:10px;color:#34C759;width:30px">新</span>
+      <div style="display:flex;align-items:center;gap:4px;background:#1C1C1E;border-radius:10px;padding:6px 12px">
+        <span style="font-size:16px">📋</span><span style="font-size:13px;font-weight:700">PastePanda</span><span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;background:#818CF8;color:#fff">v5.0.72</span>
+        <span style="margin-left:8px;font-size:18px">📝</span>
+        <span style="font-size:18px">🧲</span>
+        <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg></span>
+        <span style="font-size:18px">❓</span>
+        <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#FACC15" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></span>
+        <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg></span>
+        <span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#F87171" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 图例 -->
+<div style="display:flex;gap:16px;justify-content:center;margin-top:24px;padding:12px;background:#18181B;border-radius:10px;font-size:10px">
+  <span class="tag lucide">lucide-react</span> 用项目已有的图标库
+  <span class="tag svg">彩色SVG</span> 内联彩色矢量图标
+  <span class="tag keep">保留文字+彩色</span> 语义文字+色彩样式
+  <span class="tag css">CSS圆点</span> 纯 CSS 实现
+</div>
+
+</body>
+</html>

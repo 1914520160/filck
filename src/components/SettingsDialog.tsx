@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useAppStore, HistoryItem } from "@/stores/appStore";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { VersionBadge } from "@/components/VersionBadge";
 import { THEMES, applyTheme, ThemeKey } from "@/lib/theme";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
@@ -301,7 +302,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   ))}
                 </div>
               </div>
-              <ToggleRow icon="✂" gradient="linear-gradient(135deg, #10B981, #34C759)" label="自动去除空白" desc="复制时去除首尾空白字符" value={config.auto_strip} onChange={(v) => updateAndSave({ auto_strip: v })} />
+              <ToggleRow icon={<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M8.6 8.6 18 18M15.4 8.6 6 18"/></svg>} gradient="linear-gradient(135deg, #10B981, #34C759)" label="自动去除空白" desc="复制时去除首尾空白字符" value={config.auto_strip} onChange={(v) => updateAndSave({ auto_strip: v })} />
               <div className="s-row">
                 <span className="s-row-icon" style={{ background: "linear-gradient(135deg, #8B5CF6, #AF52DE)" }}>👆</span>
                 <div className="s-row-body">
@@ -416,7 +417,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <button onClick={onClose} className="s-save-btn">
                 关闭设置
               </button>
-              <span className="s-footer-ver">{appName} v{appVersion}</span>
+              <span className="s-footer-ver">{appName} <VersionBadge version={appVersion} compact /></span>
             </div>
           </motion.div>
         </motion.div>
@@ -436,7 +437,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 
 /* ===== Toggle Row 组件 ===== */
 function ToggleRow({ icon, gradient, label, desc, value, onChange }: {
-  icon: string; gradient: string; label: string; desc: string; value: boolean; onChange: (v: boolean) => void;
+  icon: React.ReactNode; gradient: string; label: string; desc: string; value: boolean; onChange: (v: boolean) => void;
 }) {
   return (
     <div className="s-row" onClick={() => onChange(!value)} style={{ cursor: "pointer" }}>
@@ -588,7 +589,7 @@ function LanSyncPanel({ toast }: { toast: (msg: string, type?: "success" | "erro
                 <div className="lan-device-name">{d.device_name}</div>
                 <div className="lan-device-time">{d.last_seen}</div>
               </div>
-              <span className="lan-device-online" title="在线">●</span>
+              <span className="lan-device-online" title="在线"><span className="dot-online" /></span>
             </div>
           ))}
         </div>

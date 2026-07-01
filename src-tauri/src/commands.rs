@@ -5,9 +5,10 @@ use tauri::{State, Manager, Emitter};
 /// 应用配置（从 tauri.conf.json 运行时读取，唯一配置来源）
 use std::sync::LazyLock;
 
-/// 应用版本号（编译期嵌入，优先使用；绿色版无需外部 tauri.conf.json）
+/// 应用版本号（唯一来源：tauri.conf.json，构建时已由 sync-version.mjs 同步到 Cargo.toml）
+/// 编译期 CARGO_PKG_VERSION 作为兜底，确保与 tauri.conf.json 一致。
 pub static APP_VERSION: LazyLock<String> = LazyLock::new(|| {
-    // 编译期嵌入：直接来自 Cargo.toml 的 package.version
+    // 主路径：编译期嵌入（Cargo.toml 已由 prebuild 脚本同步）
     let compiled = env!("CARGO_PKG_VERSION").to_string();
     if !compiled.is_empty() && compiled != "0.0.0" {
         return compiled;

@@ -44,7 +44,7 @@ function SubTitle({ children, hidden }: { children: string; hidden?: boolean }) 
 }
 
 /** 功能指南卡片 */
-function GuideCard({ icon, color, title, desc, hidden }: { icon: string; color: string; title: string; desc: string; hidden?: boolean }) {
+function GuideCard({ icon, color, title, desc, hidden }: { icon: React.ReactNode; color: string; title: string; desc: string; hidden?: boolean }) {
   return (
     <div className={`h2-card${hidden ? " h2-hidden" : ""}`}>
       <div className="h2-card-icon" style={{ background: `${color}20`, color }}>{icon}</div>
@@ -72,7 +72,7 @@ function matches(q: string, ...texts: (string | undefined)[]) {
 function Section({
   icon, iconBg, title, defaultExpanded, forceExpand, hasMatch, children
 }: {
-  icon: string; iconBg: string; title: string; defaultExpanded?: boolean; forceExpand: boolean; hasMatch: boolean; children: React.ReactNode;
+  icon: React.ReactNode; iconBg: string; title: string; defaultExpanded?: boolean; forceExpand: boolean; hasMatch: boolean; children: React.ReactNode;
 }) {
   const [manualExpanded, setManualExpanded] = useState(defaultExpanded ?? false);
   const expanded = forceExpand ? true : manualExpanded;
@@ -167,7 +167,7 @@ export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => vo
             <div className="dialog-body h2-body">
 
               {/* 1. 快捷键速查 — 默认展开 */}
-              <Section icon="⌨" iconBg="linear-gradient(135deg, #3B82F6, #0078D4)" title="快捷键速查" defaultExpanded
+              <Section icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h8M6 12h.01M18 12h.01M6 16h12"/></svg>} iconBg="linear-gradient(135deg, #3B82F6, #0078D4)" title="快捷键速查" defaultExpanded
                 forceExpand={searching} hasMatch={!searching || matches(q, "唤出 隐藏 窗口", "隐藏 Esc", "设置 ctrl+s", "帮助 ctrl+h", "片段库 ctrl+b", "内容提取 ctrl+e", "导航 上下 ↑ ↓", "顶部 底部 Home End", "粘贴 Enter", "预览 Space", "删除 Delete", "右键 Shift F10", "全选 ctrl+a", "置顶 ctrl+d", "撤销 ctrl+z", "多选 ctrl click", "范围 shift click", "依次粘贴 ctrl+q", "粘贴第N ctrl alt 1 9")}>
                 <SubTitle hidden={searching && !matches(q, "唤出 隐藏 窗口", "隐藏 Esc", "设置 ctrl+s", "帮助 ctrl+h", "片段库 ctrl+b", "内容提取 ctrl+e")}>全局操作</SubTitle>
                 <KeyRow desc="唤出 / 隐藏窗口" value={hotkeyShow} hidden={searching && !matches(q, "唤出 隐藏 窗口", hotkeyShow)} />
@@ -233,7 +233,7 @@ export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => vo
               </Section>
 
               {/* 3. 设置说明 */}
-              <Section icon="⚙" iconBg="linear-gradient(135deg, #F59E0B, #FF9500)" title="设置说明"
+              <Section icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>} iconBg="linear-gradient(135deg, #F59E0B, #FF9500)" title="设置说明"
                 forceExpand={searching} hasMatch={!searching || matches(q, "主题 切换 深色 浅色", "自动 清理 过期", "窗口 行为 置顶 自启", "自定义 热键")}>
                 <SubTitle hidden={searching && !matches(q, "主题 切换 深色 浅色")}>外观</SubTitle>
                 <GuideCard icon="🎨" color="#4f8cff" title="主题切换"
@@ -249,7 +249,7 @@ export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => vo
                   hidden={searching && !matches(q, "窗口 行为", "置顶 自启 自动粘贴")} />
 
                 <SubTitle hidden={searching && !matches(q, "自定义 热键")}>快捷键</SubTitle>
-                <GuideCard icon="⌨" color="#f87171" title="自定义热键"
+                <GuideCard icon={<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h8M6 12h.01M18 12h.01M6 16h12"/></svg>} color="#f87171" title="自定义热键"
                   desc="可自定义：全局唤出热键、依次粘贴热键、全选热键等"
                   hidden={searching && !matches(q, "自定义 热键", "全局 唤出 全选")} />
               </Section>

@@ -145,6 +145,10 @@
   --green: #16A34A; --green-bg: #DCFCE7; --green-border: #BBF7D0;
   --orange: #EA580C; --orange-bg: #FFF7ED; --orange-border: #FED7AA;
   --red-bg: #FEF2F2; --danger: #DC2626;
+  --version-badge-gradient: linear-gradient(135deg, #0284C7, #0369A1);
+  --version-badge-shadow: rgba(2, 132, 199, 0.35);
+  --update-badge-gradient: linear-gradient(135deg, #0284C7, #0369A1);
+  --update-badge-shadow: rgba(2, 132, 199, 0.4);
 }
 
 /* ── 2. midnight 午夜（默认深色·OLED）── */
@@ -181,6 +185,10 @@
   --green: #4ADE80; --green-bg: #052E16; --green-border: #166534;
   --orange: #FB923C; --orange-bg: #431407; --orange-border: #9A3412;
   --red-bg: #450A0A; --danger: #F87171;
+  --version-badge-gradient: linear-gradient(135deg, #818CF8, #6366F1);
+  --version-badge-shadow: rgba(129, 140, 248, 0.35);
+  --update-badge-gradient: linear-gradient(135deg, #818CF8, #6366F1);
+  --update-badge-shadow: rgba(129, 140, 248, 0.4);
 }
 
 /* ── 3. forest 森林（浅色·护眼绿）── */
@@ -217,6 +225,10 @@
   --green: #16A34A; --green-bg: #DCFCE7; --green-border: #BBF7D0;
   --orange: #EA580C; --orange-bg: #FFF7ED; --orange-border: #FED7AA;
   --red-bg: #FEF2F2; --danger: #DC2626;
+  --version-badge-gradient: linear-gradient(135deg, #059669, #047857);
+  --version-badge-shadow: rgba(5, 150, 105, 0.35);
+  --update-badge-gradient: linear-gradient(135deg, #059669, #047857);
+  --update-badge-shadow: rgba(5, 150, 105, 0.4);
 }
 
 /* ── 4. blossom 樱花（浅色·女性/浪漫）── */
@@ -253,6 +265,10 @@
   --green: #16A34A; --green-bg: #DCFCE7; --green-border: #BBF7D0;
   --orange: #EA580C; --orange-bg: #FFF7ED; --orange-border: #FED7AA;
   --red-bg: #FEF2F2; --danger: #DC2626;
+  --version-badge-gradient: linear-gradient(135deg, #EC4899, #DB2777);
+  --version-badge-shadow: rgba(236, 72, 153, 0.35);
+  --update-badge-gradient: linear-gradient(135deg, #EC4899, #DB2777);
+  --update-badge-shadow: rgba(236, 72, 153, 0.4);
 }
 
 /* ── 5. terminal 终端（深色·开发者/极客）── */
@@ -289,6 +305,10 @@
   --green: #4ADE80; --green-bg: #052E16; --green-border: #166534;
   --orange: #FB923C; --orange-bg: #431407; --orange-border: #9A3412;
   --red-bg: #450A0A; --danger: #F87171;
+  --version-badge-gradient: linear-gradient(135deg, #22C55E, #16A34A);
+  --version-badge-shadow: rgba(34, 197, 94, 0.35);
+  --update-badge-gradient: linear-gradient(135deg, #22C55E, #16A34A);
+  --update-badge-shadow: rgba(34, 197, 94, 0.4);
 }
 
 /* ── 6. sunset 日落（深色·年轻/潮流）── */
@@ -325,6 +345,10 @@
   --green: #4ADE80; --green-bg: #052E16; --green-border: #166534;
   --orange: #FB923C; --orange-bg: #431407; --orange-border: #9A3412;
   --red-bg: #450A0A; --danger: #F87171;
+  --version-badge-gradient: linear-gradient(135deg, #F97316, #EA580C);
+  --version-badge-shadow: rgba(249, 115, 22, 0.35);
+  --update-badge-gradient: linear-gradient(135deg, #F97316, #EA580C);
+  --update-badge-shadow: rgba(249, 115, 22, 0.4);
 }
 
 
@@ -401,30 +425,69 @@
   color: var(--text-primary);
 }
 
+/* ===== 统一版本徽章（方案 1 渐变微光）===== */
+.version-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 7px;
+  background: var(--version-badge-gradient, linear-gradient(135deg, #5B6AF0, #7C5CF0));
+  color: #fff;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+  user-select: none;
+  box-shadow: 0 2px 8px var(--version-badge-shadow, rgba(91, 106, 240, 0.35));
+}
+/* 紧凑模式（用于内联文本） */
+.version-badge--compact {
+  font-size: 9px;
+  padding: 2px 8px;
+  box-shadow: 0 1px 5px var(--version-badge-shadow, rgba(91, 106, 240, 0.25));
+}
+
+/* 更新状态包裹器（TopBar idle/checking/error） */
+.version-badge-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.version-badge-spin {
+  animation: spin 1s linear infinite;
+  color: var(--text-muted);
+}
+.version-badge-error-icon {
+  color: var(--danger);
+}
+
+/* 更新状态颜色覆盖 — 保留给 UpdateBadge 其他状态 */
 .header-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 9px;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
-  background: var(--accent);
+  padding: 3px 10px;
+  border-radius: 7px;
   color: #fff;
   letter-spacing: 0.3px;
   border: none;
-  font-family: inherit;
   cursor: default;
   white-space: nowrap;
+  user-select: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 .header-badge .spin-icon {
   animation: spin 1s linear infinite;
 }
 
-/* 有更新可用 — 绿色可点击 */
+/* 有更新可用 — 跟随主题 accent */
 .header-badge-update {
-  background: #34C759;
-  color: #fff;
+  background: var(--update-badge-gradient, linear-gradient(135deg, #5B6AF0, #7C5CF0));
+  box-shadow: 0 2px 10px var(--update-badge-shadow, rgba(91, 106, 240, 0.35));
   cursor: pointer;
   animation: badge-pulse 2s infinite;
 }
@@ -432,16 +495,17 @@
   filter: brightness(1.15);
 }
 
-/* 下载中 */
+/* 下载中 — 跟随主题 */
 .header-badge-downloading {
   background: var(--accent-light);
   color: var(--accent);
+  box-shadow: none;
 }
 
-/* 就绪/已安装 */
+/* 就绪/已安装 — 跟随主题 accent */
 .header-badge-ready {
-  background: #34C759;
-  color: #fff;
+  background: var(--update-badge-gradient, linear-gradient(135deg, #5B6AF0, #7C5CF0));
+  box-shadow: 0 2px 10px var(--update-badge-shadow, rgba(91, 106, 240, 0.35));
   cursor: pointer;
   animation: badge-pulse 2s infinite;
 }
@@ -455,8 +519,8 @@
 }
 
 .icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border: none;
   background: transparent;
   border-radius: 10px;
@@ -465,11 +529,32 @@
   align-items: center;
   justify-content: center;
   color: var(--text-secondary);
-  transition: background 0.15s;
+  transition: background 0.15s, transform 0.15s;
 }
 
 .icon-btn:hover {
-  background: var(--hover);
+  background: rgba(129,140,248,.12);
+  transform: scale(1.08);
+}
+
+.icon-btn:active {
+  transform: scale(.92);
+}
+
+/* emoji 图标 */
+.icon-btn .icon-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* SVG 图标 */
+.icon-btn .icon-svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-btn:hover.danger {
+  background: rgba(239,68,68,.12);
 }
 
 .icon-btn:focus-visible,
@@ -494,11 +579,6 @@ button:disabled,
   opacity: 0.4;
   cursor: not-allowed;
   pointer-events: none;
-}
-
-.icon-btn:hover.danger {
-  background: #E81123;
-  color: #fff;
 }
 
 /* ===== 3. Search Box ===== */
@@ -1439,6 +1519,23 @@ button:disabled,
   justify-content: center;
   width: 16px;
 }
+
+/* 粘贴变换文字图标 — 保留文字+彩色样式 */
+.ctx-text-icon {
+  font-size: 12px;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 5px;
+}
+.ctx-text-upper { background: rgba(59,130,246,.15); color: #60A5FA; }
+.ctx-text-lower { background: rgba(16,185,129,.15); color: #34C759; }
+.ctx-text-scissor { background: rgba(245,158,11,.15); color: #F59E0B; }
+.ctx-text-para { background: rgba(236,72,153,.15); color: #EC4899; }
+.ctx-text-quote { background: rgba(168,85,247,.15); color: #A855F7; }
 
 /* 子菜单父项 */
 .ctx-item-parent {
@@ -3058,11 +3155,7 @@ button:disabled,
   font-family: "SF Mono", "Consolas", monospace;
 }
 
-/* ===== 18. Version label ===== */
-.version-label {
-  font-size: 10px;
-  color: var(--text-secondary);
-}
+/* ===== 18. Version label (已废弃，由 VersionBadge 组件替代) ===== */
 
 /* ===== 19. Settings — Option B flat list ===== */
 .b-list {
@@ -3526,8 +3619,11 @@ button:disabled,
 }
 
 .s-footer-ver {
-  font-size: 10px;
+  font-size: 11px;
   color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 /* ===== 23. Help Dialog — Accordion Redesign ===== */
@@ -3538,13 +3634,7 @@ button:disabled,
   align-items: center;
   gap: 8px;
 }
-.dialog-version-badge {
-  font-size: 10px;
-  color: var(--text-muted);
-  background: var(--hover);
-  padding: 2px 8px;
-  border-radius: 10px;
-}
+/* dialog-version-badge 已由 VersionBadge 组件替代 */
 
 /* --- Search bar --- */
 .h2-search-bar {
@@ -4026,7 +4116,16 @@ button:disabled,
   font-size: 10px; color: var(--text-muted);
 }
 .lan-device-online {
-  font-size: 10px; color: #10B981; flex-shrink: 0;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.dot-online {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #34C759;
+  box-shadow: 0 0 6px rgba(52,199,89,.4);
 }
 .lan-refresh-btn {
   background: none; border: 1px solid var(--border-color); border-radius: 6px;
@@ -4385,16 +4484,7 @@ button:disabled,
   align-items: center;
   gap: 10px;
 }
-.about-version-badge {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-secondary);
-  background: var(--section-bg);
-  border-radius: 8px;
-  padding: 4px 12px;
-  font-family: "SF Mono", "Fira Code", monospace;
-  transition: background 0.3s ease;
-}
+/* about-version-badge 已由 VersionBadge 组件替代 */
 .about-version-status {
   display: flex;
   align-items: center;
