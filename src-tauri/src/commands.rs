@@ -5,16 +5,50 @@ use tauri::{State, Manager, Emitter};
 /// 应用配置（从 tauri.conf.json 运行时读取，唯一配置来源）
 use std::sync::LazyLock;
 
-/// 从 tauri.conf.json 读取指定 key 的字符串值
-fn read_from_conf(key: &str) -> Result<String, Box<dyn std::error::Error>> {
-    let conf_path = std::env::current_exe()
-        .map(|p| p.parent().unwrap_or(std::path::Path::new(".")).join(".."))
-        .unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
+/// 应用版本号（编译期嵌入，优先使用；绿色版无需外部 tauri.conf.json）
+pub static APP_VERSION: LazyLock<String> = LazyLock::new(|| {
+    // 编译期嵌入：直接来自 Cargo.toml 的 package.version
+    let compiled = env!("CARGO_PKG_VERSION").to_string();
+    if !compiled.is_empty() && compiled != "0.0.0" {
+        return compiled;
+    }
+    // 兜底：运行时读取 tauri.conf.json
+    read_from_conf("version").unwrap_or_else(|_| "0.0.0".to_string())
+});
 
-    let candidates = vec![
-        std::path::PathBuf::from("tauri.conf.json"),
-        conf_path.join("tauri.conf.json"),
-    ];
+/// 应用名称（编译期嵌入）
+pub static APP_NAME: LazyLock<String> = LazyLock::new(|| {
+    let compiled = env!("CARGO_PKG_NAME").to_string();
+    if !compiled.is_empty() {
+        return compiled;
+    }
+    read_from_conf("productName").unwrap_or_else(|_| "PastePanda".to_string())
+});
+
+/// 获取应用版本号
+#[tauri::command]
+pub fn get_app_version() -> String {
+    APP_VERSION.to_string()
+}
+
+/// 获取应用名称
+#[tauri::command]
+pub fn get_app_name() -> String {
+    APP_NAME.to_string()
+}
+
+/// 从 tauri.conf.json 读取指定 key 的字符串值（兜底逻辑）
+fn read_from_conf(key: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let exe_dir = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.parent().map(|d| d.to_path_buf()));
+
+    // 候选路径：当前目录 → exe 同级 → exe 父目录的 ..（开发模式 src-tauri/）
+    let mut candidates = vec![std::path::PathBuf::from("tauri.conf.json")];
+    if let Some(dir) = &exe_dir {
+        candidates.push(dir.join("tauri.conf.json"));
+        candidates.push(dir.join("..").join("tauri.conf.json"));
+    }
 
     for path in &candidates {
         if path.exists() {
@@ -30,26 +64,6 @@ fn read_from_conf(key: &str) -> Result<String, Box<dyn std::error::Error>> {
         }
     }
     Err(format!("{} not found in tauri.conf.json", key).into())
-}
-
-pub static APP_VERSION: LazyLock<String> = LazyLock::new(|| {
-    read_from_conf("version").unwrap_or_else(|_| "0.0.0".to_string())
-});
-
-pub static APP_NAME: LazyLock<String> = LazyLock::new(|| {
-    read_from_conf("productName").unwrap_or_else(|_| "PastePanda".to_string())
-});
-
-/// 获取应用版本号
-#[tauri::command]
-pub fn get_app_version() -> String {
-    APP_VERSION.to_string()
-}
-
-/// 获取应用名称
-#[tauri::command]
-pub fn get_app_name() -> String {
-    APP_NAME.to_string()
 }
 
 #[tauri::command]
