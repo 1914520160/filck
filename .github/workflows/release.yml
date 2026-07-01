@@ -126,7 +126,6 @@ jobs:
         run: |
           $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
           $exePath = "src-tauri/target/release/PastePanda.exe"
-          $confPath = "src-tauri/tauri.conf.json"
           $zipName = "PastePanda_$version`_x86_64-pc-windows-msvc.zip"
 
           if (-not (Test-Path $exePath)) {
@@ -134,25 +133,10 @@ jobs:
             exit 1
           }
 
-          if (-not (Test-Path $confPath)) {
-            Write-Host "❌ tauri.conf.json 不存在: $confPath"
-            exit 1
-          }
-
-          # 创建临时打包目录（exe + tauri.conf.json 同级）
-          $stageDir = "portable_stage"
-          if (Test-Path $stageDir) { Remove-Item -Recurse -Force $stageDir }
-          New-Item -ItemType Directory -Path $stageDir | Out-Null
-
-          Copy-Item $exePath -Destination $stageDir
-          Copy-Item $confPath -Destination $stageDir
-
-          Write-Host "打包 $stageDir -> $zipName"
-          Compress-Archive -Path $stageDir -DestinationPath $zipName -Force
+          Write-Host "打包 $exePath -> $zipName"
+          Compress-Archive -Path $exePath -DestinationPath $zipName -Force
           Write-Host "✅ 绿色版打包完成: $zipName"
           Write-Host "文件大小: $((Get-Item $zipName).Length / 1MB) MB"
-
-          Remove-Item -Recurse -Force $stageDir
 
       - name: 生成 updater.json
         run: node scripts/generate-updater-json.mjs
