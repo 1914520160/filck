@@ -137,17 +137,46 @@ jobs:
         env:
           GITHUB_RELEASE_TAG: ${{ github.ref_name }}
 
+      - name: 提取更新日志
+        id: changelog
+        shell: pwsh
+        run: |
+          # 查找上一个 tag
+          $prevTag = git describe --tags --abbrev=0 --exclude=NEW ${{ github.ref_name }} 2>$null
+          if (-not $prevTag) { $prevTag = "" }
+
+          # 提取自上一个 tag 以来的 commit message
+          if ($prevTag) {
+            $logs = git log "${prevTag}..${{ github.ref_name }}" --pretty=format:"- %s" --no-merges
+          } else {
+            $logs = git log ${{ github.ref_name }} --pretty=format:"- %s" --no-merges -n 10
+          }
+
+          if (-not $logs) { $logs = "常规构建发布" }
+
+          # 第一条 commit message 作为 Release name
+          $firstCommit = ($logs -split "`n" | Select-Object -First 1) -replace "^- ", ""
+
+          "first_commit=$firstCommit" >> $env:GITHUB_OUTPUT
+          "logs<<EOF" >> $env:GITHUB_OUTPUT
+          $logs >> $env:GITHUB_OUTPUT
+          "EOF" >> $env:GITHUB_OUTPUT
+          Write-Host "更新日志：$logs"
+
       - name: 发布 GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "PastePanda ${{ github.ref_name }}"
+          name: "PastePanda ${{ github.ref_name }} - ${{ steps.changelog.outputs.first_commit }}"
           body: |
             ## PastePanda ${{ github.ref_name }}
 
-            自动构建版本。
+            ${{ steps.changelog.outputs.first_commit }}
 
-            ### 下载
+            ### 📝 更新内容
+            ${{ steps.changelog.outputs.logs }}
+
+            ### 📦 下载
             - **安装版**：下载 `PastePanda_*_x64-setup.exe`，运行安装程序（支持自动更新）
             - **绿色版**：下载 `PastePanda_*_portable.zip`，解压后直接双击 `PastePanda.exe` 即可使用（无需安装）
           files: |
