@@ -143,11 +143,6 @@ jobs:
           Write-Host "✅ 绿色版打包完成: $zipName"
           Write-Host "文件大小: $((Get-Item $zipFullPath).Length / 1MB) MB"
 
-      - name: 生成 updater.json
-        run: node scripts/generate-updater-json.mjs
-        env:
-          GITHUB_RELEASE_TAG: ${{ github.ref_name }}
-
       - name: 提取更新日志
         id: changelog
         shell: pwsh
@@ -168,23 +163,38 @@ jobs:
           Write-Host "当前 tag: $currentTag"
           Write-Host "上一个 tag: $prevTag"
 
-          # 提取自上一个 tag 以来的 commit message
+          # 提取自上一个 tag 以来的 commit message body（包含详细变更）
           if ($prevTag) {
-            $logs = git log "${prevTag}..${currentTag}" --pretty=format:"- %s" --no-merges
+            $logs = git log "${prevTag}..${currentTag}" --pretty=format:"%b" --no-merges
           } else {
-            $logs = git log $currentTag --pretty=format:"- %s" --no-merges -n 10
+            $logs = git log $currentTag --pretty=format:"%b" --no-merges -n 10
           }
 
+          # 清理：去掉空行和首尾空白
+          $logs = ($logs -split "`n" | Where-Object { $_.Trim() -ne "" }) -join "`n"
           if (-not $logs) { $logs = "常规构建发布" }
 
-          # 第一条 commit message 作为 Release name
-          $firstCommit = ($logs -split "`n" | Select-Object -First 1) -replace "^- ", ""
+          # 同时提取标题行用于 Release name
+          if ($prevTag) {
+            $titles = git log "${prevTag}..${currentTag}" --pretty=format:"- %s" --no-merges
+          } else {
+            $titles = git log $currentTag --pretty=format:"- %s" --no-merges -n 10
+          }
+          $firstCommit = ($titles -split "`n" | Select-Object -First 1) -replace "^- ", ""
 
           "first_commit=$firstCommit" >> $env:GITHUB_OUTPUT
           "logs<<EOF" >> $env:GITHUB_OUTPUT
-          $logs >> $env:GITHUB_OUTPUT
+          $titles >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
+          # 将详细变更日志输出为单独变量，供 updater.json 使用
+          "updater_notes=$logs" >> $env:GITHUB_OUTPUT
           Write-Host "更新日志：$logs"
+
+      - name: 生成 updater.json
+        run: node scripts/generate-updater-json.mjs
+        env:
+          GITHUB_RELEASE_TAG: ${{ github.ref_name }}
+          UPDATER_NOTES: ${{ steps.changelog.outputs.updater_notes }}
 
       - name: 发布 GitHub Release
         uses: softprops/action-gh-release@v2
