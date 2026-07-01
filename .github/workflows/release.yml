@@ -152,15 +152,27 @@ jobs:
         id: changelog
         shell: pwsh
         run: |
-          # 查找上一个 tag
-          $prevTag = git describe --tags --abbrev=0 --exclude=NEW ${{ github.ref_name }} 2>$null
-          if (-not $prevTag) { $prevTag = "" }
+          # 获取所有 tag，按版本排序
+          $allTags = git tag --sort=-version:refname
+          $currentTag = "${{ github.ref_name }}"
+
+          # 找到当前 tag 在列表中的位置，取前一个作为 prevTag
+          $tagArray = @($allTags)
+          $currentIndex = [array]::IndexOf($tagArray, $currentTag)
+          if ($currentIndex -ge 0 -and $currentIndex -lt $tagArray.Count - 1) {
+            $prevTag = $tagArray[$currentIndex + 1]
+          } else {
+            $prevTag = ""
+          }
+
+          Write-Host "当前 tag: $currentTag"
+          Write-Host "上一个 tag: $prevTag"
 
           # 提取自上一个 tag 以来的 commit message
           if ($prevTag) {
-            $logs = git log "${prevTag}..${{ github.ref_name }}" --pretty=format:"- %s" --no-merges
+            $logs = git log "${prevTag}..${currentTag}" --pretty=format:"- %s" --no-merges
           } else {
-            $logs = git log ${{ github.ref_name }} --pretty=format:"- %s" --no-merges -n 10
+            $logs = git log $currentTag --pretty=format:"- %s" --no-merges -n 10
           }
 
           if (-not $logs) { $logs = "常规构建发布" }
