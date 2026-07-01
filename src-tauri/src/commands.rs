@@ -881,3 +881,77 @@ pub fn emit_tray_open_settings(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+// ===== 自动更新（后台线程，不阻塞 UI） =====
+
+/// 后台执行更新检查+下载安装，通过 Tauri event 推送状态到前端
+#[tauri::command]
+pub fn start_update(app: tauri::AppHandle) {
+    use tauri_plugin_updater::UpdaterExt;
+
+    tauri::async_runtime::spawn(async move {
+        // → 通知前端：检查中
+        let _ = app.emit("update:checking", ());
+
+        // 使用 UpdaterExt trait 的方法检查更新
+        let updater = match app.updater() {
+            Ok(u) => u,
+            Err(e) => {
+                let _ = app.emit("update:error", serde_json::json!({
+                    "message": format!("更新插件初始化失败: {}", e)
+                }));
+                return;
+            }
+        };
+
+        let check_result = match updater.check().await {
+            Ok(r) => r,
+            Err(e) => {
+                let _ = app.emit("update:error", serde_json::json!({
+                    "message": format!("检查更新失败: {}", e)
+                }));
+                return;
+            }
+        };
+
+        let update = match check_result {
+            Some(u) => u,
+            None => {
+                // 已是最新版本
+                let _ = app.emit("update:uptodate", ());
+                return;
+            }
+        };
+
+        // → 通知前端：发现新版本
+        let _ = app.emit("update:available", serde_json::json!({
+            "version": update.version,
+            "body": update.body,
+        }));
+
+        // → 通知前端：开始下载
+        let _ = app.emit("update:downloading", ());
+
+        // 下载并安装（带进度回调）
+        let app_clone = app.clone();
+        let result = update.download_and_install(
+            // on_chunk: 下载进度回调
+            move |downloaded, total| {
+                let _ = app_clone.emit("update:progress", serde_json::json!({
+                    "downloaded": downloaded,
+                    "total": total,
+                }));
+            },
+            // on_download_finish: 下载完成回调
+            move || {
+                let _ = app_clone.emit("update:ready", ());
+            },
+        ).await;
+
+        if let Err(e) = result {
+            let _ = app.emit("update:error", serde_json::json!({
+                "message": format!("下载安装失败: {}", e)
+            }));
+        }
+    });
+}
+

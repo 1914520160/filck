@@ -190,6 +190,7 @@ pub fn run() {
             commands::emit_tray_open_settings,
             commands::show_main_window,
             commands::save_image_file,
+            commands::start_update,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

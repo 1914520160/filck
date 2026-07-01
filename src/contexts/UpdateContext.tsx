@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { logger } from "@/lib/logger";
 
 // ─── 类型定义 ───────────────────────────────────────────
@@ -128,48 +130,88 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ─── 下载并安装 ──────────────────────────────────────
+  // ─── 下载并安装（后台线程，不阻塞 UI）────────────
 
   const downloadAndInstall = useCallback(async () => {
     if (!update) return;
 
-    setStatus("downloading");
-    setProgress(0);
-    setError(null);
-
-    try {
-      let contentLength = 0;
-      let downloaded = 0;
-
-      await update.downloadAndInstall((event) => {
-        switch (event.event) {
-          case "Started": {
-            contentLength = event.data.contentLength ?? 0;
-            break;
-          }
-          case "Progress": {
-            downloaded += event.data.chunkLength;
-            if (contentLength > 0) {
-              const pct = Math.round((downloaded / contentLength) * 100);
-              setProgress(pct);
-            }
-            break;
-          }
-          case "Finished": {
-            setProgress(100);
-            break;
-          }
-        }
-      });
-
-      setStatus("ready");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      logger.error("[Update] 下载安装失败:", msg);
-      setError(msg);
+    // 启动后台下载（Rust 侧 spawn 线程，通过 event 推送状态）
+    invoke("start_update").catch((e) => {
+      logger.error("[Update] start_update invoke 失败:", e);
+      setError(String(e));
       setStatus("error");
-    }
+    });
   }, [update]);
+
+  // ─── 监听后台更新事件 ──────────────────────────────
+
+  useEffect(() => {
+    const unlisteners: UnlistenFn[] = [];
+
+    const setupListeners = async () => {
+      unlisteners.push(
+        await listen("update:checking", () => {
+          setStatus("checking");
+          setError(null);
+        }),
+      );
+
+      unlisteners.push(
+        await listen<{ version: string; body: string | null }>("update:available", (e) => {
+          setStatus("available");
+          setUpdate({
+            version: e.payload.version,
+            body: e.payload.body,
+          } as Update);
+        }),
+      );
+
+      unlisteners.push(
+        await listen("update:downloading", () => {
+          setStatus("downloading");
+          setProgress(0);
+        }),
+      );
+
+      unlisteners.push(
+        await listen<{ downloaded: number; total: number | null }>("update:progress", (e) => {
+          const { downloaded, total } = e.payload;
+          if (total) {
+            const pct = Math.round((downloaded / total) * 100);
+            setProgress(pct);
+          }
+        }),
+      );
+
+      unlisteners.push(
+        await listen("update:ready", () => {
+          setProgress(100);
+          setStatus("ready");
+        }),
+      );
+
+      unlisteners.push(
+        await listen<{ message: string }>("update:error", (e) => {
+          logger.error("[Update] 更新失败:", e.payload.message);
+          setError(e.payload.message);
+          setStatus("error");
+        }),
+      );
+
+      unlisteners.push(
+        await listen("update:uptodate", () => {
+          setStatus("idle");
+          setUpdate(null);
+        }),
+      );
+    };
+
+    setupListeners();
+
+    return () => {
+      unlisteners.forEach((fn) => fn());
+    };
+  }, []);
 
   // ─── 重启应用 ────────────────────────────────────────
 
