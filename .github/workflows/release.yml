@@ -84,6 +84,9 @@ jobs:
       - name: 安装 Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: 启用 sccache 缓存
+        uses: mozilla-actions/sccache-action@v0.0.10
+
       - name: 安装前端依赖
         run: |
           rm package-lock.json -ErrorAction SilentlyContinue
@@ -92,6 +95,9 @@ jobs:
 
       - name: 构建 Tauri 应用
         shell: pwsh
+        env:
+          SCCACHE_GHA_ENABLED: "true"
+          RUSTC_WRAPPER: "sccache"
         run: |
           $env:TAURI_SIGNING_PRIVATE_KEY = $env:TAURI_KEY_FILE
           npx tauri build
