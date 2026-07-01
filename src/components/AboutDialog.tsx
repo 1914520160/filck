@@ -3,6 +3,7 @@ import { X, ExternalLink } from "lucide-react";
 import { getAppVersion, getAppName } from "@/lib/api";
 import { UpdateBanner } from "@/components/UpdateBadge";
 import { VersionBadge } from "@/components/VersionBadge";
+import { AppIcon } from "@/components/AppIcon";
 import { useUpdate } from "@/contexts/UpdateContext";
 import { useState, useEffect, useMemo } from "react";
 
@@ -85,7 +86,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           <div className="dialog-body" style={{ padding: "28px 28px 24px" }}>
             {/* 英雄区 */}
             <div className="about-hero">
-              <div className="about-icon">📋</div>
+              <div className="about-icon"><AppIcon size={64} /></div>
               <div className="about-meta">
                 <div className="about-name">{appName}</div>
                 <div className="about-version-row">

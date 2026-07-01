@@ -5,6 +5,7 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { pasteText } from "@/lib/api";
 import { VersionBadge } from "@/components/VersionBadge";
+import { AppIcon } from "@/components/AppIcon";
 
 // ===== 数据类型 =====
 interface RecentItem {
@@ -437,7 +438,7 @@ export function TrayPopup() {
       {/* 头部信息 */}
       <div className="tray-popup-header">
         <div className="tray-popup-logo">
-          <IconClipboard />
+          <AppIcon size={22} />
         </div>
         <div className="tray-popup-title">
           <span className="tray-popup-name">{appName}</span>

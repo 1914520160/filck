@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore, FilterType, TimeFilter, SourceFilter, HistoryItem } from "@/stores/appStore";
 import { getAppVersion, getAppName } from "@/lib/api";
 import { UpdateBadge } from "@/components/UpdateBadge";
+import { AppIcon } from "@/components/AppIcon";
 import { logger } from "@/lib/logger";
 import { X, ChevronDown } from "lucide-react";
 
@@ -136,7 +137,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
       {/* 标题行 */}
       <div className="header-top" data-tauri-drag-region>
         <div className="header-title">
-          <span className="header-title-icon">📋</span>
+          <span className="header-title-icon"><AppIcon size={20} /></span>
           <span className="header-title-text">{appName}</span>
           <UpdateBadge currentVersion={appVersion} />
         </div>

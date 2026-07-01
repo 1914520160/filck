@@ -416,7 +416,12 @@
 }
 
 .header-title-icon {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.header-title-icon img {
+  display: block;
 }
 
 .header-title-text {
@@ -4463,13 +4468,16 @@ button:disabled,
   height: 68px;
   border-radius: 18px;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #3B82F6, #0284C7);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  color: #fff;
+  background: linear-gradient(135deg, #3B82F6, #0284C7);
   box-shadow: 0 8px 24px rgba(0, 120, 212, 0.25);
+}
+.about-icon img {
+  display: block;
+  border-radius: 18px;
 }
 .about-meta { flex: 1; min-width: 0; }
 .about-name {
