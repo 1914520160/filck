@@ -402,6 +402,9 @@
 }
 
 .header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 9px;
   font-weight: 700;
   padding: 2px 7px;
@@ -409,6 +412,41 @@
   background: var(--accent);
   color: #fff;
   letter-spacing: 0.3px;
+  border: none;
+  font-family: inherit;
+  cursor: default;
+  white-space: nowrap;
+}
+.header-badge .spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+/* 有更新可用 — 绿色可点击 */
+.header-badge-update {
+  background: #34C759;
+  color: #fff;
+  cursor: pointer;
+  animation: badge-pulse 2s infinite;
+}
+.header-badge-update:hover {
+  filter: brightness(1.15);
+}
+
+/* 下载中 */
+.header-badge-downloading {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+/* 就绪/已安装 */
+.header-badge-ready {
+  background: #34C759;
+  color: #fff;
+  cursor: pointer;
+  animation: badge-pulse 2s infinite;
+}
+.header-badge-ready:hover {
+  filter: brightness(1.15);
 }
 
 .header-icons {

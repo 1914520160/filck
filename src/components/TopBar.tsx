@@ -138,8 +138,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
         <div className="header-title">
           <span className="header-title-icon">📋</span>
           <span className="header-title-text">{appName}</span>
-          <span className="header-badge">v{appVersion}</span>
-          <UpdateBadge />
+          <UpdateBadge currentVersion={appVersion} />
         </div>
         <div className="header-icons" data-tauri-drag-region="false">
           <IconBtn icon="📝" tip="片段库" onClick={onSnippets} />

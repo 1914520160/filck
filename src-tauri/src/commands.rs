@@ -932,18 +932,19 @@ pub fn start_update(app: tauri::AppHandle) {
         let _ = app.emit("update:downloading", ());
 
         // 下载并安装（带进度回调）
-        let app_clone = app.clone();
+        let app_progress = app.clone();
+        let app_ready = app.clone();
         let result = update.download_and_install(
             // on_chunk: 下载进度回调
             move |downloaded, total| {
-                let _ = app_clone.emit("update:progress", serde_json::json!({
+                let _ = app_progress.emit("update:progress", serde_json::json!({
                     "downloaded": downloaded,
                     "total": total,
                 }));
             },
             // on_download_finish: 下载完成回调
             move || {
-                let _ = app_clone.emit("update:ready", ());
+                let _ = app_ready.emit("update:ready", ());
             },
         ).await;
 

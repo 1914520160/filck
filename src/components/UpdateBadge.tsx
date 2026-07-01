@@ -1,9 +1,17 @@
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useUpdate } from "@/contexts/UpdateContext";
-import { ArrowDown, Loader2, CheckCircle, AlertCircle, RotateCcw, ExternalLink } from "lucide-react";
+import { ArrowDown, Loader2, CheckCircle, AlertCircle, RotateCcw } from "lucide-react";
 
-/** TopBar 中显示的新版本提示徽章 */
-export function UpdateBadge() {
+/**
+ * TopBar 版本号融合徽章
+ * 方案 D：更新状态融入 header-badge 本身，不再单独占用布局空间
+ *
+ * - idle/checking/error：普通灰色标签 [v5.0.70]
+ * - available：绿色可点击 [🔄 v5.0.71] 点击下载
+ * - downloading：[⏳ 45%]
+ * - ready/installed：[✅ 重启]
+ */
+export function UpdateBadge({ currentVersion }: { currentVersion: string }) {
   const { status, update, progress, downloadAndInstall, restart } = useUpdate();
 
   const handleClick = async () => {
@@ -14,39 +22,32 @@ export function UpdateBadge() {
     }
   };
 
-  // 检查中：小转圈
-  if (status === "checking") {
-    return (
-      <span className="update-badge" title="检查更新中…">
-        <Loader2 size={10} className="spin-icon" />
-      </span>
-    );
-  }
-
-  // 有新版本：显示徽章
+  // 有新版本：替换版本号，显示可点击的绿色更新按钮
   if (status === "available") {
     const ver = update?.version ?? "";
     return (
       <motion.button
-        initial={{ scale: 0, opacity: 0 }}
+        key="update-available"
+        initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="update-badge update-badge-available"
+        className="header-badge header-badge-update"
         title={`发现新版本 v${ver}，点击下载更新`}
         onClick={handleClick}
       >
         <ArrowDown size={10} />
-        <span>v{ver}</span>
+        <span>更新 v{ver}</span>
       </motion.button>
     );
   }
 
-  // 下载中：进度条
+  // 下载中
   if (status === "downloading") {
     return (
       <motion.span
+        key="update-downloading"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="update-badge update-badge-downloading"
+        className="header-badge header-badge-downloading"
         title={`下载中 ${progress}%`}
       >
         <Loader2 size={10} className="spin-icon" />
@@ -55,13 +56,14 @@ export function UpdateBadge() {
     );
   }
 
-  // 已就绪/已安装：点击重启
+  // 已就绪/已安装
   if (status === "ready" || status === "installed") {
     return (
       <motion.button
-        initial={{ scale: 0, opacity: 0 }}
+        key="update-ready"
+        initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="update-badge update-badge-ready"
+        className="header-badge header-badge-ready"
         title="更新已安装，点击重启"
         onClick={handleClick}
       >
@@ -71,22 +73,19 @@ export function UpdateBadge() {
     );
   }
 
-  // 错误状态
-  if (status === "error") {
-    return (
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="update-badge update-badge-error"
-        title="更新检查失败"
-      >
-        <AlertCircle size={10} />
-      </motion.span>
-    );
-  }
+  // idle / checking / error：显示普通版本号
+  const idleTitle =
+    status === "checking" ? "检查更新中…" :
+    status === "error" ? "更新检查失败" :
+    `v${currentVersion}`;
 
-  // idle：不显示
-  return null;
+  return (
+    <span className="header-badge" title={idleTitle}>
+      {status === "checking" && <Loader2 size={10} className="spin-icon" />}
+      {status === "error" && <AlertCircle size={10} />}
+      {status !== "checking" && status !== "error" && `v${currentVersion}`}
+    </span>
+  );
 }
 
 /** AboutDialog 中使用的更新横幅 + 下载进度 */
