@@ -102,8 +102,10 @@ pub fn check_portable_update() -> Result<PortableUpdateInfo, String> {
     let latest_ver = latest.version.to_string();
     let notes = latest.body.clone().unwrap_or_default();
 
-    // 比较版本号
-    let available = latest_ver != current_ver;
+    // 比较版本号（使用 semver 确保 latest > current 才算有更新）
+    let available = semver::Version::parse(&latest_ver)
+        .and_then(|lv| semver::Version::parse(&current_ver).map(|cv| lv > cv))
+        .unwrap_or(latest_ver != current_ver);
 
     let info = PortableUpdateInfo {
         available,

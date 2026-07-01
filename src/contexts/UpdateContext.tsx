@@ -105,6 +105,8 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   // ─── 静默检查（不改变 UI 状态，仅内部记录）─────────
 
   const silentCheck = useCallback(async () => {
+    if (checkingRef.current) return;
+    checkingRef.current = true;
     try {
       // 根据运行模式选择检查方式
       const portable = await invoke<boolean>("is_portable_version");
@@ -123,8 +125,10 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       }
     } catch {
       // 静默检查失败不处理
+    } finally {
+      checkingRef.current = false;
+      localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
     }
-    localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
   }, []);
 
   // ─── 检查更新 ─────────────────────────────────────────
@@ -182,11 +186,46 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
     try {
       if (isPortable) {
-        // 绿色版：调用 Rust 下载并安装
-        await invoke("download_and_install_portable");
-        setProgress(100);
-        setStatus("ready");
-      } else if (update) {
+        // 绿色版：启动状态轮询 + 后台下载
+        let pollTimer: ReturnType<typeof setInterval> | null = null;
+        let settled = false;
+
+        pollTimer = setInterval(async () => {
+          if (settled) return;
+          try {
+            const s = await invoke<any>("get_portable_update_status");
+            if (s?.Ready) {
+              settled = true;
+              if (pollTimer) clearInterval(pollTimer);
+              setProgress(100);
+              setStatus("ready");
+            } else if (s?.Error) {
+              settled = true;
+              if (pollTimer) clearInterval(pollTimer);
+              setError(String(s.Error));
+              setStatus("error");
+            }
+            // Downloading 状态：保持 downloading 状态，显示不确定进度
+          } catch {
+            // 轮询异常忽略
+          }
+        }, 1000);
+
+        // 触发下载（不 await，让轮询处理结果）
+        invoke("download_and_install_portable").catch((e) => {
+          if (settled) return;
+          settled = true;
+          if (pollTimer) clearInterval(pollTimer);
+          const msg = e instanceof Error ? e.message : String(e);
+          logger.error("[Update] 绿色版下载失败:", msg);
+          setError(msg);
+          setStatus("error");
+        });
+
+        return; // 绿色版分支提前返回，不执行安装版逻辑
+      }
+
+      if (update) {
         // 安装版：使用 Tauri updater
         let contentLength = 0;
         let downloaded = 0;
