@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置面板重设计方案</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #E8E8ED; min-height: 100vh; padding: 32px 16px; }
+.page-header { text-align: center; margin-bottom: 24px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1D1D1F; }
+.page-desc { font-size: 13px; color: #86868B; margin-top: 6px; line-height: 1.6; }
+.panels { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+
+/* Phone frame */
+.phone { width: 440px; height: 700px; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15); position: relative; background: #fff; display: flex; flex-direction: column; }
+.phone-label { text-align: center; margin-top: 14px; }
+.phone-label .name { font-size: 15px; font-weight: 700; color: #1D1D1F; }
+.phone-label .desc { font-size: 12px; color: #86868B; margin-top: 4px; line-height: 1.5; max-width: 400px; margin-left: auto; margin-right: auto; }
+
+/* ===== Current (Bug) ===== */
+.cur-header { padding: 14px 16px; border-bottom: 1px solid #E5E5EA; display: flex; align-items: center; justify-content: space-between; }
+.cur-title { font-size: 15px; font-weight: 600; color: #1D1D1F; }
+.cur-close { width: 28px; height: 28px; border-radius: 8px; border: none; background: transparent; cursor: pointer; font-size: 14px; color: #86868B; }
+
+.cur-body { flex: 1; overflow-y: auto; padding: 12px 16px; }
+.cur-sep { height: 1px; background: #E5E5EA; margin: 10px 0; }
+.cur-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+.cur-item:hover { background: #F5F5F7; }
+.cur-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 15px; flex-shrink: 0; }
+.cur-text { flex: 1; min-width: 0; }
+.cur-label { font-size: 13px; font-weight: 500; color: #1D1D1F; }
+.cur-desc { font-size: 11px; color: #86868B; margin-top: 1px; }
+.cur-right { font-size: 12px; color: #AEAEB2; flex-shrink: 0; display: flex; align-items: center; gap: 4px; }
+
+/* Bug: unstyled toggle */
+.cur-toggle-bug { width: 20px; height: 12px; border-radius: 6px; background: #ccc; position: relative; border: none; cursor: pointer; padding: 0; }
+.cur-toggle-bug .dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; }
+.cur-toggle-bug.on { background: #0078D4; }
+.cur-toggle-bug.on .dot { left: 10px; }
+
+/* Bug: unstyled kbd */
+.cur-kbd-bug { padding: 2px 6px; font-size: 10px; font-family: monospace; color: #666; border: none; background: #eee; border-radius: 3px; cursor: pointer; }
+
+/* Problem annotations */
+.problem { position: relative; }
+.problem-tag { position: absolute; right: -4px; top: -4px; padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: 700; background: #FF3B30; color: #fff; white-space: nowrap; z-index: 2; }
+
+.cur-footer { padding: 10px 16px; border-top: 1px solid #E5E5EA; display: flex; align-items: center; justify-content: space-between; }
+.cur-ver { font-size: 10px; color: #AEAEB2; }
+.cur-save { padding: 6px 14px; border-radius: 8px; border: none; background: #0078D4; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
+
+/* ===== New Design ===== */
+.new-header { padding: 16px 20px; border-bottom: 1px solid #E5E5EA; display: flex; align-items: center; justify-content: space-between; }
+.new-title { font-size: 16px; font-weight: 700; color: #1D1D1F; display: flex; align-items: center; gap: 8px; }
+.new-close { width: 30px; height: 30px; border-radius: 50%; border: none; background: #F5F5F7; cursor: pointer; font-size: 14px; color: #86868B; display: flex; align-items: center; justify-content: center; }
+
+.new-body { flex: 1; overflow-y: auto; padding: 0; }
+
+/* Section header */
+.new-section { padding: 14px 20px 6px; font-size: 11px; font-weight: 700; color: #86868B; text-transform: uppercase; letter-spacing: 0.5px; background: #FAFAFA; border-bottom: 1px solid #F0F0F2; }
+
+/* Setting row */
+.new-row { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid #F5F5F7; gap: 12px; }
+.new-row:last-child { border-bottom: none; }
+.new-row-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.new-row-body { flex: 1; min-width: 0; }
+.new-row-label { font-size: 13px; font-weight: 600; color: #1D1D1F; }
+.new-row-desc { font-size: 11px; color: #AEAEB2; margin-top: 2px; }
+
+/* Proper toggle switch */
+.toggle { width: 44px; height: 26px; border-radius: 13px; border: none; cursor: pointer; position: relative; flex-shrink: 0; transition: background 0.25s; padding: 0; }
+.toggle.off { background: #E5E5EA; }
+.toggle.on { background: #34C759; }
+.toggle .thumb { position: absolute; top: 2px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.15); transition: transform 0.25s; }
+.toggle.off .thumb { transform: translateX(2px); }
+.toggle.on .thumb { transform: translateX(20px); }
+.toggle .label-inside { position: absolute; top: 50%; transform: translateY(-50%); font-size: 9px; font-weight: 700; color: #fff; }
+.toggle.on .label-inside { left: 7px; }
+.toggle.off .label-inside { right: 6px; color: #AEAEB2; }
+
+/* Proper kbd/hotkey */
+.kbd { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; font-family: 'SF Mono', Consolas, monospace; border: 1.5px solid #E5E5EA; background: #F5F5F7; color: #1D1D1F; cursor: pointer; min-width: 100px; text-align: center; transition: all 0.15s; white-space: nowrap; }
+.kbd:hover { border-color: #0078D4; background: #EFF4FF; color: #0078D4; }
+.kbd.recording { border-color: #0078D4; background: #EFF4FF; color: #0078D4; box-shadow: 0 0 0 2px rgba(0,120,212,0.15); }
+
+/* Theme selector */
+.theme-grid { display: flex; gap: 6px; }
+.theme-dot { width: 28px; height: 28px; border-radius: 50%; border: 2.5px solid transparent; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+.theme-dot.active { border-color: #0078D4; box-shadow: 0 0 0 2px rgba(0,120,212,0.2); }
+.theme-dot .check { font-size: 12px; color: #fff; }
+
+/* Value display */
+.val { font-size: 12px; font-weight: 600; color: #0078D4; padding: 3px 8px; background: #EFF4FF; border-radius: 6px; white-space: nowrap; }
+
+/* Action button */
+.action-btn { padding: 5px 12px; border-radius: 6px; border: 1px solid #E5E5EA; background: #fff; font-size: 11px; font-weight: 600; color: #86868B; cursor: pointer; transition: all 0.15s; font-family: inherit; white-space: nowrap; }
+.action-btn:hover { border-color: #0078D4; color: #0078D4; background: #EFF4FF; }
+.action-btn.danger { color: #EF4444; border-color: rgba(239,68,68,0.2); }
+.action-btn.danger:hover { background: rgba(239,68,68,0.08); }
+
+/* Cleanup picker */
+.cleanup-options { display: flex; gap: 4px; }
+.cleanup-opt { padding: 3px 8px; border-radius: 5px; font-size: 10px; font-weight: 600; cursor: pointer; border: 1px solid transparent; font-family: inherit; }
+.cleanup-opt.active { background: #EFF4FF; color: #0078D4; border-color: #0078D4; }
+.cleanup-opt:not(.active) { color: #AEAEB2; }
+.cleanup-opt:not(.active):hover { color: #636366; background: #F5F5F7; }
+
+.new-footer { padding: 12px 20px; border-top: 1px solid #E5E5EA; display: flex; align-items: center; justify-content: space-between; background: #FAFAFA; }
+.new-footer-left { font-size: 11px; color: #AEAEB2; }
+.new-save { padding: 8px 20px; border-radius: 10px; border: none; background: linear-gradient(135deg, #0078D4, #005A9E); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 8px rgba(0,120,212,0.3); font-family: inherit; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">设置面板重设计方案</div>
+  <div class="page-desc">
+    当前问题：开关无样式（CSS class 不匹配）、快捷键输入框无样式、主题切换不直观、分组标题不明显<br>
+    新方案：清晰的 iOS 风格开关、等宽快捷键按钮、色块主题选择器、醒目分组标题
+  </div>
+</div>
+
+<div class="panels">
+
+<!-- ========== 当前（有 Bug） ========== -->
+<div>
+  <div class="phone">
+    <div class="cur-header">
+      <span class="cur-title">⚙ 设置</span>
+      <button class="cur-close">✕</button>
+    </div>
+    <div class="cur-body">
+      <!-- 主题 -->
+      <div class="cur-item">
+        <span class="cur-icon" style="background:#0078D4">🎨</span>
+        <div class="cur-text"><div class="cur-label">主题</div><div class="cur-desc">选择界面配色方案</div></div>
+        <span class="cur-right">Fluent Blue ›</span>
+      </div>
+      <!-- 标签样式 -->
+      <div class="cur-item" style="flex-direction:column;align-items:stretch;gap:6px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span class="cur-icon" style="background:#8B5CF6">📑</span>
+          <div class="cur-text"><div class="cur-label">标签样式</div><div class="cur-desc">切换筛选标签的显示风格</div></div>
+        </div>
+        <div style="display:flex;gap:3px;background:#E5E5EA;border-radius:6px;padding:2px">
+          <span style="flex:1;text-align:center;padding:4px;font-size:10px;background:#fff;border-radius:4px">📋 全部</span>
+          <span style="flex:1;text-align:center;padding:4px;font-size:10px;color:#86868B">📝 文本</span>
+          <span style="flex:1;text-align:center;padding:4px;font-size:10px;color:#86868B">📸 图片</span>
+          <span style="flex:1;text-align:center;padding:4px;font-size:10px;color:#86868B">📁 文件</span>
+          <span style="flex:1;text-align:center;padding:4px;font-size:10px;color:#86868B">⭐ 收藏</span>
+        </div>
+      </div>
+
+      <div class="cur-sep"></div>
+
+      <!-- 自动清理 -->
+      <div class="cur-item">
+        <span class="cur-icon" style="background:#F59E0B">🗑</span>
+        <div class="cur-text"><div class="cur-label">自动清理</div><div class="cur-desc">超过指定天数的记录自动删除</div></div>
+        <span class="cur-right">30 天 ›</span>
+      </div>
+      <!-- 自动去除空白 — BUG toggle -->
+      <div class="cur-item problem">
+        <span class="cur-icon" style="background:#10B981">✂</span>
+        <div class="cur-text"><div class="cur-label">自动去除空白</div><div class="cur-desc">复制时自动去除首尾空白字符</div></div>
+        <button class="cur-toggle-bug on"><span class="dot"></span></button>
+        <span class="problem-tag">CSS 类名不匹配</span>
+      </div>
+      <!-- 依次粘贴循环 — BUG toggle -->
+      <div class="cur-item problem">
+        <span class="cur-icon" style="background:#06B6D4">🔁</span>
+        <div class="cur-text"><div class="cur-label">依次粘贴循环</div><div class="cur-desc">到达末尾后自动从头开始</div></div>
+        <button class="cur-toggle-bug off"><span class="dot"></span></button>
+        <span class="problem-tag">用户看不出开/关</span>
+      </div>
+      <!-- 失焦自动隐藏 — BUG toggle -->
+      <div class="cur-item problem">
+        <span class="cur-icon" style="background:#EF4444">👁</span>
+        <div class="cur-text"><div class="cur-label">失焦自动隐藏</div><div class="cur-desc">窗口失去焦点时自动隐藏到托盘</div></div>
+        <button class="cur-toggle-bug on"><span class="dot"></span></button>
+      </div>
+      <!-- 开机自启 — BUG toggle -->
+      <div class="cur-item problem">
+        <span class="cur-icon" style="background:#3B82F6">🚀</span>
+        <div class="cur-text"><div class="cur-label">开机自启</div><div class="cur-desc">Windows 启动时自动运行</div></div>
+        <button class="cur-toggle-bug off"><span class="dot"></span></button>
+      </div>
+
+      <div class="cur-sep"></div>
+
+      <!-- 快捷键 — BUG kbd -->
+      <div class="cur-item problem">
+        <span class="cur-icon" style="background:#3B82F6">⌨</span>
+        <div class="cur-text"><div class="cur-label">唤出窗口</div><div class="cur-desc">全局快捷键</div></div>
+        <span class="cur-kbd-bug">ctrl+shift+v</span>
+        <span class="problem-tag">无样式</span>
+      </div>
+      <div class="cur-item problem">
+        <span class="cur-icon" style="background:#8B5CF6">📋</span>
+        <div class="cur-text"><div class="cur-label">依次粘贴</div><div class="cur-desc">按顺序逐条粘贴</div></div>
+        <span class="cur-kbd-bug">ctrl+shift+b</span>
+      </div>
+    </div>
+    <div class="cur-footer">
+      <span class="cur-ver">剪贴板管理 v4.0.0</span>
+      <button class="cur-save">💾 保存设置</button>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">当前 — 有 Bug</div>
+    <div class="desc">开关用了 <code>a-toggle</code> 类名但 CSS 定义的是 <code>toggle-track</code>，导致开关完全无样式。快捷键输入框 <code>a-kbd</code> 也没有 CSS 定义。用户难以分辨开关状态。</div>
+  </div>
+</div>
+
+<!-- ========== 新方案 ========== -->
+<div>
+  <div class="phone">
+    <div class="new-header">
+      <span class="new-title">⚙ 设置</span>
+      <button class="new-close">✕</button>
+    </div>
+    <div class="new-body">
+      <!-- 外观 -->
+      <div class="new-section">外观</div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#0078D4,#5856D6)">🎨</span>
+        <div class="new-row-body"><div class="new-row-label">主题配色</div></div>
+        <div class="theme-grid">
+          <div class="theme-dot active" style="background:#0078D4"><span class="check">✓</span></div>
+          <div class="theme-dot" style="background:#1D1D1F"></div>
+          <div class="theme-dot" style="background:#FF9500"></div>
+          <div class="theme-dot" style="background:#34C759"></div>
+        </div>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#8B5CF6,#AF52DE)">📑</span>
+        <div class="new-row-body"><div class="new-row-label">标签样式</div><div class="new-row-desc">分段控件 / 圆形图标</div></div>
+        <span class="val">分段控件</span>
+      </div>
+
+      <!-- 通用 -->
+      <div class="new-section">通用</div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">🗑</span>
+        <div class="new-row-body"><div class="new-row-label">自动清理</div><div class="new-row-desc">超过天数的记录自动删除</div></div>
+        <div class="cleanup-options">
+          <span class="cleanup-opt">关</span>
+          <span class="cleanup-opt">7天</span>
+          <span class="cleanup-opt">15天</span>
+          <span class="cleanup-opt active">30天</span>
+          <span class="cleanup-opt">60天</span>
+        </div>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#10B981,#34C759)">✂</span>
+        <div class="new-row-body"><div class="new-row-label">自动去除空白</div><div class="new-row-desc">复制时去除首尾空白字符</div></div>
+        <button class="toggle on"><span class="thumb"></span><span class="label-inside">开</span></button>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#06B6D4,#0078D4)">🔁</span>
+        <div class="new-row-body"><div class="new-row-label">依次粘贴循环</div><div class="new-row-desc">到达末尾后从头开始</div></div>
+        <button class="toggle off"><span class="thumb"></span><span class="label-inside">关</span></button>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">👁</span>
+        <div class="new-row-body"><div class="new-row-label">失焦自动隐藏</div><div class="new-row-desc">窗口失去焦点时隐藏到托盘</div></div>
+        <button class="toggle on"><span class="thumb"></span><span class="label-inside">开</span></button>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#3B82F6,#0078D4)">🚀</span>
+        <div class="new-row-body"><div class="new-row-label">开机自启</div><div class="new-row-desc">Windows 启动时自动运行</div></div>
+        <button class="toggle off"><span class="thumb"></span><span class="label-inside">关</span></button>
+      </div>
+
+      <!-- 快捷键 -->
+      <div class="new-section">快捷键</div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#3B82F6,#0078D4)">⌨</span>
+        <div class="new-row-body"><div class="new-row-label">唤出窗口</div><div class="new-row-desc">全局快捷键，在任何位置唤出</div></div>
+        <button class="kbd">Ctrl+Shift+V</button>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#8B5CF6,#5856D6)">📋</span>
+        <div class="new-row-body"><div class="new-row-label">依次粘贴</div><div class="new-row-desc">按顺序逐条粘贴剪贴板</div></div>
+        <button class="kbd">Ctrl+Shift+B</button>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#10B981,#34C759)">☑</span>
+        <div class="new-row-body"><div class="new-row-label">全选</div><div class="new-row-desc">选中当前列表所有记录</div></div>
+        <button class="kbd">Ctrl+A</button>
+      </div>
+
+      <!-- 数据 -->
+      <div class="new-section">数据管理</div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">📦</span>
+        <div class="new-row-body"><div class="new-row-label">导出数据</div><div class="new-row-desc">将历史记录导出为 JSON 文件</div></div>
+        <button class="action-btn">导出</button>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#06B6D4,#0078D4)">📥</span>
+        <div class="new-row-body"><div class="new-row-label">导入数据</div><div class="new-row-desc">从 JSON 文件导入历史记录</div></div>
+        <button class="action-btn">导入</button>
+      </div>
+      <div class="new-row">
+        <span class="new-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">🧹</span>
+        <div class="new-row-body"><div class="new-row-label">清理过期记录</div><div class="new-row-desc">2.1 KB · 8 条记录 · 3 条过期</div></div>
+        <button class="action-btn danger">清理</button>
+      </div>
+    </div>
+    <div class="new-footer">
+      <span class="new-footer-left">剪贴板管理 v4.0.0</span>
+      <button class="new-save">💾 保存设置</button>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">新方案 — 清晰直观</div>
+    <div class="desc">iOS 风格大开关（绿色=开/灰色=关，内嵌"开/关"文字）、等宽快捷键按钮、色块主题选择器、醒目分组标题、数据操作用独立按钮</div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

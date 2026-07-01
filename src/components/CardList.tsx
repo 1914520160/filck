@@ -616,7 +616,7 @@ export function CardList() {
                 </div>
                 <div className="guide-card">
                   <div className="guide-icon" style={{ background: "var(--accent-light)" }}><Zap size={18} style={{ color: "var(--accent)" }} /></div>
-                  <div className="guide-text"><div className="guide-label">依次粘贴</div><div className="guide-desc">Ctrl+Shift+B 逐条粘贴</div></div>
+                  <div className="guide-text"><div className="guide-label">依次粘贴</div><div className="guide-desc">Ctrl+Q 逐条粘贴</div></div>
                 </div>
               </div>
             )}
@@ -923,16 +923,12 @@ export function CardList() {
                 }}><Copy size={14} /> 复制</button>
                 <button className="btn-secondary" style={{ padding: "6px 14px", fontSize: 12 }} onClick={async () => {
                   try {
-                    const { save } = await import("@tauri-apps/plugin-dialog"); const { writeFile } = await import("@tauri-apps/plugin-fs");
+                    const { save } = await import("@tauri-apps/plugin-dialog");
+                    const { invoke } = await import("@tauri-apps/api/core");
                     const defaultName = String(previewInfo?.file_name || "image.png");
                     const path = await save({ defaultPath: defaultName, filters: [{ name: "图片", extensions: ["png", "jpg", "jpeg", "webp", "bmp"] }] });
                     if (path && previewContentRef.current) {
-                      const dataUrl = await getImageBase64(previewContentRef.current);
-                      const base64Data = dataUrl.split(",")[1];
-                      const byteChars = atob(base64Data);
-                      const bytes = new Uint8Array(byteChars.length);
-                      for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
-                      await writeFile(path, bytes);
+                      await invoke("save_image_file", { source: previewContentRef.current, dest: path });
                       toast("已保存", "success");
                     }
                   } catch { toast("保存失败", "error"); }

@@ -6,7 +6,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { THEMES, applyTheme, ThemeKey } from "@/lib/theme";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
-import { getStats, Stats, getAppVersion } from "@/lib/api";
+import { getStats, Stats, getAppVersion, getAppName } from "@/lib/api";
 
 const THEME_PREVIEWS: Record<string, { bg: string; accent: string; text: string; barBg: string; bodyBg: string; lineBg: string }> = {
   "ocean":    { bg: "#F4F6F9", accent: "#0284C7", text: "#64748B", barBg: "#fff", bodyBg: "#F4F6F9", lineBg: "#E0E4EB" },
@@ -34,6 +34,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
     () => localStorage.getItem("tabStyle") || "segmented",
   );
   const [stats, setStats] = useState<Stats>({ total: 0, pinned: 0, today: 0, text_count: 0, image_count: 0, file_count: 0, earliest_time: null, db_size_kb: 0 });
+  const [appName, setAppName] = useState("PastePanda");
   const [appVersion, setAppVersion] = useState("?.?.?");
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
   const { toast } = useToast();
@@ -43,6 +44,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
     if (open) {
       getStats(config.current_workspace).then(setStats).catch(() => {});
       getAppVersion().then(setAppVersion);
+      getAppName().then(setAppName).catch(() => setAppName("PastePanda"));
     }
   }, [open, config.current_workspace]);
 
@@ -365,8 +367,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   <div className="s-row-label">依次粘贴</div>
                   <div className="s-row-desc">按顺序逐条粘贴剪贴板</div>
                 </div>
-                <HotkeyRecorder value={config.sequential_hotkey || "ctrl+shift+b"} onChange={async (v) => {
-                  const oldVal = config.sequential_hotkey || "ctrl+shift+b";
+                <HotkeyRecorder value={config.sequential_hotkey || "ctrl+q"} onChange={async (v) => {
+                  const oldVal = config.sequential_hotkey || "ctrl+q";
                   await updateAndSave({ sequential_hotkey: v });
                   try {
                     const { invoke } = await import("@tauri-apps/api/core");
@@ -414,7 +416,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <button onClick={onClose} className="s-save-btn">
                 关闭设置
               </button>
-              <span className="s-footer-ver">Filck v{appVersion}</span>
+              <span className="s-footer-ver">{appName} v{appVersion}</span>
             </div>
           </motion.div>
         </motion.div>

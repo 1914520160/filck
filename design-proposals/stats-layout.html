@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>统计区域 — 布局方案对比</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "SF Pro Text", "Microsoft YaHei", system-ui, sans-serif;
+    background: #F5F5F7;
+    color: #1D1D1F;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    gap: 32px;
+    flex-wrap: wrap;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .phone-frame {
+    width: 400px;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    flex-shrink: 0;
+  }
+
+  .label {
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #86868B;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== 方案 A: 等宽三等分 ===== */
+  .stats-a {
+    display: flex;
+    gap: 8px;
+    padding: 8px 16px;
+    background: #fff;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .stat-a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 0;
+    border-radius: 10px;
+    background: #F5F5F7;
+  }
+  .stat-a.num {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1D1D1F;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-a.label-text {
+    font-size: 10px;
+    font-weight: 500;
+    color: #86868B;
+  }
+  .stat-a.pinned { background: #FFF4CE; }
+  .stat-a.pinned .num { color: #B8860B; }
+  .stat-a.pinned .label-text { color: #B8860B; }
+  .stat-a.today { background: #E8F1FB; }
+  .stat-a.today .num { color: #0078D4; }
+  .stat-a.today .label-text { color: #0078D4; }
+
+  /* ===== 方案 B: 紧凑内联 ===== */
+  .stats-b {
+    display: flex;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .stat-b {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .stat-b .num {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1D1D1F;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-b .label-text {
+    font-size: 11px;
+    font-weight: 500;
+    color: #86868B;
+  }
+  .stat-b.pinned .num { color: #B8860B; }
+  .stat-b.pinned .label-text { color: #B8860B; }
+  .stat-b.today .num { color: #0078D4; }
+  .stat-b.today .label-text { color: #0078D4; }
+  .stat-b .sep {
+    font-size: 11px;
+    color: #D2D2D7;
+    margin: 0 4px;
+  }
+
+  /* ===== 方案 C: 胶囊标签 ===== */
+  .stats-c {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .stat-c {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 16px;
+    background: #F5F5F7;
+  }
+  .stat-c .num {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1D1D1F;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-c .label-text {
+    font-size: 10px;
+    font-weight: 500;
+    color: #86868B;
+  }
+  .stat-c.pinned { background: #FFF4CE; }
+  .stat-c.pinned .num { color: #B8860B; }
+  .stat-c.pinned .label-text { color: #B8860B; }
+  .stat-c.today { background: #E8F1FB; }
+  .stat-c.today .num { color: #0078D4; }
+  .stat-c.today .label-text { color: #0078D4; }
+
+  /* ===== 卡片占位 ===== */
+  .card-placeholder {
+    margin: 8px 16px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #E5E5EA;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-icon-ph {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #F5F5F7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #AEAEB2;
+    flex-shrink: 0;
+  }
+  .card-text-ph {
+    flex: 1;
+  }
+  .card-title-ph {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1D1D1F;
+  }
+  .card-sub-ph {
+    font-size: 11px;
+    color: #86868B;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- 方案 A: 等宽三等分 -->
+<div>
+  <div class="label">方案 A · 等宽三等分</div>
+  <div class="phone-frame">
+    <div class="stats-a">
+      <div class="stat-a">
+        <span class="num">173</span>
+        <span class="label-text">记录</span>
+      </div>
+      <div class="stat-a pinned">
+        <span class="num">0</span>
+        <span class="label-text">收藏</span>
+      </div>
+      <div class="stat-a today">
+        <span class="num">12</span>
+        <span class="label-text">今日</span>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📋</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">T2170588</div>
+        <div class="card-sub-ph">剪贴板管理 v4.0.0 · 31分钟前</div>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📝</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">1027282</div>
+        <div class="card-sub-ph">企业微信 · 37分钟前</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 方案 B: 紧凑内联 -->
+<div>
+  <div class="label">方案 B · 紧凑内联</div>
+  <div class="phone-frame">
+    <div class="stats-b">
+      <div class="stat-b">
+        <span class="num">173</span>
+        <span class="label-text">记录</span>
+      </div>
+      <span class="stat-b sep">·</span>
+      <div class="stat-b pinned">
+        <span class="num">0</span>
+        <span class="label-text">收藏</span>
+      </div>
+      <span class="stat-b sep">·</span>
+      <div class="stat-b today">
+        <span class="num">12</span>
+        <span class="label-text">今日</span>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📋</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">T2170588</div>
+        <div class="card-sub-ph">剪贴板管理 v4.0.0 · 31分钟前</div>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📝</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">1027282</div>
+        <div class="card-sub-ph">企业微信 · 37分钟前</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 方案 C: 胶囊标签 -->
+<div>
+  <div class="label">方案 C · 胶囊标签</div>
+  <div class="phone-frame">
+    <div class="stats-c">
+      <div class="stat-c">
+        <span class="num">173</span>
+        <span class="label-text">记录</span>
+      </div>
+      <div class="stat-c pinned">
+        <span class="num">0</span>
+        <span class="label-text">收藏</span>
+      </div>
+      <div class="stat-c today">
+        <span class="num">12</span>
+        <span class="label-text">今日</span>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📋</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">T2170588</div>
+        <div class="card-sub-ph">剪贴板管理 v4.0.0 · 31分钟前</div>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📝</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">1027282</div>
+        <div class="card-sub-ph">企业微信 · 37分钟前</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

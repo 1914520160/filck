@@ -1357,37 +1357,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "filck"
-version = "5.0.42"
-dependencies = [
- "arboard",
- "base64 0.22.1",
- "chrono",
- "env_logger",
- "hostname",
- "image",
- "log",
- "md-5",
- "pinyin",
- "rusqlite",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-clipboard-manager",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-opener",
- "tauri-plugin-shell",
- "tauri-plugin-updater",
- "tokio",
- "uuid",
- "windows 0.58.0",
- "winreg 0.52.0",
-]
-
-[[package]]
 name = "filetime"
 version = "0.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3232,6 +3201,37 @@ name = "paste"
 version = "1.0.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a"
+
+[[package]]
+name = "pastepanda"
+version = "5.0.59"
+dependencies = [
+ "arboard",
+ "base64 0.22.1",
+ "chrono",
+ "env_logger",
+ "hostname",
+ "image",
+ "log",
+ "md-5",
+ "pinyin",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-clipboard-manager",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-opener",
+ "tauri-plugin-shell",
+ "tauri-plugin-updater",
+ "tokio",
+ "uuid",
+ "windows 0.58.0",
+ "winreg 0.52.0",
+]
 
 [[package]]
 name = "pastey"

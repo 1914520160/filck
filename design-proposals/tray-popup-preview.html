@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>托盘右键弹窗预览 — PastePanda</title>
+  <style>
+    :root {
+      --dialog-bg: #F9F9FB;
+      --text-primary: #1D1D1F;
+      --text-secondary: #6E6E73;
+      --text-muted: #999;
+      --border-color: #E5E5EA;
+      --section-bg: #F2F2F7;
+      --hover-bg: #E8E8ED;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #1a1a2e;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    .title {
+      color: #fff;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .subtitle {
+      color: #999;
+      font-size: 13px;
+      margin-top: -16px;
+    }
+    .phone-frame {
+      width: 280px;
+      height: 470px;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.4), 0 0 0 2px rgba(255,255,255,0.05);
+    }
+
+    /* 弹窗内容 — 直接复刻 TrayPopup.tsx + popup.css */
+    .tray-popup-root {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 100%;
+      overflow-y: auto;
+      background: var(--dialog-bg);
+      border-radius: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      user-select: none;
+    }
+    .tray-popup-root::-webkit-scrollbar { width: 4px; }
+    .tray-popup-root::-webkit-scrollbar-track { background: transparent; }
+    .tray-popup-root::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+    .tray-popup-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .tray-popup-logo {
+      display: flex; align-items: center; justify-content: center;
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, #0078D4, #005A9E); color: #fff; flex-shrink: 0;
+    }
+    .tray-popup-title { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
+    .tray-popup-name { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+    .tray-popup-version { font-size: 11px; color: var(--text-muted); line-height: 1.2; }
+    .version-badge { display: inline-block; font-size: 11px; font-weight: 500; color: var(--text-secondary); background: var(--section-bg); border-radius: 6px; padding: 2px 8px; }
+    .tray-popup-status-dot { width: 8px; height: 8px; border-radius: 50%; background: #34C759; flex-shrink: 0; box-shadow: 0 0 6px rgba(52,199,89,0.4); }
+    .tray-popup-status-dot.inactive { background: #CCC; box-shadow: none; }
+
+    .tray-popup-cards { display: flex; gap: 6px; padding: 6px 10px; }
+    .tray-popup-card { flex: 1; padding: 8px 6px 6px; background: var(--section-bg); border-radius: 10px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .card-icon-slot { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; }
+    .card-today .card-icon-slot { background: linear-gradient(135deg, #3B82F6, #0078D4); }
+    .card-total .card-icon-slot { background: linear-gradient(135deg, #8B5CF6, #5856D6); }
+    .card-pinned .card-icon-slot { background: linear-gradient(135deg, #F59E0B, #FF9500); }
+    .card-value { font-size: 16px; font-weight: 700; line-height: 1.1; }
+    .card-today .card-value { color: #0078D4; }
+    .card-total .card-value { color: #5856D6; }
+    .card-pinned .card-value { color: #FF9500; }
+    .card-label { font-size: 10px; color: var(--text-muted); }
+
+    .tray-popup-section-label {
+      display: flex; align-items: center; gap: 7px;
+      padding: 6px 14px 2px; font-size: 10.5px; font-weight: 600;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .section-label-icon {
+      width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #8B5CF6, #5856D6); color: #fff;
+    }
+
+    .tray-popup-recents { display: flex; flex-direction: column; padding: 2px 6px; }
+    .tray-popup-actions { display: flex; flex-direction: column; padding: 2px 6px 6px; flex: 1; }
+
+    .tray-popup-item {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 6px 8px; border: none; border-radius: 8px;
+      background: transparent; color: var(--text-primary);
+      font-size: 12.5px; font-family: inherit; cursor: pointer;
+      text-align: left; transition: background 0.12s ease;
+      outline: none;
+    }
+    .tray-popup-item:hover, .tray-popup-item.active { background: var(--hover-bg); }
+    .tray-popup-item:active { transform: scale(0.98); }
+    .tray-popup-item.danger { color: #EF4444; }
+    .tray-popup-item.danger:hover, .tray-popup-item.danger.active { background: rgba(239,68,68,0.08); color: #DC2626; }
+
+    .tray-popup-item-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; color: #fff; font-size: 11px;
+    }
+    .icon-blue { background: linear-gradient(135deg, #3B82F6, #0078D4); }
+    .icon-orange { background: linear-gradient(135deg, #F59E0B, #FF9500); }
+    .icon-purple { background: linear-gradient(135deg, #8B5CF6, #AF52DE); }
+    .icon-red { background: linear-gradient(135deg, #EF4444, #FF3B30); }
+
+    .tray-popup-item-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
+    .tray-popup-item-hint { flex-shrink: 0; font-size: 10.5px; color: var(--text-muted); opacity: 0.6; }
+
+    .tray-popup-divider { height: 1px; background: var(--border-color); margin: 2px 12px; opacity: 0.6; }
+
+    .tray-popup-footer {
+      padding: 8px 12px; font-size: 10.5px; color: var(--text-muted);
+      border-top: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px;
+    }
+    .footer-icon {
+      width: 20px; height: 20px; border-radius: 6px; display: flex; align-items: center; justify-content: center;
+      background: linear-gradient(135deg, #06B6D4, #3B82F6); color: #fff; flex-shrink: 0;
+    }
+    .footer-info { flex: 1; min-width: 0; white-space: nowrap; }
+    .footer-bar-wrap { width: 80px; flex-shrink: 0; }
+    .footer-bar { width: 100%; height: 4px; border-radius: 2px; background: var(--border-color); overflow: hidden; }
+    .footer-bar-fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, #3B82F6, #0078D4); width: 42%; }
+    .footer-text { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+
+    .tray-popup-toast {
+      position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%) translateY(10px);
+      display: flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 20px;
+      font-size: 12px; font-weight: 500; color: #fff;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
+      white-space: nowrap; z-index: 100;
+      backdrop-filter: blur(12px); box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
+    .tray-popup-toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast-success { background: rgba(52,199,89,0.9); }
+
+    .annotations {
+      color: #888;
+      font-size: 12px;
+      line-height: 1.8;
+      text-align: left;
+    }
+    .annotations span { color: #FFB347; font-weight: 600; }
+
+    svg { display: block; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="title">🐼 托盘右键弹窗预览</div>
+  <div class="subtitle">右键 PastePanda 托盘图标时弹出</div>
+  <div class="phone-frame">
+    <div class="tray-popup-root" style="position: relative;">
+
+      <!-- 头部 -->
+      <div class="tray-popup-header">
+        <div class="tray-popup-logo">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+        </div>
+        <div class="tray-popup-title">
+          <span class="tray-popup-name">PastePanda</span>
+          <span class="tray-popup-version"><span class="version-badge">v5.0.59</span></span>
+        </div>
+        <span class="tray-popup-status-dot"></span>
+      </div>
+
+      <!-- 统计卡片 -->
+      <div class="tray-popup-cards">
+        <div class="tray-popup-card card-today">
+          <div class="card-icon-slot">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="card-value">12</div>
+          <div class="card-label">今日</div>
+        </div>
+        <div class="tray-popup-card card-total">
+          <div class="card-icon-slot">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/></svg>
+          </div>
+          <div class="card-value">1,247</div>
+          <div class="card-label">总计</div>
+        </div>
+        <div class="tray-popup-card card-pinned">
+          <div class="card-icon-slot">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>
+          </div>
+          <div class="card-value">5</div>
+          <div class="card-label">置顶</div>
+        </div>
+      </div>
+
+      <div class="tray-popup-divider"></div>
+
+      <!-- 最近复制 -->
+      <div class="tray-popup-section-label">
+        <span class="section-label-icon">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </span>
+        最近复制
+      </div>
+      <div class="tray-popup-recents">
+        <button class="tray-popup-item active">
+          <span class="tray-popup-item-icon icon-blue">📝</span>
+          <span class="tray-popup-item-text">今天天气真不错…</span>
+          <span class="tray-popup-item-hint">粘贴</span>
+        </button>
+        <button class="tray-popup-item">
+          <span class="tray-popup-item-icon icon-purple">🖼</span>
+          <span class="tray-popup-item-text">图片</span>
+          <span class="tray-popup-item-hint">粘贴</span>
+        </button>
+        <button class="tray-popup-item">
+          <span class="tray-popup-item-icon icon-orange">📁</span>
+          <span class="tray-popup-item-text">项目需求文档_v2.docx</span>
+          <span class="tray-popup-item-hint">粘贴</span>
+        </button>
+      </div>
+
+      <div class="tray-popup-divider"></div>
+
+      <!-- 操作区 -->
+      <div class="tray-popup-actions">
+        <button class="tray-popup-item">
+          <span class="tray-popup-item-icon icon-blue">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/></svg>
+          </span>
+          <span class="tray-popup-item-text">显示主窗口</span>
+          <span class="tray-popup-item-hint">Ctrl+Shift+V</span>
+        </button>
+        <button class="tray-popup-item">
+          <span class="tray-popup-item-icon icon-orange">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          </span>
+          <span class="tray-popup-item-text">暂停监听</span>
+        </button>
+        <button class="tray-popup-item">
+          <span class="tray-popup-item-icon icon-purple">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </span>
+          <span class="tray-popup-item-text">设置…</span>
+          <span class="tray-popup-item-hint">Ctrl+S</span>
+        </button>
+        <button class="tray-popup-item danger">
+          <span class="tray-popup-item-icon icon-red">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          </span>
+          <span class="tray-popup-item-text">退出</span>
+        </button>
+      </div>
+
+      <!-- 底部状态栏 -->
+      <div class="tray-popup-footer">
+        <span class="footer-icon">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </span>
+        <span class="footer-info">3.5 MB / 100 MB</span>
+        <div class="footer-bar-wrap">
+          <div class="footer-bar"><div class="footer-bar-fill"></div></div>
+        </div>
+        <span class="footer-text">3.5%</span>
+      </div>
+
+      <!-- Toast -->
+      <div class="tray-popup-toast toast-success visible">✓ 已粘贴</div>
+    </div>
+  </div>
+
+  <div class="annotations">
+    <span>布局结构：</span><br>
+    ① 头部 — Logo + 应用名 + 版本 + 监听状态灯<br>
+    ② 统计卡片 — 今日 / 总计 / 置顶 数量<br>
+    ③ 最近复制 — 最近3条记录，点击直接粘贴<br>
+    ④ 操作菜单 — 显示主窗口 / 暂停监听 / 设置 / 退出<br>
+    ⑤ 底部状态栏 — 数据库占用 + 进度条<br>
+    ⑥ Toast 提示 — 操作反馈
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置 & 帮助弹窗 — UI 方案对比</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "SF Pro Text", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: #F5F5F7;
+    color: #1D1D1F;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .section-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #86868B;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* ===== 通用弹窗样式（两个方案共用） ===== */
+  .dialog-frame {
+    width: 480px;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+  }
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .dialog-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1D1D1F;
+  }
+  .dialog-close {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #86868B;
+    font-size: 16px;
+    transition: background 0.15s;
+  }
+  .dialog-close:hover { background: #F0F0F2; }
+
+  .dialog-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    max-height: 520px;
+  }
+
+  .dialog-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid #E5E5EA;
+  }
+
+  .version-text {
+    font-size: 10px;
+    color: #AEAEB2;
+  }
+
+  .btn-primary {
+    height: 32px;
+    padding: 0 16px;
+    border-radius: 8px;
+    border: none;
+    background: #0078D4;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+  }
+
+  /* ===== 方案 A: iOS 风格分区设置 ===== */
+  .a-section {
+    margin-bottom: 16px;
+  }
+  .a-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #86868B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0 4px;
+    margin-bottom: 6px;
+  }
+  .a-card {
+    background: #F5F5F7;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .a-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    background: #fff;
+  }
+  .a-row + .a-row { border-top: 0.5px solid #E5E5EA; }
+  .a-row-label {
+    font-size: 13px;
+    color: #1D1D1F;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .a-row-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .a-row-value {
+    font-size: 12px;
+    color: #86868B;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .a-chevron { color: #C7C7CC; font-size: 12px; }
+
+  /* Toggle */
+  .a-toggle {
+    width: 44px;
+    height: 26px;
+    border-radius: 13px;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .a-toggle.on { background: #34C759; }
+  .a-toggle.off { background: #E5E5EA; }
+  .a-toggle-dot {
+    position: absolute;
+    top: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+  }
+  .a-toggle.on .a-toggle-dot { transform: translateX(20px); }
+  .a-toggle.off .a-toggle-dot { transform: translateX(2px); }
+
+  /* Segmented (for tab style switch) */
+  .a-segmented {
+    display: flex;
+    background: #E5E5EA;
+    border-radius: 8px;
+    padding: 2px;
+  }
+  .a-seg-btn {
+    flex: 1;
+    height: 30px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 500;
+    color: #86868B;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+  .a-seg-btn.active {
+    background: #fff;
+    color: #1D1D1F;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  /* ===== 方案 A: 帮助弹窗 ===== */
+  .a-help-section { margin-bottom: 16px; }
+  .a-help-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #0078D4;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .a-help-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+  .a-help-desc {
+    font-size: 12px;
+    color: #1D1D1F;
+  }
+  .a-kbd {
+    font-size: 11px;
+    font-family: "SF Mono", "Consolas", monospace;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #F5F5F7;
+    border: 1px solid #E5E5EA;
+    color: #1D1D1F;
+    font-weight: 500;
+  }
+
+  /* ===== 方案 B: 扁平列表设置 ===== */
+  .b-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .b-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .b-item:hover { background: #F5F5F7; }
+  .b-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .b-text { flex: 1; min-width: 0; }
+  .b-label { font-size: 13px; font-weight: 500; color: #1D1D1F; }
+  .b-desc { font-size: 11px; color: #86868B; margin-top: 1px; }
+  .b-right {
+    font-size: 12px;
+    color: #AEAEB2;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .b-sep { height: 1px; background: #E5E5EA; margin: 8px 0; }
+
+  /* Tab style preview */
+  .b-tab-preview {
+    display: flex;
+    gap: 8px;
+    padding: 12px 14px;
+    background: #F5F5F7;
+    border-radius: 10px;
+  }
+  .b-tab-mini {
+    flex: 1;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #86868B;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .b-tab-mini.active {
+    background: #fff;
+    color: #1D1D1F;
+    font-weight: 600;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  }
+
+  /* ===== 方案 B: 帮助弹窗（手风琴） ===== */
+  .b-accordion {
+    border: 1px solid #E5E5EA;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .b-acc-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: #1D1D1F;
+    background: #fff;
+    border: none;
+    width: 100%;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .b-acc-header:hover { background: #F5F5F7; }
+  .b-acc-arrow {
+    font-size: 12px;
+    color: #AEAEB2;
+    transition: transform 0.2s;
+  }
+  .b-acc-body {
+    padding: 0 14px 12px;
+    border-top: 1px solid #E5E5EA;
+  }
+  .b-acc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+  .b-acc-desc { font-size: 12px; color: #86868B; }
+</style>
+</head>
+<body>
+
+<!-- ===== 方案 A ===== -->
+<div class="section-label">方案 A · iOS 风格分区</div>
+<div class="row">
+  <!-- 设置弹窗 -->
+  <div class="dialog-frame">
+    <div class="dialog-header">
+      <span class="dialog-title">⚙ 设置</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+      <!-- 外观 -->
+      <div class="a-section">
+        <div class="a-section-title">外观</div>
+        <div class="a-card">
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#0078D4">🎨</span>
+              主题
+            </span>
+            <span class="a-row-value">蔚蓝色 <span class="a-chevron">›</span></span>
+          </div>
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#8B5CF6">📑</span>
+              标签样式
+            </span>
+            <div class="a-segmented" style="width:140px">
+              <button class="a-seg-btn active">分段</button>
+              <button class="a-seg-btn">圆形</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- 通用 -->
+      <div class="a-section">
+        <div class="a-section-title">通用</div>
+        <div class="a-card">
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#F59E0B">🗑</span>
+              自动清理
+            </span>
+            <span class="a-row-value">30 天 <span class="a-chevron">›</span></span>
+          </div>
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#10B981">✂</span>
+              自动去除空白
+            </span>
+            <button class="a-toggle off"><span class="a-toggle-dot"></span></button>
+          </div>
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#06B6D4">🔁</span>
+              依次粘贴循环
+            </span>
+            <button class="a-toggle off"><span class="a-toggle-dot"></span></button>
+          </div>
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#EF4444">👁</span>
+              失焦自动隐藏
+            </span>
+            <button class="a-toggle on"><span class="a-toggle-dot"></span></button>
+          </div>
+        </div>
+      </div>
+      <!-- 快捷键 -->
+      <div class="a-section">
+        <div class="a-section-title">快捷键</div>
+        <div class="a-card">
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#3B82F6">⌨</span>
+              唤出窗口
+            </span>
+            <span class="a-kbd">Ctrl+Shift+V</span>
+          </div>
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#8B5CF6">📋</span>
+              依次粘贴
+            </span>
+            <span class="a-kbd">Ctrl+Shift+B</span>
+          </div>
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#10B981">☑</span>
+              全选
+            </span>
+            <span class="a-kbd">Ctrl+A</span>
+          </div>
+        </div>
+      </div>
+      <!-- 数据 -->
+      <div class="a-section">
+        <div class="a-section-title">数据</div>
+        <div class="a-card">
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#F59E0B">📦</span>
+              导出数据
+            </span>
+            <span class="a-chevron">›</span>
+          </div>
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#06B6D4">📥</span>
+              导入数据
+            </span>
+            <span class="a-chevron">›</span>
+          </div>
+          <div class="a-row">
+            <span class="a-row-label">
+              <span class="a-row-icon" style="background:#EF4444">🧹</span>
+              清理过期
+            </span>
+            <span class="a-row-value">51 条 <span class="a-chevron">›</span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <span class="version-text">剪贴板管理 v4.0.0</span>
+      <button class="btn-primary">💾 保存设置</button>
+    </div>
+  </div>
+
+  <!-- 帮助弹窗 -->
+  <div class="dialog-frame">
+    <div class="dialog-header">
+      <span class="dialog-title">❓ 帮助与快捷键</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+      <div class="a-help-section">
+        <div class="a-help-title">⌨ 基本操作</div>
+        <div class="a-help-row"><span class="a-help-desc">唤出 / 隐藏窗口</span><span class="a-kbd">Ctrl+Shift+V</span></div>
+        <div class="a-help-row"><span class="a-help-desc">隐藏窗口</span><span class="a-kbd">Esc</span></div>
+        <div class="a-help-row"><span class="a-help-desc">上下导航记录</span><span class="a-kbd">↑ / ↓</span></div>
+        <div class="a-help-row"><span class="a-help-desc">粘贴选中记录</span><span class="a-kbd">Enter</span></div>
+        <div class="a-help-row"><span class="a-help-desc">删除选中记录</span><span class="a-kbd">Delete</span></div>
+      </div>
+      <div class="a-help-section">
+        <div class="a-help-title">🖱 选择与操作</div>
+        <div class="a-help-row"><span class="a-help-desc">全选</span><span class="a-kbd">Ctrl+A</span></div>
+        <div class="a-help-row"><span class="a-help-desc">置顶 / 取消置顶</span><span class="a-kbd">Ctrl+D</span></div>
+        <div class="a-help-row"><span class="a-help-desc">撤销删除</span><span class="a-kbd">Ctrl+Z</span></div>
+        <div class="a-help-row"><span class="a-help-desc">多选</span><span class="a-kbd">Ctrl+Click</span></div>
+        <div class="a-help-row"><span class="a-help-desc">范围选择</span><span class="a-kbd">Shift+Click</span></div>
+      </div>
+      <div class="a-help-section">
+        <div class="a-help-title">🚀 高级功能</div>
+        <div class="a-help-row"><span class="a-help-desc">依次粘贴</span><span class="a-kbd">Ctrl+Shift+B</span></div>
+        <div class="a-help-row"><span class="a-help-desc">粘贴第 N 条</span><span class="a-kbd">Ctrl+Alt+1~9</span></div>
+        <div class="a-help-row"><span class="a-help-desc">粘贴快捷槽位</span><span class="a-kbd">Alt+Shift+1~5</span></div>
+      </div>
+      <div class="a-help-section">
+        <div class="a-help-title">📖 功能说明</div>
+        <div class="a-help-row"><span class="a-help-desc">片段库 — 保存常用文本模板，支持快速粘贴</span></div>
+        <div class="a-help-row"><span class="a-help-desc">内容提取 — 从记录中提取链接、邮箱、电话等</span></div>
+        <div class="a-help-row"><span class="a-help-desc">局域网同步 — 在局域网设备间同步剪贴板</span></div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <span class="version-text">剪贴板管理 v4.0.0</span>
+      <button class="btn-primary" style="width:100%;justify-content:center">我知道了</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 方案 B ===== -->
+<div class="section-label" style="margin-top:32px">方案 B · 扁平列表 + 手风琴</div>
+<div class="row">
+  <!-- 设置弹窗 -->
+  <div class="dialog-frame">
+    <div class="dialog-header">
+      <span class="dialog-title">⚙ 设置</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+      <div class="b-list">
+        <div class="b-item">
+          <span class="b-icon" style="background:#0078D4">🎨</span>
+          <div class="b-text">
+            <div class="b-label">主题</div>
+            <div class="b-desc">选择界面配色方案</div>
+          </div>
+          <span class="b-right">蔚蓝色 ›</span>
+        </div>
+        <div class="b-item" style="flex-direction:column;align-items:stretch;gap:8px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span class="b-icon" style="background:#8B5CF6">📑</span>
+            <div class="b-text">
+              <div class="b-label">标签样式</div>
+              <div class="b-desc">切换筛选标签的显示风格</div>
+            </div>
+          </div>
+          <div class="b-tab-preview">
+            <button class="b-tab-mini active">📋 全部</button>
+            <button class="b-tab-mini">📝 文本</button>
+            <button class="b-tab-mini">🖼 图片</button>
+            <button class="b-tab-mini">📁 文件</button>
+            <button class="b-tab-mini">⭐ 收藏</button>
+          </div>
+        </div>
+      </div>
+      <div class="b-sep"></div>
+      <div class="b-list">
+        <div class="b-item">
+          <span class="b-icon" style="background:#F59E0B">🗑</span>
+          <div class="b-text">
+            <div class="b-label">自动清理</div>
+            <div class="b-desc">超过指定天数的记录自动删除</div>
+          </div>
+          <span class="b-right">30 天 ›</span>
+        </div>
+        <div class="b-item">
+          <span class="b-icon" style="background:#10B981">✂</span>
+          <div class="b-text">
+            <div class="b-label">自动去除空白</div>
+            <div class="b-desc">复制时自动去除首尾空白字符</div>
+          </div>
+          <button class="a-toggle off"><span class="a-toggle-dot"></span></button>
+        </div>
+        <div class="b-item">
+          <span class="b-icon" style="background:#06B6D4">🔁</span>
+          <div class="b-text">
+            <div class="b-label">依次粘贴循环</div>
+            <div class="b-desc">到达末尾后自动从头开始</div>
+          </div>
+          <button class="a-toggle off"><span class="a-toggle-dot"></span></button>
+        </div>
+        <div class="b-item">
+          <span class="b-icon" style="background:#EF4444">👁</span>
+          <div class="b-text">
+            <div class="b-label">失焦自动隐藏</div>
+            <div class="b-desc">窗口失去焦点时自动隐藏到托盘</div>
+          </div>
+          <button class="a-toggle on"><span class="a-toggle-dot"></span></button>
+        </div>
+      </div>
+      <div class="b-sep"></div>
+      <div class="b-list">
+        <div class="b-item">
+          <span class="b-icon" style="background:#3B82F6">⌨</span>
+          <div class="b-text">
+            <div class="b-label">唤出窗口</div>
+            <div class="b-desc">全局快捷键，在任何位置唤出剪贴板</div>
+          </div>
+          <span class="a-kbd">Ctrl+Shift+V</span>
+        </div>
+        <div class="b-item">
+          <span class="b-icon" style="background:#8B5CF6">📋</span>
+          <div class="b-text">
+            <div class="b-label">依次粘贴</div>
+            <div class="b-desc">按顺序逐条粘贴剪贴板内容</div>
+          </div>
+          <span class="a-kbd">Ctrl+Shift+B</span>
+        </div>
+        <div class="b-item">
+          <span class="b-icon" style="background:#10B981">☑</span>
+          <div class="b-text">
+            <div class="b-label">全选</div>
+            <div class="b-desc">选中当前列表中的所有记录</div>
+          </div>
+          <span class="a-kbd">Ctrl+A</span>
+        </div>
+      </div>
+      <div class="b-sep"></div>
+      <div class="b-list">
+        <div class="b-item">
+          <span class="b-icon" style="background:#F59E0B">📦</span>
+          <div class="b-text"><div class="b-label">导出数据</div><div class="b-desc">将剪贴板历史导出为文件</div></div>
+          <span class="b-right">›</span>
+        </div>
+        <div class="b-item">
+          <span class="b-icon" style="background:#06B6D4">📥</span>
+          <div class="b-text"><div class="b-label">导入数据</div><div class="b-desc">从文件导入剪贴板历史</div></div>
+          <span class="b-right">›</span>
+        </div>
+        <div class="b-item">
+          <span class="b-icon" style="background:#EF4444">🧹</span>
+          <div class="b-text"><div class="b-label">清理过期</div><div class="b-desc">删除所有已过期的记录</div></div>
+          <span class="b-right">51 条 ›</span>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <span class="version-text">剪贴板管理 v4.0.0</span>
+      <button class="btn-primary">💾 保存设置</button>
+    </div>
+  </div>
+
+  <!-- 帮助弹窗（手风琴） -->
+  <div class="dialog-frame">
+    <div class="dialog-header">
+      <span class="dialog-title">❓ 帮助与快捷键</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+      <div class="b-accordion">
+        <button class="b-acc-header">
+          <span>⌨ 基本操作</span>
+          <span class="b-acc-arrow">▾</span>
+        </button>
+        <div class="b-acc-body">
+          <div class="b-acc-row"><span class="b-acc-desc">唤出 / 隐藏窗口</span><span class="a-kbd">Ctrl+Shift+V</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">隐藏窗口</span><span class="a-kbd">Esc</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">上下导航记录</span><span class="a-kbd">↑ / ↓</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">粘贴选中记录</span><span class="a-kbd">Enter</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">删除选中记录</span><span class="a-kbd">Delete</span></div>
+        </div>
+      </div>
+      <div class="b-accordion">
+        <button class="b-acc-header">
+          <span>🖱 选择与操作</span>
+          <span class="b-acc-arrow">▾</span>
+        </button>
+        <div class="b-acc-body">
+          <div class="b-acc-row"><span class="b-acc-desc">全选</span><span class="a-kbd">Ctrl+A</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">置顶 / 取消置顶</span><span class="a-kbd">Ctrl+D</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">撤销删除</span><span class="a-kbd">Ctrl+Z</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">多选</span><span class="a-kbd">Ctrl+Click</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">范围选择</span><span class="a-kbd">Shift+Click</span></div>
+        </div>
+      </div>
+      <div class="b-accordion">
+        <button class="b-acc-header">
+          <span>🚀 高级功能</span>
+          <span class="b-acc-arrow">▾</span>
+        </button>
+        <div class="b-acc-body">
+          <div class="b-acc-row"><span class="b-acc-desc">依次粘贴</span><span class="a-kbd">Ctrl+Shift+B</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">粘贴第 N 条</span><span class="a-kbd">Ctrl+Alt+1~9</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">粘贴快捷槽位</span><span class="a-kbd">Alt+Shift+1~5</span></div>
+        </div>
+      </div>
+      <div class="b-accordion">
+        <button class="b-acc-header">
+          <span>📖 功能说明</span>
+          <span class="b-acc-arrow">▾</span>
+        </button>
+        <div class="b-acc-body">
+          <div class="b-acc-row"><span class="b-acc-desc">片段库 — 保存常用文本模板</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">内容提取 — 提取链接、邮箱、电话等</span></div>
+          <div class="b-acc-row"><span class="b-acc-desc">局域网同步 — 跨设备同步剪贴板</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="dialog-footer">
+      <span class="version-text">剪贴板管理 v4.0.0</span>
+      <button class="btn-primary" style="width:100%;justify-content:center">我知道了</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

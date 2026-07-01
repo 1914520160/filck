@@ -22,6 +22,7 @@ interface StatsData {
 }
 
 interface PopupInitData {
+  name: string;
   version: string;
   monitoring: boolean;
   recents: RecentItem[];
@@ -143,6 +144,7 @@ const IconActivity = () => (
 );
 
 export function TrayPopup() {
+  const [appName, setAppName] = useState("PastePanda");
   const [version, setVersion] = useState("...");
   const [monitoring, setMonitoring] = useState(true);
   const [recents, setRecents] = useState<RecentItem[]>([]);
@@ -184,6 +186,7 @@ export function TrayPopup() {
       try {
         const data = await invoke<PopupInitData>("get_tray_popup_data");
         if (cancelled) return;
+        setAppName(data.name || "PastePanda");
         setVersion(data.version);
         setMonitoring(data.monitoring);
         setRecents(data.recents);
@@ -197,6 +200,7 @@ export function TrayPopup() {
       // ★ 方案2：事件监听兜底（如果 invoke 失败或后续需要更新）
       unlisten1 = await listen<PopupInitData>("tray-popup-init", (event) => {
         if (cancelled) return;
+        setAppName(event.payload.name || "PastePanda");
         setVersion(event.payload.version);
         setMonitoring(event.payload.monitoring);
         setRecents(event.payload.recents);
@@ -435,7 +439,7 @@ export function TrayPopup() {
           <IconClipboard />
         </div>
         <div className="tray-popup-title">
-          <span className="tray-popup-name">Filck</span>
+          <span className="tray-popup-name">{appName}</span>
           <span className="tray-popup-version">
             <span className="version-badge">v{version}</span>
           </span>

@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>剪贴板管理器 — 改进后 UI 原型</title>
+<style>
+/* ===== 主题变量 — 基于真实 CSS 的 fluet-blue 浅色主题 ===== */
+:root {
+  --app-bg: #EDF2FA;
+  --header-bg-start: #F5F8FF;
+  --header-bg-end: #EDF2FA;
+  --card-bg: #F5F8FF;
+  --card-border: #D6E4F7;
+  --card-shadow: 0 2px 8px rgba(0,60,140,0.06), 0 0 1px rgba(0,60,140,0.08);
+  --text-primary: #1A2B4A;
+  --text-secondary: #5A6E8A;
+  --text-muted: #8A9AB5;
+  --border-color: #D6E4F7;
+  --accent: #0078D4;
+  --accent-light: #DBE8FA;
+  --seg-bg: #D6E4F7;
+  --seg-active-bg: #F5F8FF;
+  --search-bg: #F5F8FF;
+  --search-border: #C4D6EE;
+  --input-bg: #E4ECF7;
+  --dialog-bg: #F5F8FF;
+  --section-bg: #E4ECF7;
+  --toggle-off-bg: #E5E5EA;
+  --font: "SF Pro Text", "Microsoft YaHei", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font);
+  background: #dce4f0;
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ============ APP SHELL ============ */
+.app-shell {
+  width: 480px;
+  height: 680px;
+  margin: 30px auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--app-bg);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+/* ============ HEADER ============ */
+.header {
+  padding: 16px 16px 0;
+  background: linear-gradient(180deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
+  flex-shrink: 0;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-title-icon { font-size: 18px; }
+
+.header-title-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.header-badge {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #0078D4, #005A9E);
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+.header-icons {
+  display: flex;
+  gap: 4px;
+}
+
+.icon-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: #86868B;
+  transition: background 0.15s;
+}
+.icon-btn:hover { background: rgba(0,0,0,0.06); }
+.icon-btn.danger:hover { background: #E81123; color: #fff; }
+
+/* ============ HEADER CONTROLS ============ */
+.header-controls {
+  padding: 0 0 10px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--search-bg);
+  border: 1px solid var(--search-border);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  transition: all 0.2s;
+  position: relative;
+}
+
+.search-box.focused {
+  border-color: #0078D4;
+  box-shadow: 0 0 0 3px rgba(0,120,212,0.15), 0 2px 8px rgba(0,120,212,0.1);
+  background: #fff;
+  transform: scale(1.01);
+}
+
+.search-icon { font-size: 14px; flex-shrink: 0; }
+
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+.search-input::placeholder { color: #AEAEB2; }
+
+.search-clear {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #AEAEB2;
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+.search-clear:hover { background: #F0F0F2; }
+
+/* ---- 搜索历史下拉 ---- */
+.search-history {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  z-index: 200;
+  overflow: hidden;
+  animation: dropIn 0.15s ease;
+}
+
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-history-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 1px solid #E5E5EA;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.search-history-clear {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+.search-history-clear:hover { color: #EF4444; background: rgba(239,68,68,0.08); }
+
+.search-history-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.search-history-item:hover,
+.search-history-item.active { background: var(--accent-light); color: var(--accent); }
+
+.search-history-item .h-icon {
+  width: 14px; height: 14px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: flex; align-items: center;
+}
+
+.search-history-item .h-remove {
+  margin-left: auto;
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: none;
+  color: var(--text-muted);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.search-history-item:hover .h-remove { opacity: 0.5; }
+.search-history-item .h-remove:hover { opacity: 1; color: #EF4444; }
+
+/* ============ TABS ============ */
+.tabs-area {
+  padding: 10px 0 0;
+}
+
+.segmented {
+  display: flex;
+  background: var(--seg-bg);
+  border-radius: 10px;
+  padding: 3px;
+  position: relative;
+}
+
+.seg-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: #86868B;
+  transition: all 0.2s;
+  z-index: 1;
+  position: relative;
+  font-family: inherit;
+}
+
+.seg-item.active {
+  color: var(--text-primary);
+  font-weight: 600;
+  background: var(--seg-active-bg);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.04);
+}
+
+.seg-active-indicator {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: var(--seg-active-bg);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.04);
+  z-index: 0;
+  transition: left 0.25s cubic-bezier(0.4,0,0.2,1), width 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+
+.seg-icon { font-size: 15px; position: relative; z-index: 1; }
+.seg-item.active .seg-icon,
+.seg-item.active span { position: relative; z-index: 1; }
+
+.seg-count {
+  font-size: 10px;
+  font-weight: 700;
+  color: #AEAEB2;
+  margin-left: 1px;
+  font-variant-numeric: tabular-nums;
+  position: relative;
+  z-index: 1;
+}
+.seg-item.active .seg-count { color: #0078D4; }
+
+/* ============ SCROLL AREA ============ */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--app-bg);
+}
+
+.scroll-area::-webkit-scrollbar { width: 5px; }
+.scroll-area::-webkit-scrollbar-track { background: transparent; }
+.scroll-area::-webkit-scrollbar-thumb { background: #D4D4D8; border-radius: 99px; }
+.scroll-area::-webkit-scrollbar-thumb:hover { background: #A1A1AA; }
+
+/* ============ CARD LIST ============ */
+.card-list {
+  padding: 12px 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ============ CARD ============ */
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 左侧彩色边线 */
+.card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+}
+.card.card-text::before { background: #0078D4; }
+.card.card-image::before { background: #FF6482; }
+.card.card-file::before { background: #34C759; }
+.card.card-code::before { background: #BF5AF2; }
+.card.card-pinned::before { background: #FFD60A; }
+
+.card:hover {
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+  transform: translateY(-2px) scale(1.008);
+}
+
+.card.selected {
+  background: linear-gradient(135deg, #EFF4FF, #F0F6FF);
+  box-shadow: 0 0 0 2px #0078D4, 0 4px 16px rgba(0,120,212,0.12);
+  animation: cardPulse 0.3s ease;
+}
+
+@keyframes cardPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.015); }
+  100% { transform: scale(1); }
+}
+
+/* 图标 */
+.card-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.card-icon.bg-blue   { background: linear-gradient(135deg, #E8F1FB, #D6E8FA); }
+.card-icon.bg-green  { background: linear-gradient(135deg, #E5F8EC, #D4F2DE); }
+.card-icon.bg-pink   { background: linear-gradient(135deg, #FDE8EE, #FAD6DF); }
+.card-icon.bg-purple { background: linear-gradient(135deg, #F0E8FB, #E5D6FA); }
+
+.card-icon svg { width: 18px; height: 18px; }
+
+/* 图片缩略图 */
+.card-img-thumb {
+  padding: 0;
+  overflow: hidden;
+}
+.card-img-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+/* 内容 */
+.card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  /* 改进：2 行自适应显示 */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.card-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.card-pin {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 16px;
+  padding: 0 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  background: #EFF4FF;
+  color: #0078D4;
+}
+
+.card-source {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100px;
+}
+
+.card-time {
+  font-size: 11px;
+  color: #AEAEB2;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* 卡片悬停操作按钮 */
+.card-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  margin-top: -2px;
+}
+.card:hover .card-actions { opacity: 1; }
+
+.card-action-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  transition: all 0.15s;
+}
+.card-action-btn:hover { background: var(--accent-light); color: var(--accent); }
+.card-action-btn svg { width: 14px; height: 14px; }
+
+/* 悬停预览气泡 */
+.card-preview-popover {
+  position: absolute;
+  left: calc(100% + 8px);
+  top: 0;
+  width: 280px;
+  max-height: 200px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--dialog-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  z-index: 40;
+  overflow-y: auto;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  pointer-events: none;
+}
+
+/* 搜索高亮 */
+.search-highlight {
+  background: rgba(0,120,212,0.2);
+  color: var(--accent);
+  border-radius: 2px;
+  padding: 0 1px;
+  font-weight: 600;
+}
+
+/* 粘贴中指示器 */
+.card-pasting {
+  font-size: 10px;
+  color: var(--accent);
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ============ CONTEXT MENU ============ */
+.ctx-menu {
+  position: absolute;
+  z-index: 90;
+  padding: 4px 0;
+  border-radius: 12px;
+  min-width: 180px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1), 0 2px 6px rgba(0,0,0,0.05);
+  overflow: hidden;
+  animation: dropIn 0.12s ease;
+}
+
+.ctx-sep {
+  height: 1px;
+  background: #E5E5EA;
+  margin: 2px 8px;
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #1D1D1F;
+  transition: background 0.1s;
+  font-family: inherit;
+}
+
+.ctx-item:hover { background: #F4F4F5; }
+
+.ctx-item .ctx-shortcut {
+  margin-left: auto;
+  font-size: 10px;
+  color: #AEAEB2;
+  background: #F4F4F5;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: inherit;
+}
+
+.ctx-item-icon { flex-shrink: 0; opacity: 0.7; display: flex; align-items: center; }
+.ctx-item-icon svg { width: 14px; height: 14px; }
+
+/* 编辑入口高亮 */
+.ctx-item.primary {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+}
+.ctx-item.primary:hover { background: #D0DEF5; }
+.ctx-item.primary .ctx-shortcut { background: rgba(0,120,212,0.12); color: var(--accent); }
+
+.ctx-item.danger { color: #EF4444; }
+.ctx-item.danger:hover { background: rgba(239,68,68,0.08); }
+
+/* ============ TOAST ============ */
+.toast-container {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  max-width: 280px;
+}
+
+.toast-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  pointer-events: auto;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
+  font-size: 12px;
+  position: relative;
+  overflow: hidden;
+  animation: toastSlideIn 0.3s ease;
+}
+
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.toast-item.success {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+.toast-item.error {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+.toast-item.info {
+  background: #EFF4FF;
+  color: #0078D4;
+  border: 1px solid rgba(0,120,212,0.2);
+}
+
+.toast-icon { flex-shrink: 0; display: flex; align-items: center; }
+.toast-icon svg { width: 16px; height: 16px; }
+
+.toast-msg { font-size: 12px; font-weight: 500; flex: 1; }
+
+.toast-close {
+  flex-shrink: 0;
+  cursor: pointer;
+  opacity: 0.5;
+  border: none;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  display: flex;
+  transition: opacity 0.15s;
+}
+.toast-close:hover { opacity: 1; }
+.toast-close svg { width: 14px; height: 14px; }
+
+/* Toast 进度条 */
+.toast-item::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.3;
+  animation: toastProgress 4s linear forwards;
+}
+
+@keyframes toastProgress {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+/* ============ FAB ============ */
+.fab-container {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  z-index: 50;
+  background: rgba(248,249,251,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.04);
+  box-shadow: 0 -2px 16px rgba(0,0,0,0.06);
+}
+
+.fab-counter {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: #86868B;
+  font-variant-numeric: tabular-nums;
+}
+
+.fab-counter .num { color: #0078D4; }
+.fab-counter .sep { opacity: 0.4; margin: 0 3px; }
+
+.fab-btn {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #0078D4, #005A9E);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,120,212,0.35);
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.fab-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,120,212,0.4);
+}
+
+.fab-btn:active { transform: scale(0.97); }
+
+.fab-btn-reset {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.2);
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.15s;
+}
+.fab-btn-reset:hover { background: rgba(255,255,255,0.35); }
+.fab-btn-reset svg { width: 12px; height: 12px; }
+
+/* ============ BATCH TOOLBAR ============ */
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(0,120,212,0.08);
+  border-radius: 10px;
+  margin-bottom: 4px;
+  border: 1px solid #0078D4;
+}
+
+.batch-btn {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.batch-btn:hover { background: var(--accent-light); color: var(--accent); }
+.batch-btn.danger { color: #EF4444; border-color: rgba(239,68,68,0.3); }
+.batch-btn.danger:hover { background: rgba(239,68,68,0.08); }
+.batch-btn svg { width: 12px; height: 12px; }
+
+/* ============ DIALOG ============ */
+.dialog-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.dialog-box {
+  background: var(--dialog-bg);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  animation: dialogIn 0.2s ease;
+  width: 420px;
+  max-height: 75vh;
+}
+
+@keyframes dialogIn {
+  from { opacity: 0; transform: scale(0.96) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 48px;
+  flex-shrink: 0;
+  border-bottom: 1px solid #E5E5EA;
+}
+
+.dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.dialog-close {
+  width: 28px; height: 28px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: #86868B;
+  font-size: 18px;
+  transition: background 0.15s;
+}
+.dialog-close:hover { background: #F4F4F5; }
+
+.dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 48px;
+  flex-shrink: 0;
+  border-top: 1px solid #E5E5EA;
+}
+
+.edit-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: 'SF Mono', Consolas, monospace;
+  resize: vertical;
+  outline: none;
+  line-height: 1.6;
+  transition: border-color 0.2s;
+}
+.edit-textarea:focus { border-color: var(--accent); }
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.action-btn:hover { background: var(--accent-light); color: var(--accent); border-color: var(--accent); }
+
+.btn-primary {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #0078D4;
+  color: #fff;
+  border: none;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+.btn-primary:hover { background: #005A9E; }
+.btn-primary:active { transform: scale(0.97); }
+
+.btn-secondary {
+  padding: 8px 18px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-secondary:hover { background: #F4F4F5; }
+
+/* ============ EMPTY STATE ============ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 0;
+  gap: 16px;
+}
+
+.empty-icon {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+.empty-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1D1D1F;
+  margin-bottom: 4px;
+}
+
+.empty-desc { font-size: 11px; color: #86868B; }
+
+/* ============ COPY FEEDBACK ============ */
+.copy-feedback {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--accent);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 60;
+  animation: copyPop 0.6s ease forwards;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 4px 12px rgba(0,120,212,0.3);
+}
+
+@keyframes copyPop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+  30% { transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -60%); }
+}
+
+/* ============ FEATURE TAG ============ */
+.feature-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(0,184,122,0.1);
+  color: #00b87a;
+  letter-spacing: 0.3px;
+}
+
+/* ============ RESIZE HANDLE ============ */
+.resize-handle {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 16px; height: 16px;
+  opacity: 0.25;
+  cursor: nwse-resize;
+}
+.resize-handle::after {
+  content: '';
+  position: absolute;
+  right: 2px; bottom: 2px;
+  width: 10px; height: 10px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  border-radius: 0 0 2px 0;
+}
+
+/* ============ QUICK PREVIEW ============ */
+.quick-preview {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.85);
+  color: #fff;
+  padding: 16px 20px;
+  border-radius: 12px;
+  max-width: 400px;
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 13px;
+  line-height: 1.6;
+  z-index: 55;
+  backdrop-filter: blur(8px);
+  white-space: pre-wrap;
+  word-break: break-all;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+</style>
+</head>
+<body>
+
+<!-- ============ 应用窗口 ============ -->
+<div class="app-shell">
+
+  <!-- ===== HEADER ===== -->
+  <div class="header">
+    <!-- 标题行 -->
+    <div class="header-top">
+      <div class="header-title">
+        <span class="header-title-icon">📋</span>
+        <span class="header-title-text">剪贴板管理</span>
+        <span class="header-badge">v2.0</span>
+      </div>
+      <div class="header-icons">
+        <button class="icon-btn" title="片段库">📝</button>
+        <button class="icon-btn" title="内容提取">🧲</button>
+        <button class="icon-btn" title="设置">⚙</button>
+        <button class="icon-btn" title="帮助">❓</button>
+        <button class="icon-btn" title="关于">ℹ</button>
+        <button class="icon-btn" title="最小化">—</button>
+        <button class="icon-btn danger" title="退出">✕</button>
+      </div>
+    </div>
+
+    <!-- 搜索框 + Tab -->
+    <div class="header-controls">
+      <div class="search-box focused">
+        <span class="search-icon">🔍</span>
+        <input class="search-input" placeholder="搜索剪贴板..." value="">
+        <!-- 搜索历史 -->
+        <div class="search-history">
+          <div class="search-history-header">
+            最近搜索
+            <button class="search-history-clear">清除全部</button>
+          </div>
+          <div class="search-history-item">
+            <span class="h-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            figma design
+            <button class="h-remove">✕</button>
+          </div>
+          <div class="search-history-item">
+            <span class="h-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            api endpoint
+            <button class="h-remove">✕</button>
+          </div>
+          <div class="search-history-item active">
+            <span class="h-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            github pull
+            <button class="h-remove">✕</button>
+          </div>
+          <div class="search-history-item">
+            <span class="h-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+            product roadmap
+            <button class="h-remove">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Segmented Tabs -->
+      <div class="tabs-area">
+        <div class="segmented">
+          <button class="seg-item active">
+            <span class="seg-icon">📋</span><span>全部</span><span class="seg-count">128</span>
+          </button>
+          <button class="seg-item">
+            <span class="seg-icon">📝</span><span>文本</span><span class="seg-count">86</span>
+          </button>
+          <button class="seg-item">
+            <span class="seg-icon">📸</span><span>图片</span><span class="seg-count">24</span>
+          </button>
+          <button class="seg-item">
+            <span class="seg-icon">📁</span><span>文件</span><span class="seg-count">8</span>
+          </button>
+          <button class="seg-item">
+            <span class="seg-icon">⭐</span><span>收藏</span><span class="seg-count">5</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 卡片列表 ===== -->
+  <div class="scroll-area">
+    <div class="card-list">
+
+      <!-- 批量操作工具栏 -->
+      <div class="batch-toolbar">
+        <span style="font-size:12px;font-weight:600;color:var(--accent);flex:1">已选 1 条</span>
+        <button class="batch-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          合并复制
+        </button>
+        <button class="batch-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          导出
+        </button>
+        <button class="batch-btn danger">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          删除
+        </button>
+      </div>
+
+      <!-- 置顶条目 -->
+      <div class="card card-pinned">
+        <div class="card-icon bg-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0078D4" stroke-width="2.2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+        </div>
+        <div class="card-content">
+          <div class="card-title">会议纪要：本周五下午3点进行Q3季度产品规划评审，请各团队负责人准备好Roadmap演示材料</div>
+          <div class="card-sub">
+            <span class="card-pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:7px;height:7px"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg> 置顶</span>
+            <span class="card-source">企业微信</span>
+          </div>
+        </div>
+        <span class="card-time">30秒前</span>
+      </div>
+
+      <!-- 选中条目 + 右键菜单 + 复制反馈 -->
+      <div class="card card-text selected" style="position:relative">
+        <div class="card-icon bg-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0078D4" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <div class="card-content">
+          <div class="card-title">https://www.figma.com/file/abc123def456/Design-System-v2?node-id=1234%3A5678&viewport=1234%2C567%2C0.5&mode=design</div>
+          <div class="card-sub">
+            <span class="card-source">Figma</span>
+            <span class="feature-tag">new</span>
+          </div>
+        </div>
+        <span class="card-time">2分钟前</span>
+
+        <!-- 悬停操作按钮 -->
+        <div class="card-actions" style="opacity:1">
+          <button class="card-action-btn" title="复制">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+          <button class="card-action-btn" title="编辑 (F2)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+
+        <!-- 右键菜单 -->
+        <div class="ctx-menu" style="position:absolute;top:55px;left:40%;z-index:90">
+          <button class="ctx-item primary">
+            <span class="ctx-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+            编辑内容
+            <span class="ctx-shortcut">F2</span>
+          </button>
+          <div class="ctx-sep"></div>
+          <button class="ctx-item">
+            <span class="ctx-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span>
+            复制到剪贴板
+            <span class="ctx-shortcut">Ctrl+C</span>
+          </button>
+          <button class="ctx-item">
+            <span class="ctx-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg></span>
+            粘贴到前台
+            <span class="ctx-shortcut">Enter</span>
+          </button>
+          <div class="ctx-sep"></div>
+          <button class="ctx-item">
+            <span class="ctx-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg></span>
+            置顶
+          </button>
+          <button class="ctx-item">
+            <span class="ctx-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg></span>
+            添加到片段库
+          </button>
+          <div class="ctx-sep"></div>
+          <button class="ctx-item danger">
+            <span class="ctx-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+            删除
+            <span class="ctx-shortcut">Delete</span>
+          </button>
+        </div>
+
+        <!-- 复制反馈 -->
+        <div class="copy-feedback">✅ 已复制到剪贴板</div>
+      </div>
+
+      <!-- 图片条目 -->
+      <div class="card card-image">
+        <div class="card-icon card-img-thumb bg-pink">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='42' height='42'%3E%3Crect fill='%23f0e8fb' width='42' height='42' rx='12'/%3E%3Crect x='4' y='4' width='16' height='14' fill='%23FF6482' rx='3' opacity='0.6'/%3E%3Crect x='24' y='4' width='14' height='14' fill='%2334C759' rx='3' opacity='0.6'/%3E%3Crect x='4' y='22' width='34' height='8' fill='%230078D4' rx='3' opacity='0.4'/%3E%3C/svg%3E" alt="">
+        </div>
+        <div class="card-content">
+          <div class="card-title">screenshot_2026-06-27_product_dashboard_final_v3.png</div>
+          <div class="card-sub">
+            <span class="card-source">截图</span>
+          </div>
+        </div>
+        <span class="card-time">5分钟前</span>
+        <div class="card-actions">
+          <button class="card-action-btn" title="预览">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <button class="card-action-btn" title="复制图片">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- 代码条目 -->
+      <div class="card card-code">
+        <div class="card-icon bg-purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#BF5AF2" stroke-width="2.2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </div>
+        <div class="card-content">
+          <div class="card-title">const fetchUserData = async (userId: string): Promise&lt;User&gt; => { const response = await api.get(`/users/${userId}`); return response.data; };</div>
+          <div class="card-sub">
+            <span class="card-source">VS Code</span>
+          </div>
+        </div>
+        <span class="card-time">12分钟前</span>
+      </div>
+
+      <!-- 长 URL 条目 — 展示 2 行显示效果 -->
+      <div class="card card-text">
+        <div class="card-icon bg-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0078D4" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <div class="card-content">
+          <div class="card-title">https://github.com/company/monorepo/pull/12345/files#diff-b335630551682c19a781afebcf4d07bf978fb1f8ac04c6bf87428ed5106870f5 — PR Review</div>
+          <div class="card-sub">
+            <span class="card-source">GitHub</span>
+          </div>
+        </div>
+        <span class="card-time">20分钟前</span>
+      </div>
+
+      <!-- 数据库连接串 -->
+      <div class="card card-text">
+        <div class="card-icon bg-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0078D4" stroke-width="2.2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        </div>
+        <div class="card-content">
+          <div class="card-title">postgresql://user:password@db-prod.internal.company.com:5432/maindb?sslmode=require&connect_timeout=10</div>
+          <div class="card-sub">
+            <span class="card-source">终端</span>
+          </div>
+        </div>
+        <span class="card-time">35分钟前</span>
+      </div>
+
+      <!-- 文件条目 -->
+      <div class="card card-file">
+        <div class="card-icon bg-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#34C759" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div class="card-content">
+          <div class="card-title">Q3_产品规划_Roadmap_v3.pptx</div>
+          <div class="card-sub">
+            <span class="card-source">文件</span>
+          </div>
+        </div>
+        <span class="card-time">1小时前</span>
+      </div>
+
+      <!-- 链接条目 -->
+      <div class="card card-text">
+        <div class="card-icon bg-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#0078D4" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </div>
+        <div class="card-content">
+          <div class="card-title">https://docs.internal.company.com/wiki/onboarding-guide-2026#getting-started</div>
+          <div class="card-sub">
+            <span class="card-source">文档</span>
+          </div>
+        </div>
+        <span class="card-time">2小时前</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== FAB 依次粘贴 ===== -->
+  <div class="fab-container">
+    <div class="fab-counter"><span class="num">3</span><span class="sep">/</span>86</div>
+    <button class="fab-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+      粘贴
+      <span class="fab-btn-reset">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      </span>
+    </button>
+  </div>
+
+  <!-- ===== Toast 通知 ===== -->
+  <div class="toast-container">
+    <div class="toast-item success">
+      <span class="toast-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></span>
+      <span class="toast-msg">已复制到剪贴板</span>
+      <button class="toast-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+  </div>
+
+  <!-- ===== 编辑弹窗 ===== -->
+  <div class="dialog-backdrop">
+    <div class="dialog-box" style="width:400px;max-height:65vh">
+      <div class="dialog-header">
+        <h2 class="dialog-title">✏️ 编辑记录</h2>
+        <button class="dialog-close">✕</button>
+      </div>
+      <div class="dialog-body">
+        <!-- 变换工具栏 -->
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <button class="tool-btn">Aa 大写</button>
+          <button class="tool-btn">aa 小写</button>
+          <button class="tool-btn">✂ 去空白</button>
+          <button class="tool-btn">¶ 去空行</button>
+          <button class="tool-btn">" 加引号</button>
+        </div>
+        <!-- 编辑区 -->
+        <textarea class="edit-textarea" style="min-height:120px">https://www.figma.com/file/abc123def456/Design-System-v2?node-id=1234%3A5678&viewport=1234%2C567%2C0.5&mode=design</textarea>
+        <!-- 统计 -->
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:11px;color:var(--text-muted)">112 字符 · 1 行</span>
+        </div>
+        <!-- 快捷操作 -->
+        <div style="display:flex;gap:6px">
+          <button class="action-btn">📋 复制</button>
+          <button class="action-btn">📌 粘贴</button>
+          <button class="action-btn">⭐ 存片段</button>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <span style="font-size:10px;color:var(--text-muted)">Ctrl+Enter 保存 · Esc 取消</span>
+        <div style="display:flex;gap:8px">
+          <button class="btn-secondary">取消</button>
+          <button class="btn-primary">💾 保存修改</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 缩放拖拽手柄 ===== -->
+  <div class="resize-handle"></div>
+
+</div>
+
+</body>
+</html>

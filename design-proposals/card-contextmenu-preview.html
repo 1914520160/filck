@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>卡片宽度 &amp; 右键菜单优化 — 前后对比</title>
+<style>
+  :root {
+    --bg: #f5f5f7;
+    --card-bg: #fff;
+    --card-border: #e8e8ed;
+    --text-primary: #1d1d1f;
+    --text-secondary: #86868b;
+    --text-muted: #aeaeb2;
+    --accent: #0078D4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #ebebf0;
+    color: var(--text-primary);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  h1 { font-size: 22px; font-weight: 700; text-align: center; color: #1d1d1f; }
+  h2 { font-size: 16px; font-weight: 600; margin-bottom: 12px; }
+  .section {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  /* ---------- Card styles ---------- */
+  .card-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 0;
+    max-width: 600px;
+  }
+
+  /* -- 修复前：无 width:100% -- */
+  .card-before {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    height: 72px;
+  }
+
+  /* -- 修复后：width:100% + 手柄绝对定位 -- */
+  .card-after {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    transition: all 0.2s;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    height: 72px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .card-before::before, .card-after::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+  }
+  .type-text::before { background: #0078D4; }
+  .type-image::before { background: #FF6482; }
+  .type-code::before { background: #BF5AF2; }
+
+  .card-before:hover, .card-after:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+  }
+
+  .card-icon {
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .bg-blue { background: linear-gradient(135deg, #E8F1FB, #D6E8FA); }
+  .bg-pink { background: linear-gradient(135deg, #FDE8EE, #FAD6DF); }
+  .bg-purple { background: linear-gradient(135deg, #F0E8FB, #E5D6FA); }
+
+  .card-icon.card-img-thumb {
+    width: 42px; height: 42px;
+    min-width: 42px; min-height: 42px;
+    padding: 0; overflow: hidden;
+  }
+  .card-icon.card-img-thumb img {
+    width: 100%; height: 100%;
+    object-fit: cover; border-radius: 12px;
+  }
+
+  .card-content { flex: 1; min-width: 0; overflow: hidden; }
+  .card-title {
+    font-size: 13px; font-weight: 600;
+    color: var(--text-primary);
+    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-sub {
+    font-size: 11px; color: var(--text-secondary);
+    margin-top: 3px;
+    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Drag handle — before: flex item, after: absolute */
+  .drag-wrapper-before {
+    display: flex; align-items: center;
+    width: 100%;
+  }
+  .drag-handle-before {
+    width: 22px;
+    opacity: 0.3;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    color: #aaa;
+    cursor: grab;
+    margin-right: 4px;
+  }
+  .drag-wrapper-after {
+    display: flex; align-items: center;
+    position: relative;
+  }
+  .drag-handle-after {
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    width: 24px;
+    opacity: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    color: #aaa;
+    cursor: grab;
+    transition: opacity 0.15s;
+    z-index: 2;
+  }
+  .drag-wrapper-after:hover .drag-handle-after {
+    opacity: 0.7;
+  }
+
+  /* Labels */
+  .badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #fff;
+    display: inline-block;
+  }
+  .badge-before { background: #e53e3e; }
+  .badge-after { background: #38a169; }
+  .badge-fixed { background: #0078D4; }
+
+  .compare-row {
+    display: flex;
+    gap: 20px;
+  }
+  .compare-col {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* ---------- Context Menu styles ---------- */
+  .ctx-menu-demo {
+    position: relative;
+    height: 360px;
+    background: #f0f0f5;
+    border-radius: 12px;
+    border: 2px dashed #ccc;
+    overflow: hidden;
+  }
+
+  .ctx-menu-sim {
+    position: absolute;
+    width: 200px;
+    background: #fff;
+    border: 1px solid #e0e0e5;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    padding: 6px;
+    z-index: 10;
+    font-size: 13px;
+  }
+  .ctx-item-sim {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #333;
+    transition: background 0.1s;
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .ctx-item-sim:hover { background: #f5f5f8; }
+  .ctx-item-sim.danger { color: #e53e3e; }
+  .ctx-item-sim.danger:hover { background: #fef2f2; }
+  .ctx-sep-sim {
+    height: 1px;
+    background: #eee;
+    margin: 4px 8px;
+  }
+  .ctx-has-sub {
+    justify-content: space-between;
+  }
+
+  .marker {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: #0078D4;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #0078D4;
+    z-index: 5;
+  }
+  .marker-label {
+    position: absolute;
+    font-size: 10px;
+    color: #0078D4;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  /* Annotations */
+  .annotation {
+    font-size: 11px;
+    color: #999;
+    margin-top: 8px;
+    line-height: 1.6;
+  }
+  .annotation strong { color: #e53e3e; }
+  .annotation .good { color: #38a169; font-weight: 700; }
+
+  /* grid for context menu scenarios */
+  .ctx-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .ctx-cell {
+    display: flex;
+    flex-direction: column;
+  }
+  .ctx-cell h3 {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+
+<h1>📋 卡片宽度 &amp; 右键菜单 — 优化前后对比</h1>
+
+<!-- ====== SECTION 1: Card Width ====== -->
+<div class="section">
+  <h2>问题一：不同类型卡片宽度不一致</h2>
+
+  <div class="compare-row">
+    <!-- BEFORE -->
+    <div class="compare-col">
+      <h3 style="margin-bottom:8px;"><span class="badge badge-before">修复前</span> 无 width:100%，拖拽手柄占 flex 空间</h3>
+      <div class="card-list">
+        <!-- 文本卡片 -->
+        <div class="drag-wrapper-before">
+          <span class="drag-handle-before">⋮⋮</span>
+          <div class="card-before type-text">
+            <div class="card-icon bg-blue">📝</div>
+            <div class="card-content">
+              <div class="card-title">这是一段剪贴板文本内容示例</div>
+              <div class="card-sub">今天 14:30 · 文本</div>
+            </div>
+          </div>
+        </div>
+        <!-- 图片卡片（无缩略图） -->
+        <div class="drag-wrapper-before">
+          <span class="drag-handle-before">⋮⋮</span>
+          <div class="card-before type-image">
+            <div class="card-icon bg-pink">🖼️</div>
+            <div class="card-content">
+              <div class="card-title">screenshot_2026.png</div>
+              <div class="card-sub">今天 14:28 · 2.4 MB · 1920×1080</div>
+            </div>
+          </div>
+        </div>
+        <!-- 代码卡片 -->
+        <div class="drag-wrapper-before">
+          <span class="drag-handle-before">⋮⋮</span>
+          <div class="card-before type-code">
+            <div class="card-icon bg-purple">&lt;/&gt;</div>
+            <div class="card-content">
+              <div class="card-title">const fetchData = async () => { ... }</div>
+              <div class="card-sub">今天 14:25 · TypeScript</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="annotation">
+        <strong>✗ 问题：</strong>图片卡片图标（🖼️）和代码图标（&lt;/&gt;）宽度不固定，导致卡片内容区域左边缘不对齐<br>
+        <strong>✗ 问题：</strong>拖拽手柄额外占 22px，卡片实际内容宽度被挤压不一致<br>
+        <strong>✗ 问题：</strong>图片缩略图卡片宽度尤其突出
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div class="compare-col">
+      <h3 style="margin-bottom:8px;"><span class="badge badge-after">修复后</span> width:100% + 手柄绝对定位</h3>
+      <div class="card-list">
+        <!-- 文本卡片 -->
+        <div class="drag-wrapper-after" style="width:100%">
+          <span class="drag-handle-after">⋮⋮</span>
+          <div class="card-after type-text">
+            <div class="card-icon bg-blue">📝</div>
+            <div class="card-content">
+              <div class="card-title">这是一段剪贴板文本内容示例</div>
+              <div class="card-sub">今天 14:30 · 文本</div>
+            </div>
+          </div>
+        </div>
+        <!-- 图片卡片（带缩略图） -->
+        <div class="drag-wrapper-after" style="width:100%">
+          <span class="drag-handle-after">⋮⋮</span>
+          <div class="card-after type-image">
+            <div class="card-icon card-img-thumb">
+              <div style="width:100%;height:100%;background:linear-gradient(135deg,#fce4ec,#f8bbd0);display:flex;align-items:center;justify-content:center;font-size:20px;">🖼️</div>
+            </div>
+            <div class="card-content">
+              <div class="card-title">screenshot_2026.png</div>
+              <div class="card-sub">今天 14:28 · 2.4 MB · 1920×1080</div>
+            </div>
+          </div>
+        </div>
+        <!-- 代码卡片 -->
+        <div class="drag-wrapper-after" style="width:100%">
+          <span class="drag-handle-after">⋮⋮</span>
+          <div class="card-after type-code">
+            <div class="card-icon bg-purple">&lt;/&gt;</div>
+            <div class="card-content">
+              <div class="card-title">const fetchData = async () => { ... }</div>
+              <div class="card-sub">今天 14:25 · TypeScript</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="annotation">
+        <span class="good">✓ 修复：</span>所有卡片 <code>width:100%</code> + <code>box-sizing:border-box</code>，右边缘完全对齐<br>
+        <span class="good">✓ 修复：</span>拖拽手柄改为绝对定位，不占用 flex 空间<br>
+        <span class="good">✓ 修复：</span>图标统一 <code>flex-shrink:0</code> + <code>min-width:42px</code>，左边缘一致<br>
+        <span class="good">✓ 修复：</span>ContextMenu wrapper 加 <code>flex:1; min-width:0</code> 确保撑满
+      </div>
+    </div>
+  </div>
+
+  <!-- Alignment indicator -->
+  <div style="margin-top:20px;padding:12px;background:#f0f8ff;border-radius:8px;border:1px solid #b8d4f0;">
+    <strong>🔍 视觉对齐对比：</strong><br>
+    <span style="color:#e53e3e;font-weight:700;">修复前：</span> 卡片左边缘 → 图标左边缘 不一致（0~26px 浮动），右边缘随内容宽度变化<br>
+    <span style="color:#38a169;font-weight:700;">修复后：</span> 所有卡片左边缘、图标起始位置、右边缘 完全对齐，形成整齐的列式布局
+  </div>
+</div>
+
+<!-- ====== SECTION 2: Context Menu Position ====== -->
+<div class="section">
+  <h2>问题二：右键菜单定位不友好</h2>
+
+  <div class="ctx-grid">
+    <!-- Scenario 1: Bottom-right click -->
+    <div class="ctx-cell">
+      <h3><span class="badge badge-before">修复前</span> 右下角右键 → 菜单溢出屏幕</h3>
+      <div class="ctx-menu-demo">
+        <div class="marker" style="right:40px;bottom:60px;"></div>
+        <div class="marker-label" style="right:52px;bottom:60px;color:#e53e3e;">点击点</div>
+        <!-- Before: menu goes off-screen -->
+        <div class="ctx-menu-sim" style="right:40px;bottom:30px;border:2px solid #e53e3e;">
+          <button class="ctx-item-sim">📋 复制到剪贴板</button>
+          <button class="ctx-item-sim">📌 粘贴到前台</button>
+          <div class="ctx-sep-sim"></div>
+          <button class="ctx-item-sim ctx-has-sub">🔀 粘贴并变换 <span>▸</span></button>
+          <div class="ctx-sep-sim"></div>
+          <button class="ctx-item-sim danger">🗑️ 删除</button>
+        </div>
+        <div style="position:absolute;right:4px;bottom:4px;font-size:10px;color:#e53e3e;">✗ 菜单被截断，底部不可见</div>
+      </div>
+      <div class="annotation">
+        <strong>✗ 问题：</strong>菜单默认向右下展开，靠近屏幕底部时被裁剪<br>
+        <strong>✗ 问题：</strong>首次渲染使用 fallback 尺寸跳变
+      </div>
+    </div>
+
+    <!-- Scenario 1: Fixed -->
+    <div class="ctx-cell">
+      <h3><span class="badge badge-after">修复后</span> 智能翻折 → 空间不足时向上展开</h3>
+      <div class="ctx-menu-demo">
+        <div class="marker" style="right:40px;bottom:60px;"></div>
+        <div class="marker-label" style="right:52px;bottom:60px;color:#38a169;">点击点</div>
+        <!-- After: menu flips up -->
+        <div class="ctx-menu-sim" style="right:40px;top:30px;border:2px solid #38a169;">
+          <button class="ctx-item-sim">📋 复制到剪贴板</button>
+          <button class="ctx-item-sim">📌 粘贴到前台</button>
+          <div class="ctx-sep-sim"></div>
+          <button class="ctx-item-sim ctx-has-sub">🔀 粘贴并变换 <span>▸</span></button>
+          <div class="ctx-sep-sim"></div>
+          <button class="ctx-item-sim danger">🗑️ 删除</button>
+        </div>
+        <div style="position:absolute;right:4px;top:4px;font-size:10px;color:#38a169;">✓ 空间不足时自动翻到上方</div>
+      </div>
+      <div class="annotation">
+        <span class="good">✓ 修复：</span>下方空间不足 → 自动翻到上方展开<br>
+        <span class="good">✓ 修复：</span>使用预估值 180×260 消除首次渲染跳变<br>
+        <span class="good">✓ 修复：</span>始终保留 8px 安全边距
+      </div>
+    </div>
+
+    <!-- Scenario 2: Right-edge click with submenu -->
+    <div class="ctx-cell">
+      <h3><span class="badge badge-before">修复前</span> 右边缘右键 + 子菜单 → 双向溢出</h3>
+      <div class="ctx-menu-demo">
+        <div class="marker" style="right:20px;top:120px;"></div>
+        <div class="marker-label" style="right:32px;top:120px;color:#e53e3e;">点击点</div>
+        <!-- Before: parent menu near right edge, submenu goes off -->
+        <div class="ctx-menu-sim" style="right:20px;top:100px;border:2px solid #e53e3e;">
+          <button class="ctx-item-sim">📋 复制到剪贴板</button>
+          <button class="ctx-item-sim">📌 粘贴到前台</button>
+          <div class="ctx-sep-sim"></div>
+          <button class="ctx-item-sim ctx-has-sub">🔀 粘贴并变换 <span>▸</span></button>
+        </div>
+        <!-- Submenu going off-screen -->
+        <div class="ctx-menu-sim" style="right:218px;top:152px;width:160px;border:2px dashed #e53e3e;font-size:11px;">
+          <button class="ctx-item-sim" style="font-size:12px;">A 粘贴为大写</button>
+          <button class="ctx-item-sim" style="font-size:12px;">a 粘贴为小写</button>
+          <button class="ctx-item-sim" style="font-size:12px;">✂ 粘贴并去空白</button>
+        </div>
+        <div style="position:absolute;right:4px;top:90px;font-size:10px;color:#e53e3e;max-width:100px;">✗ 子菜单超出右侧屏幕</div>
+      </div>
+    </div>
+
+    <!-- Scenario 2: Fixed -->
+    <div class="ctx-cell">
+      <h3><span class="badge badge-after">修复后</span> 子菜单智能翻折 → 空间不足时翻到左侧</h3>
+      <div class="ctx-menu-demo">
+        <div class="marker" style="right:20px;top:120px;"></div>
+        <div class="marker-label" style="right:32px;top:120px;color:#38a169;">点击点</div>
+        <!-- After: parent menu stays, submenu flips left -->
+        <div class="ctx-menu-sim" style="right:20px;top:100px;border:2px solid #38a169;">
+          <button class="ctx-item-sim">📋 复制到剪贴板</button>
+          <button class="ctx-item-sim">📌 粘贴到前台</button>
+          <div class="ctx-sep-sim"></div>
+          <button class="ctx-item-sim ctx-has-sub">🔀 粘贴并变换 <span>▸</span></button>
+        </div>
+        <!-- Submenu flipped to left -->
+        <div class="ctx-menu-sim" style="right:240px;top:152px;width:160px;border:2px solid #38a169;font-size:11px;">
+          <button class="ctx-item-sim" style="font-size:12px;">A 粘贴为大写</button>
+          <button class="ctx-item-sim" style="font-size:12px;">a 粘贴为小写</button>
+          <button class="ctx-item-sim" style="font-size:12px;">✂ 粘贴并去空白</button>
+        </div>
+        <div style="position:absolute;right:4px;top:90px;font-size:10px;color:#38a169;max-width:100px;">✓ 子菜单翻到左侧展开</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;padding:12px;background:#f0f8ff;border-radius:8px;border:1px solid #b8d4f0;line-height:1.8;">
+    <strong>🔍 右键菜单定位算法对比：</strong><br>
+    <span style="color:#e53e3e;font-weight:700;">修复前：</span> <code>left = min(pos.x, windowWidth - menuW - 8)</code>，仅限制右边界；Y 方向简单翻折；子菜单始终向右展开<br>
+    <span style="color:#38a169;font-weight:700;">修复后：</span>
+    1) 默认右下弹出 → 空间不足时自动左上翻折<br>
+    2) 使用预估值 <code>180×260</code> 消除首次渲染跳变<br>
+    3) 子菜单空间不足时翻到左侧展开<br>
+    4) 始终保留 8px 视口安全边距
+  </div>
+</div>
+
+<!-- ====== SECTION 3: Summary ====== -->
+<div class="section" style="background:linear-gradient(135deg,#f0f8ff,#e8f5e9);">
+  <h2>📊 改动清单</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;">
+    <thead>
+      <tr style="text-align:left;border-bottom:2px solid #ddd;">
+        <th style="padding:8px 12px;">#</th>
+        <th style="padding:8px 12px;">文件</th>
+        <th style="padding:8px 12px;">选择器/位置</th>
+        <th style="padding:8px 12px;">改动</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">1</td>
+        <td style="padding:8px 12px;"><code>app.css</code></td>
+        <td style="padding:8px 12px;"><code>.card</code></td>
+        <td style="padding:8px 12px;">加 <code>width: 100%; box-sizing: border-box;</code></td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">2</td>
+        <td style="padding:8px 12px;"><code>app.css</code></td>
+        <td style="padding:8px 12px;"><code>.card-icon</code></td>
+        <td style="padding:8px 12px;">确保 <code>flex-shrink: 0; min-width: 42px;</code></td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">3</td>
+        <td style="padding:8px 12px;"><code>app.css</code></td>
+        <td style="padding:8px 12px;"><code>.card-drag-handle</code></td>
+        <td style="padding:8px 12px;">改为 <code>position: absolute;</code> 不占 flex 空间</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">4</td>
+        <td style="padding:8px 12px;"><code>app.css</code></td>
+        <td style="padding:8px 12px;"><code>.card-drag-wrapper</code></td>
+        <td style="padding:8px 12px;">加 <code>position: relative;</code> 供手柄定位</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">5</td>
+        <td style="padding:8px 12px;"><code>CardList.tsx</code></td>
+        <td style="padding:8px 12px;">ContextMenu wrapper</td>
+        <td style="padding:8px 12px;">加 <code>flex: 1; min-width: 0</code> 样式</td>
+      </tr>
+      <tr style="border-bottom:1px solid #eee;">
+        <td style="padding:8px 12px;">6</td>
+        <td style="padding:8px 12px;"><code>ContextMenu.tsx</code></td>
+        <td style="padding:8px 12px;"><code>adjustedPos</code></td>
+        <td style="padding:8px 12px;">优化翻折算法 + 预估值 180×260</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 12px;">7</td>
+        <td style="padding:8px 12px;"><code>ContextMenu.tsx</code></td>
+        <td style="padding:8px 12px;">子菜单 <code>.ctx-submenu</code></td>
+        <td style="padding:8px 12px;">右侧空间 &lt; 10px 时翻到左侧展开</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+</body>
+</html>

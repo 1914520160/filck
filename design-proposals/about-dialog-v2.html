@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="ocean">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Filck 关于页面 · 方案 B 设计稿（主题适配）</title>
+<style>
+/* ============================================================
+   主题 CSS 变量 — 与项目 app.css 保持一致
+   ============================================================ */
+
+/* 浅色主题 */
+:root,
+[data-theme="ocean"] {
+  --app-bg: #F4F6F9;
+  --dialog-bg: #FFFFFF;
+  --card-bg: #F8FAFC;
+  --section-bg: #F1F5F9;
+  --border-color: #E2E8F0;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --accent: #0284C7;
+  --accent-light: #E0F2FE;
+  --hover: #F1F5F9;
+  --danger: #DC2626;
+  --green: #16A34A;
+  --green-bg: #DCFCE7;
+  --green-border: #BBF7D0;
+  --orange: #EA580C;
+  --orange-bg: #FFF7ED;
+  --orange-border: #FED7AA;
+  --red: #DC2626;
+  --red-bg: #FEF2F2;
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg: 0 24px 80px rgba(0,0,0,.12);
+  --icon-gradient: linear-gradient(135deg, #3B82F6, #0284C7);
+}
+[data-theme="forest"] {
+  --app-bg: #F2F7F2;
+  --dialog-bg: #FFFFFF;
+  --card-bg: #F6FAF6;
+  --section-bg: #EDF5ED;
+  --border-color: #D4E4D4;
+  --text-primary: #1A2E1A;
+  --text-secondary: #4A6B4A;
+  --text-muted: #8AAA8A;
+  --accent: #2D8A4E;
+  --accent-light: #E0F5E5;
+  --hover: #EDF5ED;
+  --danger: #DC2626;
+  --green: #16A34A;
+  --green-bg: #DCFCE7;
+  --green-border: #BBF7D0;
+  --orange: #EA580C;
+  --orange-bg: #FFF7ED;
+  --orange-border: #FED7AA;
+  --red: #DC2626;
+  --red-bg: #FEF2F2;
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg: 0 24px 80px rgba(0,0,0,.12);
+  --icon-gradient: linear-gradient(135deg, #3B9E5A, #2D8A4E);
+}
+[data-theme="blossom"] {
+  --app-bg: #FDF5F7;
+  --dialog-bg: #FFFFFF;
+  --card-bg: #FDF8FA;
+  --section-bg: #FBF0F3;
+  --border-color: #F0D5DB;
+  --text-primary: #2D1520;
+  --text-secondary: #6B4550;
+  --text-muted: #B89098;
+  --accent: #D9466F;
+  --accent-light: #FDE8EE;
+  --hover: #FBF0F3;
+  --danger: #DC2626;
+  --green: #16A34A;
+  --green-bg: #DCFCE7;
+  --green-border: #BBF7D0;
+  --orange: #EA580C;
+  --orange-bg: #FFF7ED;
+  --orange-border: #FED7AA;
+  --red: #DC2626;
+  --red-bg: #FEF2F2;
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg: 0 24px 80px rgba(0,0,0,.12);
+  --icon-gradient: linear-gradient(135deg, #EC4899, #D9466F);
+}
+
+/* 暗色主题 */
+[data-theme="midnight"] {
+  --app-bg: #09090B;
+  --dialog-bg: #18181B;
+  --card-bg: #1E1E24;
+  --section-bg: #27272A;
+  --border-color: #3F3F46;
+  --text-primary: #E4E4E7;
+  --text-secondary: #A1A1AA;
+  --text-muted: #71717A;
+  --accent: #818CF8;
+  --accent-light: #1E1B4B;
+  --hover: #27272A;
+  --danger: #F87171;
+  --green: #4ADE80;
+  --green-bg: #052E16;
+  --green-border: #166534;
+  --orange: #FB923C;
+  --orange-bg: #431407;
+  --orange-border: #9A3412;
+  --red: #F87171;
+  --red-bg: #450A0A;
+  --red-border: #991B1B;
+  --shadow-md: 0 4px 12px rgba(0,0,0,.3);
+  --shadow-lg: 0 24px 80px rgba(0,0,0,.5);
+  --icon-gradient: linear-gradient(135deg, #818CF8, #6366F1);
+}
+[data-theme="terminal"] {
+  --app-bg: #0A0A0A;
+  --dialog-bg: #151515;
+  --card-bg: #1C1C1C;
+  --section-bg: #252525;
+  --border-color: #333333;
+  --text-primary: #D4D4D4;
+  --text-secondary: #888888;
+  --text-muted: #666666;
+  --accent: #22C55E;
+  --accent-light: #052E16;
+  --hover: #252525;
+  --danger: #F87171;
+  --green: #4ADE80;
+  --green-bg: #052E16;
+  --green-border: #166534;
+  --orange: #FB923C;
+  --orange-bg: #431407;
+  --orange-border: #9A3412;
+  --red: #F87171;
+  --red-bg: #450A0A;
+  --red-border: #991B1B;
+  --shadow-md: 0 4px 12px rgba(0,0,0,.4);
+  --shadow-lg: 0 24px 80px rgba(0,0,0,.6);
+  --icon-gradient: linear-gradient(135deg, #22C55E, #16A34A);
+}
+[data-theme="sunset"] {
+  --app-bg: #1A0F0A;
+  --dialog-bg: #241510;
+  --card-bg: #2D1C14;
+  --section-bg: #36241C;
+  --border-color: #4A3028;
+  --text-primary: #F0E0D6;
+  --text-secondary: #B8A090;
+  --text-muted: #7A6050;
+  --accent: #F97316;
+  --accent-light: #431407;
+  --hover: #36241C;
+  --danger: #F87171;
+  --green: #4ADE80;
+  --green-bg: #052E16;
+  --green-border: #166534;
+  --orange: #FB923C;
+  --orange-bg: #431407;
+  --orange-border: #9A3412;
+  --red: #F87171;
+  --red-bg: #450A0A;
+  --red-border: #991B1B;
+  --shadow-md: 0 4px 12px rgba(0,0,0,.35);
+  --shadow-lg: 0 24px 80px rgba(0,0,0,.55);
+  --icon-gradient: linear-gradient(135deg, #F97316, #EA580C);
+}
+
+/* ============================================================
+   通用样式
+   ============================================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--app-bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; color: var(--text-primary);
+  transition: background 0.3s ease;
+  flex-direction: column; gap: 16px;
+}
+
+/* ============ 主题切换器 ============ */
+.theme-picker {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+}
+.theme-dot {
+  width: 28px; height: 28px; border-radius: 8px; border: 2px solid transparent;
+  cursor: pointer; transition: all .2s;
+}
+.theme-dot:hover { transform: scale(1.1); }
+.theme-dot.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+.theme-dot.ocean   { background: linear-gradient(135deg, #F4F6F9 40%, #0284C7 40%); }
+.theme-dot.midnight{ background: linear-gradient(135deg, #09090B 40%, #818CF8 40%); }
+.theme-dot.forest  { background: linear-gradient(135deg, #F2F7F2 40%, #2D8A4E 40%); }
+.theme-dot.blossom { background: linear-gradient(135deg, #FDF5F7 40%, #D9466F 40%); }
+.theme-dot.terminal{ background: linear-gradient(135deg, #0A0A0A 40%, #22C55E 40%); }
+.theme-dot.sunset  { background: linear-gradient(135deg, #1A0F0A 40%, #F97316 40%); }
+
+.theme-label {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .8px; text-align: center;
+}
+
+/* ============ 弹窗容器 ============ */
+.dialog-overlay {
+  width: 480px;
+  background: var(--dialog-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  animation: dialogIn .25s ease-out;
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+@keyframes dialogIn {
+  from { transform: scale(.96) translateY(10px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* ============ 头部 ============ */
+.dialog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 24px; border-bottom: 1px solid var(--border-color);
+  transition: border-color 0.3s ease;
+}
+.dialog-title { font-size: 15px; font-weight: 700; transition: color 0.3s ease; }
+.dialog-close {
+  width: 32px; height: 32px; border-radius: 8px; border: none;
+  background: transparent; color: var(--text-secondary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.dialog-close:hover { background: var(--hover); color: var(--text-primary); }
+
+/* ============ 主内容 ============ */
+.dialog-body { padding: 28px 28px 24px; }
+
+/* ---- 英雄区 ---- */
+.hero {
+  display: flex; align-items: center; gap: 20px; margin-bottom: 28px;
+}
+.app-icon {
+  width: 68px; height: 68px; border-radius: 18px; flex-shrink: 0;
+  background: var(--icon-gradient);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; color: #fff;
+  box-shadow: 0 8px 24px rgba(0,120,212,.25);
+  transition: background 0.3s ease;
+}
+.app-meta { flex: 1; min-width: 0; }
+.app-name {
+  font-size: 20px; font-weight: 800; letter-spacing: -.3px;
+  margin-bottom: 6px; transition: color 0.3s ease;
+}
+.version-row {
+  display: flex; align-items: center; gap: 10px;
+}
+.version-badge {
+  font-size: 13px; font-weight: 600; color: var(--text-secondary);
+  background: var(--section-bg); border-radius: 8px; padding: 4px 12px;
+  font-family: "SF Mono", "Fira Code", monospace;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.version-status {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px;
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+.version-status.latest {
+  background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border);
+}
+.version-status.update {
+  background: var(--orange-bg); color: var(--orange); border: 1px solid var(--orange-border);
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; }
+.status-dot.green { background: var(--green); }
+.status-dot.orange { background: var(--orange); animation: pulse 2s infinite; }
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50%     { opacity: .4; }
+}
+
+/* ---- 分割线 ---- */
+.divider {
+  height: 1px; background: var(--border-color); margin: 0 0 24px;
+  transition: background 0.3s ease;
+}
+
+/* ---- 信息卡片区 ---- */
+.section-label {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  color: var(--text-muted); letter-spacing: .8px; margin-bottom: 12px;
+  transition: color 0.3s ease;
+}
+
+/* 技术栈 2×3 网格 */
+.tech-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px;
+}
+.tech-card {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-radius: 10px;
+  background: var(--section-bg); border: 1px solid transparent;
+  transition: all .2s, background 0.3s ease, border-color 0.3s ease;
+  cursor: default;
+}
+.tech-card:hover {
+  border-color: var(--border-color); transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.tech-icon {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+}
+.tech-info { min-width: 0; }
+.tech-name { font-size: 13px; font-weight: 700; margin-bottom: 2px; transition: color 0.3s ease; }
+.tech-desc { font-size: 10px; color: var(--text-muted); transition: color 0.3s ease; }
+
+/* ============================================================
+   更新横幅 — 复用现有 UpdateBanner 样式
+   ============================================================ */
+
+/* 通用横幅容器 */
+.update-banner {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 18px; border-radius: 12px; margin-bottom: 24px;
+  border: 1px solid var(--border-color);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+/* idle / latest — 灰色卡片 */
+.update-banner-idle {
+  background: var(--section-bg);
+}
+
+/* available — 强调色浅底 */
+.update-banner-available {
+  background: var(--accent-light); border-color: var(--accent);
+}
+
+/* downloading — 卡片+进度条 */
+.update-banner-downloading {
+  background: var(--section-bg);
+  flex-direction: column; align-items: stretch;
+}
+
+/* ready / installed — 绿色浅底 */
+.update-banner-ready {
+  background: var(--green-bg); border-color: var(--green-border);
+}
+
+/* error — 红色浅底 */
+.update-banner-error {
+  background: var(--red-bg); border-color: var(--danger);
+}
+
+/* 横幅内部 */
+.update-banner-row {
+  display: flex; align-items: center; gap: 12px;
+}
+.update-banner-icon {
+  flex-shrink: 0; display: flex; align-items: center;
+}
+.update-banner-body { flex: 1; min-width: 0; }
+.update-banner-title {
+  font-size: 13px; font-weight: 700; margin-bottom: 2px; transition: color 0.3s ease;
+}
+.update-banner-desc {
+  font-size: 11px; color: var(--text-muted); transition: color 0.3s ease;
+}
+
+/* 进度条 */
+.update-progress-bar {
+  height: 4px; background: var(--border-color); border-radius: 2px;
+  overflow: hidden; margin-top: 10px;
+  transition: background 0.3s ease;
+}
+.update-progress-fill {
+  height: 100%; border-radius: 2px;
+  background: var(--accent);
+  transition: width .4s, background 0.3s ease;
+}
+
+/* 按钮 */
+.update-banner-btn {
+  padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+  font-size: 12px; font-weight: 700; font-family: inherit;
+  transition: all .15s; display: inline-flex; align-items: center; gap: 6px;
+  white-space: nowrap; flex-shrink: 0;
+}
+.update-banner-idle .update-banner-btn,
+.update-banner-downloading .update-banner-btn {
+  background: transparent; color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+.update-banner-idle .update-banner-btn:hover,
+.update-banner-downloading .update-banner-btn:hover {
+  background: var(--hover); color: var(--text-primary);
+}
+.update-banner-available .update-banner-btn,
+.update-banner-ready .update-banner-btn,
+.update-banner-error .update-banner-btn {
+  background: var(--accent); color: #fff;
+}
+.update-banner-available .update-banner-btn:hover,
+.update-banner-ready .update-banner-btn:hover,
+.update-banner-error .update-banner-btn:hover {
+  filter: brightness(1.1);
+}
+.update-banner-btn:disabled {
+  opacity: .6; cursor: not-allowed;
+}
+
+/* ---- 底部链接 ---- */
+.footer-row {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.footer-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  background: transparent; border: none; cursor: pointer;
+  padding: 8px 14px; border-radius: 8px; font-family: inherit;
+  transition: all .15s;
+}
+.footer-link:hover { background: var(--hover); color: var(--text-primary); }
+.copyright { font-size: 11px; color: var(--text-muted); transition: color 0.3s ease; }
+
+/* 旋转动画 */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-icon { animation: spin 1s linear infinite; }
+
+/* ============ 状态切换演示按钮 ============ */
+.status-toggle {
+  margin-top: 16px; display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+}
+.status-btn {
+  padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-color);
+  background: var(--section-bg); color: var(--text-secondary);
+  font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: all .15s;
+}
+.status-btn:hover { background: var(--hover); }
+.status-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<div class="theme-picker">
+  <span class="theme-label">切换主题预览 →</span>
+  <div class="theme-dot ocean active" data-theme="ocean" title="海洋"></div>
+  <div class="theme-dot midnight" data-theme="midnight" title="午夜"></div>
+  <div class="theme-dot forest" data-theme="forest" title="森林"></div>
+  <div class="theme-dot blossom" data-theme="blossom" title="樱花"></div>
+  <div class="theme-dot terminal" data-theme="terminal" title="终端"></div>
+  <div class="theme-dot sunset" data-theme="sunset" title="日落"></div>
+</div>
+
+<div class="dialog-overlay" id="dialog">
+  <!-- 头部 -->
+  <div class="dialog-header">
+    <h2 class="dialog-title">关于 Filck</h2>
+    <button class="dialog-close" title="关闭">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- 主内容 -->
+  <div class="dialog-body">
+
+    <!-- 英雄区 -->
+    <div class="hero">
+      <div class="app-icon">📋</div>
+      <div class="app-meta">
+        <div class="app-name">Filck</div>
+        <div class="version-row">
+          <span class="version-badge">v5.0.36</span>
+          <span class="version-status latest" id="versionStatus">
+            <span class="status-dot green"></span> 已是最新
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分割线 -->
+    <div class="divider"></div>
+
+    <!-- 技术栈 -->
+    <div class="section-label">技术栈</div>
+    <div class="tech-grid">
+      <div class="tech-card">
+        <div class="tech-icon" style="background:#FFC13120; color:#FFC131;">⚙️</div>
+        <div class="tech-info">
+          <div class="tech-name">Tauri 2</div>
+          <div class="tech-desc">桌面框架</div>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon" style="background:#61DAFB20; color:#61DAFB;">⚛️</div>
+        <div class="tech-info">
+          <div class="tech-name">React 19</div>
+          <div class="tech-desc">UI 框架</div>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon" style="background:#3178C620; color:#3178C6;">TS</div>
+        <div class="tech-info">
+          <div class="tech-name">TypeScript</div>
+          <div class="tech-desc">类型安全</div>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon" style="background:#003B5720; color:#4DB8BD;">🗄️</div>
+        <div class="tech-info">
+          <div class="tech-name">SQLite</div>
+          <div class="tech-desc">本地存储</div>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon" style="background:#DEA58420; color:#DEA584;">🦀</div>
+        <div class="tech-info">
+          <div class="tech-name">Rust</div>
+          <div class="tech-desc">后端核心</div>
+        </div>
+      </div>
+      <div class="tech-card">
+        <div class="tech-icon" style="background:#646CFF20; color:#646CFF;">⚡</div>
+        <div class="tech-info">
+          <div class="tech-name">Vite</div>
+          <div class="tech-desc">构建工具</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 更新横幅 — 复用 UpdateBanner 组件样式 -->
+    <div id="updateBanner">
+      <!-- idle 状态（默认） -->
+      <div class="update-banner update-banner-idle" id="banner-idle">
+        <svg class="update-banner-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div class="update-banner-body">
+          <div class="update-banner-title">已是最新版本</div>
+        </div>
+        <button class="update-banner-btn">检查更新</button>
+      </div>
+
+      <!-- available 状态 -->
+      <div class="update-banner update-banner-available" id="banner-available" style="display:none">
+        <svg class="update-banner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        <div class="update-banner-body">
+          <div class="update-banner-title">发现新版本 v5.0.37</div>
+          <div class="update-banner-desc">包含性能优化和 bug 修复</div>
+        </div>
+        <button class="update-banner-btn">⬇ 下载更新</button>
+      </div>
+
+      <!-- checking 状态 -->
+      <div class="update-banner update-banner-idle" id="banner-checking" style="display:none">
+        <svg class="update-banner-icon spin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+        <div class="update-banner-body">
+          <div class="update-banner-title">检查更新中…</div>
+        </div>
+      </div>
+
+      <!-- downloading 状态 -->
+      <div class="update-banner update-banner-downloading" id="banner-downloading" style="display:none">
+        <div class="update-banner-row">
+          <svg class="update-banner-icon spin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
+          <div class="update-banner-body">
+            <div class="update-banner-title">正在下载更新…</div>
+            <div class="update-banner-desc" id="progressText">45%</div>
+          </div>
+        </div>
+        <div class="update-progress-bar">
+          <div class="update-progress-fill" id="progressFill" style="width:45%"></div>
+        </div>
+      </div>
+
+      <!-- ready 状态 -->
+      <div class="update-banner update-banner-ready" id="banner-ready" style="display:none">
+        <svg class="update-banner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <div class="update-banner-body">
+          <div class="update-banner-title">更新已下载完成</div>
+          <div class="update-banner-desc">点击重启以应用更新</div>
+        </div>
+        <button class="update-banner-btn">🔄 立即重启</button>
+      </div>
+
+      <!-- error 状态 -->
+      <div class="update-banner update-banner-error" id="banner-error" style="display:none">
+        <svg class="update-banner-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div class="update-banner-body">
+          <div class="update-banner-title">更新失败</div>
+          <div class="update-banner-desc">网络错误，请重试</div>
+        </div>
+        <button class="update-banner-btn">重试</button>
+      </div>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer-row">
+      <button class="footer-link">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+          <polyline points="15 3 21 3 21 9"/>
+          <line x1="10" y1="14" x2="21" y2="3"/>
+        </svg>
+        项目主页
+      </button>
+      <span class="copyright">© 2026 Filck</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- 状态切换演示 -->
+<div class="status-toggle">
+  <span style="font-size:11px;color:var(--text-muted);font-weight:600;">更新状态演示 →</span>
+  <button class="status-btn active" data-status="idle">idle 已是最新</button>
+  <button class="status-btn" data-status="checking">checking 检查中</button>
+  <button class="status-btn" data-status="available">available 可更新</button>
+  <button class="status-btn" data-status="downloading">downloading 下载中</button>
+  <button class="status-btn" data-status="ready">ready 就绪</button>
+  <button class="status-btn" data-status="error">error 错误</button>
+</div>
+
+<script>
+// ============ 主题切换 ============
+document.querySelectorAll('.theme-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    const theme = dot.dataset.theme;
+    document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+    dot.classList.add('active');
+  });
+});
+
+// ============ 更新横幅状态切换 ============
+const banners = {
+  idle:        'banner-idle',
+  checking:    'banner-checking',
+  available:   'banner-available',
+  downloading: 'banner-downloading',
+  ready:       'banner-ready',
+  error:       'banner-error',
+};
+
+const versionStatusMap = {
+  idle:        '<span class="status-dot green"></span> 已是最新',
+  checking:    '<span class="status-dot orange"></span> 检查中…',
+  available:   '<span class="status-dot orange"></span> v5.0.37 可用',
+  downloading: '<span class="status-dot orange"></span> 下载中…',
+  ready:       '<span class="status-dot green"></span> 就绪',
+  error:       '<span class="status-dot red"></span> 错误',
+};
+
+const versionClassMap = {
+  idle:        'latest',
+  checking:    'update',
+  available:   'update',
+  downloading: 'update',
+  ready:       'latest',
+  error:       'update',
+};
+
+document.querySelectorAll('.status-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const status = btn.dataset.status;
+
+    // 按钮高亮
+    document.querySelectorAll('.status-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // 隐藏所有横幅
+    Object.values(banners).forEach(id => {
+      document.getElementById(id).style.display = 'none';
+    });
+
+    // 显示对应横幅
+    document.getElementById(banners[status]).style.display = '';
+
+    // 更新版本状态标签
+    const vs = document.getElementById('versionStatus');
+    vs.innerHTML = versionStatusMap[status];
+    vs.className = 'version-status ' + versionClassMap[status];
+  });
+});
+</script>
+
+</body>
+</html>

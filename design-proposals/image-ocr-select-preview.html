@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片详情 - 完整功能预览</title>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-muted: #9ca3af;
+  --accent: #6366f1;
+  --pink: #ec4899;
+  --green: #10b981;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+  background: #e8eaed;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  min-height: 100vh; padding: 20px; gap: 16px;
+}
+
+/* 提示文字 */
+.tip-bar {
+  font-size: 13px; color: #6b7280;
+  background: #fff; padding: 8px 16px;
+  border-radius: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  max-width: 820px; text-align: center; line-height: 1.6;
+}
+.tip-bar kbd {
+  background: #f3f4f6; border: 1px solid #d1d5db;
+  border-radius: 4px; padding: 1px 6px;
+  font-size: 11px; font-family: inherit;
+}
+
+/* ========== 主弹窗 ========== */
+.dialog-backdrop {
+  width: 820px;
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+
+.dialog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.dialog-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.dialog-close {
+  width: 28px; height: 28px; border-radius: 6px; border: none;
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted); font-size: 18px;
+}
+.dialog-close:hover { background: #f3f4f6; color: var(--text); }
+
+.dialog-body {
+  flex: 1; overflow-y: auto;
+  padding: 16px 20px; display: flex; flex-direction: column; gap: 12px;
+}
+
+/* 元信息 */
+.meta-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.meta-tag {
+  font-size: 11px; padding: 3px 10px; border-radius: 20px;
+  background: #f3f4f6; color: #6b7280; white-space: nowrap;
+}
+.meta-tag.accent { background: #eef2ff; color: var(--accent); font-weight: 500; }
+
+/* 工具栏 */
+.toolbar {
+  display: flex; align-items: center; gap: 4px;
+  padding: 8px 12px; background: #f9fafb;
+  border-radius: 8px; flex-shrink: 0;
+}
+.toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 6px; }
+.tool-btn {
+  width: 32px; height: 32px; border-radius: 6px; border: none;
+  background: transparent; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #6b7280; font-size: 15px; transition: all 0.15s;
+  position: relative;
+}
+.tool-btn:hover { background: #e5e7eb; color: var(--text); }
+.tool-btn:hover::after {
+  content: attr(title);
+  position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+  font-size: 10px; background: #1f2937; color: #fff; padding: 2px 8px;
+  border-radius: 4px; white-space: nowrap; pointer-events: none; z-index: 20;
+}
+.tool-btn.ocr-btn {
+  width: auto; padding: 0 12px; font-size: 12px; font-weight: 500; gap: 5px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff;
+}
+.tool-btn.ocr-btn:hover { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+.tool-btn.ocr-btn.active { background: linear-gradient(135deg, #10b981, #059669); }
+.tool-btn.pin-btn {
+  width: auto; padding: 0 12px; font-size: 12px; font-weight: 500; gap: 5px;
+  background: linear-gradient(135deg, #ec4899, #f43f5e); color: #fff;
+}
+.tool-btn.pin-btn:hover { background: linear-gradient(135deg, #db2777, #e11d48); }
+.zoom-label { font-size: 12px; font-weight: 600; color: var(--text); min-width: 40px; text-align: center; }
+
+/* ========== 核心：图片查看区（支持缩放/旋转/平移） ========== */
+.ocr-viewport-wrap {
+  position: relative;
+  background: #1a1a2e;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+  min-height: 260px;
+  max-height: 450px;
+  cursor: grab;
+}
+.ocr-viewport-wrap.grabbing { cursor: grabbing; }
+.ocr-viewport-wrap.ocr-active { cursor: text; }
+.ocr-viewport-wrap.ocr-active .ocr-word-hover:hover { cursor: text; }
+
+.ocr-image-layer {
+  width: 100%; height: 100%;
+  min-height: 260px;
+  max-height: 450px;
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.ocr-image-layer .transform-container {
+  transform-origin: center center;
+  transition: none;
+  display: flex; align-items: center; justify-content: center;
+}
+.ocr-image-layer img {
+  display: block; user-select: none;
+  pointer-events: none; max-width: 100%; max-height: 450px;
+  object-fit: contain;
+}
+
+/* OCR 文字叠加层 - 覆盖在图片上方 */
+.ocr-overlay {
+  position: absolute; inset: 0;
+  pointer-events: none;
+}
+.ocr-overlay.active { pointer-events: auto; }
+
+.ocr-word-box {
+  position: absolute;
+  border: 1px solid rgba(99,102,241,0.35);
+  background: rgba(99,102,241,0.08);
+  border-radius: 2px;
+  transition: all 0.15s;
+  cursor: pointer;
+  pointer-events: auto;
+}
+.ocr-word-box:hover {
+  background: rgba(99,102,241,0.18);
+  border-color: rgba(99,102,241,0.7);
+}
+.ocr-word-box.selected {
+  background: rgba(16,185,129,0.22) !important;
+  border-color: rgba(16,185,129,0.7) !important;
+  z-index: 2;
+}
+
+/* 选择矩形（拖拽框选） */
+.selection-rect {
+  position: absolute;
+  border: 1px dashed #6366f1;
+  background: rgba(99,102,241,0.1);
+  pointer-events: none;
+  z-index: 10;
+  display: none;
+}
+.selection-rect.show { display: block; }
+
+/* OCR 加载状态 */
+.ocr-status-overlay {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 13px; gap: 8px;
+  pointer-events: none;
+}
+.ocr-spinner {
+  width: 20px; height: 20px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========== OCR 文字结果面板 ========== */
+.ocr-result-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.ocr-result-bar .ocr-icon { font-size: 16px; }
+.ocr-result-bar .ocr-selected-count {
+  font-size: 12px; color: #4338ca; font-weight: 500;
+}
+.ocr-result-bar .ocr-selected-count strong { font-size: 14px; }
+.ocr-result-bar .ocr-selected-preview {
+  flex: 1; font-size: 12px; color: #6b7280;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ocr-result-bar .btn-copy-ocr {
+  font-size: 11px; padding: 5px 12px; border-radius: 6px;
+  border: none; background: var(--accent); color: #fff;
+  cursor: pointer; display: flex; align-items: center; gap: 4px;
+  font-weight: 500;
+}
+.ocr-result-bar .btn-copy-ocr:hover { background: #4f46e5; }
+.ocr-result-bar .btn-copy-ocr.copied {
+  background: #10b981;
+}
+.ocr-result-bar .btn-clear-ocr {
+  font-size: 11px; padding: 5px 10px; border-radius: 6px;
+  border: 1px solid #c7d2fe; background: #fff;
+  color: #4338ca; cursor: pointer;
+}
+.ocr-result-bar .btn-clear-ocr:hover { background: #eef2ff; }
+
+/* OCR 关闭前的结果 */
+.ocr-full-text-panel {
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+}
+.ocr-full-text-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: #fefce8;
+  border-bottom: 1px solid #fde68a;
+}
+.ocr-full-text-title {
+  font-size: 13px; font-weight: 600; color: #92400e;
+  display: flex; align-items: center; gap: 6px;
+}
+.ocr-full-text-body {
+  padding: 12px 14px; font-size: 13px; line-height: 1.7;
+  color: var(--text); white-space: pre-wrap; word-break: break-word;
+  max-height: 120px; overflow-y: auto; background: #fffbeb;
+  user-select: text;
+}
+
+/* Footer */
+.dialog-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 20px; border-top: 1px solid var(--border); flex-shrink: 0;
+}
+.footer-actions { display: flex; gap: 8px; }
+.btn-primary {
+  padding: 7px 16px; border-radius: 6px; border: none;
+  background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+.btn-primary:hover { background: #4f46e5; }
+.btn-secondary {
+  padding: 7px 16px; border-radius: 6px;
+  border: 1px solid var(--border); background: #fff;
+  color: var(--text); font-size: 12px; font-weight: 500; cursor: pointer;
+  display: flex; align-items: center; gap: 5px;
+}
+.btn-secondary:hover { background: #f9fafb; }
+.hint-text { font-size: 11px; color: var(--text-muted); }
+
+/* ========== 置顶小窗 ========== */
+.pinned-overlay {
+  position: fixed; bottom: 40px; right: 40px; z-index: 9999;
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  overflow: hidden; border: 2px solid #ec4899;
+  min-width: 280px; max-width: 420px; max-height: 500px;
+}
+.pinned-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+  cursor: move; user-select: none;
+}
+.pinned-title { font-size: 12px; font-weight: 600; color: #be185d; }
+.pinned-act-btn {
+  width: 24px; height: 24px; border-radius: 4px; border: none;
+  background: transparent; cursor: pointer; color: #be185d;
+  font-size: 13px; display: flex; align-items: center; justify-content: center;
+}
+.pinned-act-btn:hover { background: rgba(236,72,153,0.15); }
+.pinned-body img {
+  width: 100%; display: block; user-select: none; pointer-events: none;
+}
+.pinned-ocr-mini {
+  padding: 8px 12px; font-size: 11px; line-height: 1.5;
+  color: #6b7280; border-top: 1px solid #f3f4f6;
+  max-height: 100px; overflow-y: auto; white-space: pre-wrap;
+  user-select: text; background: #fafafa;
+}
+
+/* Toast 提示 */
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: #1f2937; color: #fff; padding: 10px 20px;
+  border-radius: 8px; font-size: 13px; z-index: 99999;
+  opacity: 0; transition: opacity 0.25s;
+  pointer-events: none;
+}
+.toast.show { opacity: 1; }
+
+/* 图片缩放级别指示器 */
+.scale-indicator {
+  position: absolute; bottom: 10px; right: 10px;
+  background: rgba(0,0,0,0.6); color: #fff;
+  font-size: 11px; padding: 3px 8px; border-radius: 4px;
+  pointer-events: none; z-index: 5;
+  transition: opacity 0.3s;
+}
+</style>
+</head>
+<body>
+
+<div class="tip-bar">
+  💡 <kbd>滚轮</kbd> 平移图片 · <kbd>Ctrl+滚轮</kbd> 缩放 · <kbd>拖拽</kbd> 平移 · <kbd>+/-</kbd> 缩放 · <kbd>0</kbd> 重置 · <kbd>R</kbd> 旋转 · <kbd>ESC</kbd> 关闭 · 点击 <kbd>🔍 识别文字</kbd> 后在图片上选词复制
+</div>
+
+<!-- ==================== 主弹窗：图片详情 ==================== -->
+<div class="dialog-backdrop" id="dialogBackdrop">
+
+  <!-- Header -->
+  <div class="dialog-header">
+    <h2 class="dialog-title">🖼 图片详情</h2>
+    <button class="dialog-close" id="btnClose" title="ESC 关闭">✕</button>
+  </div>
+
+  <!-- Body -->
+  <div class="dialog-body">
+
+    <!-- 元信息 -->
+    <div class="meta-row">
+      <span class="meta-tag accent">📄 screenshot_20240628.png</span>
+      <span class="meta-tag">1920 × 1080</span>
+      <span class="meta-tag">245 KB</span>
+      <span class="meta-tag">来自剪贴板</span>
+    </div>
+
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button class="tool-btn" id="btnZoomOut" title="缩小">−</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button class="tool-btn" id="btnZoomIn" title="放大">+</button>
+      <button class="tool-btn" id="btnReset" title="1:1 重置">1:1</button>
+      <button class="tool-btn" id="btnRotate" title="旋转 90°">↻</button>
+      <span class="sep"></span>
+      <!-- 🔑 OCR 按钮 -->
+      <button class="tool-btn ocr-btn active" id="ocrToggle" title="在图片上显示文字识别区域">
+        🔍 识别文字
+      </button>
+      <!-- 🔑 置顶按钮 -->
+      <button class="tool-btn pin-btn" id="btnPin" title="将图片钉在屏幕最上层">
+        📌 置顶
+      </button>
+    </div>
+
+    <!-- ========== 核心：带 OCR 叠加层的图片查看区 ========== -->
+    <div class="ocr-viewport-wrap ocr-active" id="ocrViewport" tabindex="0">
+      <div class="ocr-image-layer" id="imageLayer">
+        <div class="transform-container" id="transformContainer">
+          <img id="mainImage" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='380'%3E%3Crect fill='%231a1a2e' width='720' height='380'/%3E%3Crect x='30' y='20' width='660' height='32' rx='4' fill='%232d2d44'/%3E%3Ctext x='42' y='42' fill='%23e2e8f0' font-size='13' font-family='monospace'%3Eimport React, %7B useState, useEffect %7D from 'react';%3C/text%3E%3Crect x='30' y='60' width='660' height='32' rx='4' fill='%232d2d44'/%3E%3Ctext x='42' y='82' fill='%23e2e8f0' font-size='13' font-family='monospace'%3Eimport %7B getUserProfile, updateSettings %7D from '@/api/user';%3C/text%3E%3Crect x='30' y='100' width='660' height='32' rx='4' fill='%232d2d44'/%3E%3Ctext x='42' y='122' fill='%23e2e8f0' font-size='13' font-family='monospace'%3Eimport %7B Button, Input, Toast %7D from '@/components';%3C/text%3E%3Crect x='30' y='140' width='660' height='32' rx='4' fill='%231e293b'/%3E%3Ctext x='42' y='162' fill='%2394a3b8' font-size='13' font-family='monospace'%3E// Profile page — user settings and preferences%3C/text%3E%3Crect x='30' y='180' width='660' height='32' rx='4' fill='%232d2d44'/%3E%3Ctext x='42' y='202' fill='%23e2e8f0' font-size='13' font-family='monospace'%3Eexport default function ProfilePage() %7B%3C/text%3E%3Crect x='30' y='220' width='660' height='32' rx='4' fill='%232d2d44'/%3E%3Ctext x='54' y='242' fill='%23e2e8f0' font-size='13' font-family='monospace'%3Econst [name, setName] = useState('张三');%3C/text%3E%3Crect x='30' y='260' width='660' height='32' rx='4' fill='%232d2d44'/%3E%3Ctext x='54' y='282' fill='%23e2e8f0' font-size='13' font-family='monospace'%3Econst [email, setEmail] = useState('zhangsan@example.com');%3C/text%3E%3Crect x='30' y='300' width='660' height='32' rx='4' fill='%232d2d44'/%3E%3Ctext x='54' y='322' fill='%23e2e8f0' font-size='13' font-family='monospace'%3Econst [loading, setLoading] = useState(false);%3C/text%3E%3C/svg%3E" alt="代码截图">
+        </div>
+      </div>
+
+      <!-- 缩放指示器 -->
+      <div class="scale-indicator" id="scaleIndicator">100%</div>
+
+      <!-- OCR 文字叠加层 -->
+      <div class="ocr-overlay active" id="ocrOverlay">
+        <div class="ocr-word-box" data-text="import" style="left:4.2%;top:5.3%;width:6.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="React" style="left:11.0%;top:5.3%;width:5.8%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="useState" style="left:21.5%;top:5.3%;width:8.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="useEffect" style="left:31.0%;top:5.3%;width:9.0%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="from" style="left:42.0%;top:5.3%;width:4.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="'react'" style="left:47.0%;top:5.3%;width:7.0%;height:8.4%"></div>
+
+        <div class="ocr-word-box" data-text="import" style="left:4.2%;top:15.8%;width:6.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="getUserProfile" style="left:11.0%;top:15.8%;width:13.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="updateSettings" style="left:27.0%;top:15.8%;width:14.0%;height:8.4%"></div>
+
+        <div class="ocr-word-box" data-text="export" style="left:4.2%;top:47.4%;width:6.0%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="default" style="left:11.0%;top:47.4%;width:7.0%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="function" style="left:19.0%;top:47.4%;width:8.0%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="ProfilePage" style="left:28.0%;top:47.4%;width:10.5%;height:8.4%"></div>
+
+        <div class="ocr-word-box" data-text="const" style="left:7.5%;top:57.9%;width:5.0%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="name" style="left:13.5%;top:57.9%;width:4.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="setName" style="left:19.0%;top:57.9%;width:7.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="useState" style="left:29.0%;top:57.9%;width:8.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="'张三'" style="left:39.0%;top:57.9%;width:6.0%;height:8.4%"></div>
+
+        <div class="ocr-word-box" data-text="const" style="left:7.5%;top:68.4%;width:5.0%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="email" style="left:13.5%;top:68.4%;width:4.8%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="setEmail" style="left:19.0%;top:68.4%;width:8.0%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="useState" style="left:29.0%;top:68.4%;width:8.5%;height:8.4%"></div>
+        <div class="ocr-word-box" data-text="'zhangsan@example.com'" style="left:39.0%;top:68.4%;width:21.0%;height:8.4%"></div>
+      </div>
+
+      <!-- 选择矩形 -->
+      <div class="selection-rect" id="selectionRect"></div>
+    </div>
+
+    <!-- OCR 选中结果操作栏 -->
+    <div class="ocr-result-bar" id="ocrResultBar">
+      <span class="ocr-icon">🔍</span>
+      <span class="ocr-selected-count" id="selectedCount">已选 <strong>0</strong> 个词</span>
+      <span class="ocr-selected-preview" id="selectedPreview">点击图片上的文字区域选择，或拖拽框选</span>
+      <button class="btn-clear-ocr" id="btnClearSelection">清除选择</button>
+      <button class="btn-copy-ocr" id="btnCopySelection">📋 复制选中文字</button>
+    </div>
+
+    <!-- 纯文本结果（收起OCR时显示） -->
+    <div class="ocr-full-text-panel" id="ocrFullTextPanel" style="display:none;">
+      <div class="ocr-full-text-header">
+        <span class="ocr-full-text-title">🔍 全部识别文字</span>
+        <button class="btn-clear-ocr" id="btnCopyAllText" style="font-size:10px;">📋 全部复制</button>
+      </div>
+      <div class="ocr-full-text-body" id="ocrFullTextBody">
+import React, { useState, useEffect } from 'react';
+import { getUserProfile, updateSettings } from '@/api/user';
+import { Button, Input, Toast } from '@/components';
+// Profile page — user settings and preferences
+export default function ProfilePage() {
+  const [name, setName] = useState('张三');
+  const [email, setEmail] = useState('zhangsan@example.com');
+  const [loading, setLoading] = useState(false);
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="dialog-footer">
+    <div class="footer-actions">
+      <button class="btn-primary" id="btnCopyImage">📋 复制图片</button>
+      <button class="btn-secondary" id="btnSaveAs">💾 另存为</button>
+    </div>
+    <span class="hint-text" id="footerHint">滚轮平移 · Ctrl+滚轮缩放 · +/- 缩放 · 0 重置 · R 旋转 · ESC 关闭</span>
+  </div>
+
+</div>
+
+<!-- ==================== 置顶小窗 ==================== -->
+<div class="pinned-overlay" id="pinnedWindow">
+  <div class="pinned-header" id="pinnedHeader">
+    <span class="pinned-title">📌 置顶图片</span>
+    <div style="display:flex;gap:2px;">
+      <button class="pinned-act-btn" id="btnToggleOcrMini" title="显示/隐藏文字">📝</button>
+      <button class="pinned-act-btn" id="btnUnpin" title="取消置顶">✕</button>
+    </div>
+  </div>
+  <div class="pinned-body">
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='210'%3E%3Crect fill='%231a1a2e' width='400' height='210'/%3E%3Crect x='15' y='10' width='370' height='22' rx='3' fill='%232d2d44'/%3E%3Ctext x='22' y='26' fill='%23e2e8f0' font-size='10' font-family='monospace'%3Eimport React, %7B useState %7D from 'react';%3C/text%3E%3Crect x='15' y='36' width='370' height='22' rx='3' fill='%232d2d44'/%3E%3Ctext x='22' y='52' fill='%23e2e8f0' font-size='10' font-family='monospace'%3Eexport default function ProfilePage() %7B%3C/text%3E%3Crect x='15' y='62' width='370' height='22' rx='3' fill='%232d2d44'/%3E%3Ctext x='28' y='78' fill='%23e2e8f0' font-size='10' font-family='monospace'%3Econst [name, setName] = useState('张三');%3C/text%3E%3Crect x='15' y='88' width='370' height='22' rx='3' fill='%232d2d44'/%3E%3Ctext x='28' y='104' fill='%23e2e8f0' font-size='10' font-family='monospace'%3Econst [email, setEmail] = useState('...');%3C/text%3E%3C/svg%3E" alt="置顶预览">
+    <div class="pinned-ocr-mini" id="pinnedOcrMini">识别文字: import React, { useState } from 'react'; export default function ProfilePage() { ... }</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ========== 交互脚本 ========== -->
+<script>
+// ============= 图片查看交互状态 =============
+let previewScale = 1;
+let previewRotation = 0;
+let previewOffset = { x: 0, y: 0 };
+
+// ============= OCR 选词状态 =============
+const selectedWords = new Set();
+let isSelecting = false;
+let selStartX = 0, selStartY = 0;
+
+// ============= 拖拽平移状态 =============
+let isDragging = false;
+let dragStartX = 0, dragStartY = 0;
+let dragStartOffset = { x: 0, y: 0 };
+
+// ============= DOM 引用 =============
+const ocrOverlay = document.getElementById('ocrOverlay');
+const selectionRect = document.getElementById('selectionRect');
+const ocrViewport = document.getElementById('ocrViewport');
+const ocrToggle = document.getElementById('ocrToggle');
+const transformContainer = document.getElementById('transformContainer');
+const zoomLabel = document.getElementById('zoomLabel');
+const scaleIndicator = document.getElementById('scaleIndicator');
+const footerHint = document.getElementById('footerHint');
+const toast = document.getElementById('toast');
+
+// ============= 缩放与旋转更新函数 =============
+function updateTransform() {
+  transformContainer.style.transform =
+    `translate(${previewOffset.x}px, ${previewOffset.y}px) scale(${previewScale}) rotate(${previewRotation}deg)`;
+  zoomLabel.textContent = Math.round(previewScale * 100) + '%';
+  scaleIndicator.textContent = Math.round(previewScale * 100) + '%';
+}
+
+function resetView() {
+  previewScale = 1;
+  previewRotation = 0;
+  previewOffset = { x: 0, y: 0 };
+  updateTransform();
+}
+
+// ============= 工具栏按钮 =============
+document.getElementById('btnZoomOut').addEventListener('click', () => {
+  previewScale = Math.max(0.2, previewScale - 0.25);
+  updateTransform();
+});
+
+document.getElementById('btnZoomIn').addEventListener('click', () => {
+  previewScale = Math.min(5, previewScale + 0.25);
+  updateTransform();
+});
+
+document.getElementById('btnReset').addEventListener('click', resetView);
+
+document.getElementById('btnRotate').addEventListener('click', () => {
+  previewRotation = (previewRotation + 90) % 360;
+  updateTransform();
+});
+
+// ============= 滚轮：平移 / Ctrl+滚轮：缩放 =============
+ocrViewport.addEventListener('wheel', (e) => {
+  if (e.ctrlKey || e.metaKey) {
+    // Ctrl+滚轮：缩放
+    e.preventDefault();
+    previewScale = Math.max(0.2, Math.min(5, previewScale + (e.deltaY < 0 ? 0.1 : -0.1)));
+    updateTransform();
+  } else {
+    // 普通滚轮：平移
+    e.preventDefault();
+    if (e.shiftKey) {
+      previewOffset.x -= e.deltaY;
+    } else {
+      previewOffset.y -= e.deltaY;
+    }
+    updateTransform();
+  }
+}, { passive: false });
+
+// ============= 鼠标拖拽平移 =============
+ocrViewport.addEventListener('mousedown', (e) => {
+  // 如果点击的是 OCR 词框，不触发拖拽
+  if (e.target.closest('.ocr-word-box')) return;
+
+  // 如果 OCR 激活且点击在叠加层区域，触发框选而非平移
+  if (ocrOverlay.classList.contains('active')) {
+    handleSelectionStart(e);
+    return;
+  }
+
+  // 拖拽平移
+  if (e.button !== 0) return;
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragStartY = e.clientY;
+  dragStartOffset = { ...previewOffset };
+  ocrViewport.classList.add('grabbing');
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (isSelecting) {
+    handleSelectionMove(e);
+    return;
+  }
+  if (!isDragging) return;
+  previewOffset.x = dragStartOffset.x + (e.clientX - dragStartX);
+  previewOffset.y = dragStartOffset.y + (e.clientY - dragStartY);
+  updateTransform();
+});
+
+document.addEventListener('mouseup', () => {
+  if (isSelecting) {
+    handleSelectionEnd();
+  }
+  if (isDragging) {
+    isDragging = false;
+    ocrViewport.classList.remove('grabbing');
+  }
+});
+
+// ============= 键盘快捷键 =============
+document.addEventListener('keydown', (e) => {
+  // ESC - 关闭
+  if (e.key === 'Escape') {
+    showToast('弹窗已关闭（模拟）');
+    return;
+  }
+
+  // 如果焦点在输入框里，不处理
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+  // Ctrl+C - 复制选中的 OCR 文字
+  if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+    const texts = getSelectedTexts();
+    if (texts.length > 0) {
+      navigator.clipboard.writeText(texts.join(' ')).then(() => {
+        flashCopyBtn();
+      });
+      e.preventDefault();
+      return;
+    }
+  }
+
+  switch (e.key) {
+    case '0':
+      e.preventDefault();
+      resetView();
+      showToast('已重置为 1:1');
+      break;
+    case 'r':
+    case 'R':
+      e.preventDefault();
+      previewRotation = (previewRotation + 90) % 360;
+      updateTransform();
+      showToast(`旋转 ${previewRotation}°`);
+      break;
+    case '+':
+    case '=':
+      e.preventDefault();
+      previewScale = Math.min(5, previewScale + 0.25);
+      updateTransform();
+      break;
+    case '-':
+      e.preventDefault();
+      previewScale = Math.max(0.2, previewScale - 0.25);
+      updateTransform();
+      break;
+  }
+});
+
+// ============= OCR 选词 =============
+function handleSelectionStart(e) {
+  if (e.button !== 0) return;
+  const rect = ocrViewport.getBoundingClientRect();
+  isSelecting = true;
+  selStartX = e.clientX - rect.left;
+  selStartY = e.clientY - rect.top;
+  selectionRect.style.display = 'block';
+  selectionRect.style.left = selStartX + 'px';
+  selectionRect.style.top = selStartY + 'px';
+  selectionRect.style.width = '0px';
+  selectionRect.style.height = '0px';
+
+  if (!e.ctrlKey && !e.metaKey) clearSelection();
+}
+
+function handleSelectionMove(e) {
+  const rect = ocrViewport.getBoundingClientRect();
+  const cx = e.clientX - rect.left;
+  const cy = e.clientY - rect.top;
+
+  const x = Math.min(selStartX, cx);
+  const y = Math.min(selStartY, cy);
+  const w = Math.abs(cx - selStartX);
+  const h = Math.abs(cy - selStartY);
+
+  selectionRect.style.left = x + 'px';
+  selectionRect.style.top = y + 'px';
+  selectionRect.style.width = w + 'px';
+  selectionRect.style.height = h + 'px';
+}
+
+function handleSelectionEnd() {
+  isSelecting = false;
+  selectionRect.style.display = 'none';
+
+  const sr = selectionRect.getBoundingClientRect();
+
+  document.querySelectorAll('.ocr-word-box').forEach(box => {
+    const br = box.getBoundingClientRect();
+    const overlap = !(br.right < sr.left || br.left > sr.right ||
+                       br.bottom < sr.top || br.top > sr.bottom);
+    if (overlap) {
+      box.classList.add('selected');
+      selectedWords.add(box);
+    }
+  });
+  updateResultBar();
+}
+
+// --- 点击选词 ---
+ocrOverlay.addEventListener('click', (e) => {
+  const box = e.target.closest('.ocr-word-box');
+  if (!box) return;
+
+  if (e.ctrlKey || e.metaKey) {
+    box.classList.toggle('selected');
+    if (box.classList.contains('selected')) {
+      selectedWords.add(box);
+    } else {
+      selectedWords.delete(box);
+    }
+  } else {
+    if (!box.classList.contains('selected')) {
+      clearSelection();
+      box.classList.add('selected');
+      selectedWords.add(box);
+    }
+  }
+  updateResultBar();
+});
+
+// ============= 辅助函数 =============
+function clearSelection() {
+  selectedWords.forEach(b => b.classList.remove('selected'));
+  selectedWords.clear();
+}
+
+function getSelectedTexts() {
+  return [...selectedWords].map(b => b.dataset.text);
+}
+
+function updateResultBar() {
+  const texts = getSelectedTexts();
+  document.getElementById('selectedCount').innerHTML = '已选 <strong>' + texts.length + '</strong> 个词';
+  document.getElementById('selectedPreview').textContent =
+    texts.length > 0 ? texts.join(' ') : '点击图片上的文字区域选择，或拖拽框选';
+}
+
+function flashCopyBtn() {
+  const btn = document.getElementById('btnCopySelection');
+  btn.textContent = '✅ 已复制';
+  btn.classList.add('copied');
+  setTimeout(() => {
+    btn.textContent = '📋 复制选中文字';
+    btn.classList.remove('copied');
+  }, 1500);
+}
+
+// ============= OCR 开关 =============
+ocrToggle.addEventListener('click', () => {
+  const active = ocrOverlay.classList.toggle('active');
+  ocrToggle.classList.toggle('active', active);
+  ocrViewport.classList.toggle('ocr-active', active);
+
+  if (active) {
+    ocrToggle.innerHTML = '🔍 识别文字';
+    document.getElementById('ocrResultBar').style.display = 'flex';
+    document.getElementById('ocrFullTextPanel').style.display = 'none';
+    footerHint.textContent = '点击选词 · 拖拽框选 · Ctrl+滚轮缩放 · 滚轮平移 · ESC 关闭';
+  } else {
+    ocrToggle.innerHTML = '🔍 显示文字';
+    document.getElementById('ocrResultBar').style.display = 'none';
+    document.getElementById('ocrFullTextPanel').style.display = 'block';
+    clearSelection();
+    footerHint.textContent = '滚轮平移 · Ctrl+滚轮缩放 · +/- 缩放 · 0 重置 · R 旋转 · ESC 关闭';
+  }
+});
+
+// ============= 结果栏按钮 =============
+document.getElementById('btnClearSelection').addEventListener('click', () => {
+  clearSelection();
+  updateResultBar();
+});
+
+document.getElementById('btnCopySelection').addEventListener('click', () => {
+  const texts = getSelectedTexts();
+  if (texts.length === 0) return;
+  navigator.clipboard.writeText(texts.join(' ')).then(() => flashCopyBtn());
+});
+
+// ============= 全部文字复制 =============
+document.getElementById('btnCopyAllText').addEventListener('click', () => {
+  const text = document.getElementById('ocrFullTextBody').textContent.trim();
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('btnCopyAllText');
+    btn.textContent = '✅ 已复制';
+    setTimeout(() => { btn.textContent = '📋 全部复制'; }, 1500);
+  });
+});
+
+// ============= Footer 按钮 =============
+document.getElementById('btnCopyImage').addEventListener('click', () => {
+  showToast('✅ 图片已复制到剪贴板（模拟）');
+});
+
+document.getElementById('btnSaveAs').addEventListener('click', () => {
+  showToast('💾 另存为对话框（模拟，支持 PNG/JPG/WebP/BMP）');
+});
+
+document.getElementById('btnClose').addEventListener('click', () => {
+  showToast('弹窗已关闭（模拟 ESC）');
+});
+
+// ============= 置顶功能 =============
+document.getElementById('btnPin').addEventListener('click', () => {
+  document.getElementById('pinnedWindow').style.display = 'block';
+  showToast('📌 图片已置顶（实际将创建独立系统窗口，始终在最前）');
+});
+
+// 置顶窗口拖拽
+const pinned = document.getElementById('pinnedWindow');
+const pinnedHeader = document.getElementById('pinnedHeader');
+let pinDragging = false, pinStartX, pinStartY, pinStartLeft, pinStartTop;
+
+pinnedHeader.addEventListener('mousedown', (e) => {
+  if (e.target.tagName === 'BUTTON') return;
+  pinDragging = true;
+  pinStartX = e.clientX;
+  pinStartY = e.clientY;
+  const rect = pinned.getBoundingClientRect();
+  pinStartLeft = rect.left;
+  pinStartTop = rect.top;
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!pinDragging) return;
+  pinned.style.right = 'auto';
+  pinned.style.bottom = 'auto';
+  pinned.style.left = (pinStartLeft + e.clientX - pinStartX) + 'px';
+  pinned.style.top = (pinStartTop + e.clientY - pinStartY) + 'px';
+});
+
+document.addEventListener('mouseup', () => { pinDragging = false; });
+
+document.getElementById('btnUnpin').addEventListener('click', () => {
+  pinned.style.display = 'none';
+  showToast('已取消置顶');
+});
+
+document.getElementById('btnToggleOcrMini').addEventListener('click', () => {
+  const mini = document.getElementById('pinnedOcrMini');
+  mini.style.display = mini.style.display === 'none' ? 'block' : 'none';
+});
+
+// ============= Toast =============
+let toastTimer;
+function showToast(msg) {
+  clearTimeout(toastTimer);
+  toast.textContent = msg;
+  toast.classList.add('show');
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ============= 初始化 =============
+updateTransform();
+</script>
+
+</body>
+</html>

@@ -28,8 +28,8 @@ const BUNDLE_DIR = path.join(ROOT, "src-tauri", "target", "release", "bundle");
 
 // ─── 配置 ────────────────────────────────────────────────
 
-const REPO_OWNER = "1914520160";
-const REPO_NAME = "filck";
+const REPO_OWNER = "lzlkyb";
+const REPO_NAME = "pastepanda";
 const GITHUB_RELEASE_BASE = `https://github.com/${REPO_OWNER}/${REPO_NAME}/releases/download`;
 
 // ─── 平台映射 ────────────────────────────────────────────
@@ -182,7 +182,7 @@ function main() {
   // 构建 updater.json
   const updaterJson = {
     version: cleanVersion,
-    notes: notes || `Filck v${cleanVersion}`,
+    notes: notes || `PastePanda v${cleanVersion}`,
     pub_date: new Date().toISOString(),
     platforms,
   };

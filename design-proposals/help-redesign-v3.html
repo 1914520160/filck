@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>帮助中心 v3 — 方案 C 460px 单列全展开</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #1a1a2e;
+    --surface: #222240;
+    --surface2: #2a2a4a;
+    --border: #3a3a5a;
+    --text: #e8e8f0;
+    --text2: #a0a0b8;
+    --text3: #707088;
+    --accent: #4f8cff;
+    --accent-bg: rgba(79, 140, 255, 0.12);
+    --green: #34d399;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --purple: #a78bfa;
+    --hover: rgba(255,255,255,0.05);
+    --dialog-bg: #1e1e38;
+    --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh;
+    color: var(--text);
+  }
+
+  /* ===== Dialog ===== */
+  .dialog-box {
+    width: 460px;
+    max-height: 82vh;
+    background: var(--dialog-bg);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  /* ===== Header ===== */
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+    height: 48px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-icon { font-size: 16px; }
+  .header-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .version-badge {
+    font-size: 10px;
+    color: var(--text3);
+    background: var(--hover);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .close-btn {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-size: 15px;
+    transition: background 0.15s;
+  }
+  .close-btn:hover { background: var(--hover); }
+
+  /* ===== Search bar — sticky ===== */
+  .search-bar {
+    padding: 10px 18px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    background: var(--dialog-bg);
+    z-index: 1;
+  }
+  .search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    color: var(--text3);
+    font-size: 13px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    height: 34px;
+    padding: 0 10px 0 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 12.5px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text3); }
+  .search-clear {
+    position: absolute;
+    right: 6px;
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    display: none;
+    align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+  .search-clear.visible { display: flex; }
+  .search-clear:hover { background: var(--hover); }
+
+  /* ===== Body ===== */
+  .help-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== Section blocks ===== */
+  .help-section {
+    border-bottom: 1px solid var(--border);
+  }
+  .help-section:last-of-type { border-bottom: none; }
+
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    background: var(--surface);
+    position: sticky;
+    top: 54px; /* below search bar */
+    z-index: 0;
+  }
+  .section-head-icon {
+    width: 26px; height: 26px;
+    border-radius: 7px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    flex-shrink: 0;
+    color: #fff;
+  }
+  .section-head-title {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  /* ===== Shortcuts: compact 2-column table within 460px ===== */
+  .key-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .key-table td {
+    padding: 3px 18px;
+    vertical-align: middle;
+    height: 26px;
+  }
+  .key-table tr:hover td {
+    background: var(--hover);
+  }
+  .key-desc {
+    font-size: 11.5px;
+    color: var(--text2);
+    width: 60%;
+  }
+  .key-caps {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    font-family: 'SF Mono', Consolas, 'Cascadia Code', monospace;
+    background: var(--surface2);
+    color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 0 rgba(0,0,0,0.1);
+    white-space: nowrap;
+  }
+  .key-caps .plus {
+    color: var(--text3);
+    margin: 0 2px;
+    font-weight: 400;
+  }
+  .key-group-label {
+    padding: 8px 18px 2px;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== Guide / Settings: 2-column grid of mini-cards ===== */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 8px 18px 12px;
+  }
+  .mini-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    transition: background 0.15s;
+  }
+  .mini-card:hover {
+    background: var(--hover);
+  }
+  .mini-card-icon {
+    width: 22px; height: 22px;
+    border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .mini-card-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .mini-card-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 1px;
+  }
+  .mini-card-desc {
+    font-size: 10px;
+    color: var(--text2);
+    line-height: 1.3;
+  }
+
+  /* ===== Tips: numbered list ===== */
+  .tip-list {
+    padding: 6px 18px 10px;
+  }
+  .tip-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 3px 0;
+    font-size: 11px;
+    color: var(--text2);
+    line-height: 1.4;
+  }
+  .tip-num {
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 10px;
+    flex-shrink: 0;
+    min-width: 16px;
+  }
+  .tip-item strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* ===== Search hidden ===== */
+  .hidden-by-search { display: none !important; }
+  .section-hidden { display: none !important; }
+
+  /* ===== Footer ===== */
+  .help-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .footer-btn {
+    width: 100%;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: var(--accent);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(79, 140, 255, 0.3);
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .footer-btn:hover {
+    box-shadow: 0 4px 14px rgba(79, 140, 255, 0.4);
+  }
+  .footer-ver {
+    font-size: 10px;
+    color: var(--text3);
+  }
+</style>
+</head>
+<body>
+
+<div class="dialog-box">
+
+  <!-- Header -->
+  <div class="dialog-header">
+    <div class="header-left">
+      <span class="header-icon">📖</span>
+      <span class="header-title">帮助中心</span>
+      <span class="version-badge">v5.0.42</span>
+    </div>
+    <button class="close-btn">✕</button>
+  </div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="searchInput" placeholder="搜索快捷键、功能…" autocomplete="off">
+      <button class="search-clear" id="searchClear">✕</button>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="help-body" id="helpBody">
+
+    <!-- 1. 快捷键速查 -->
+    <div class="help-section" data-section="shortcuts">
+      <div class="section-head">
+        <span class="section-head-icon" style="background:linear-gradient(135deg,#3B82F6,#0078D4)">⌨</span>
+        <span class="section-head-title">快捷键速查</span>
+      </div>
+
+      <div class="key-group-label">全局操作</div>
+      <table class="key-table" data-search-group>
+        <tr data-search="唤出 隐藏 窗口 全局热键"><td class="key-desc">唤出 / 隐藏窗口</td><td><span class="key-caps">Ctrl<span class="plus">+</span>Shift<span class="plus">+</span>V</span></td></tr>
+        <tr data-search="隐藏 窗口 Esc"><td class="key-desc">隐藏窗口</td><td><span class="key-caps">Esc</span></td></tr>
+        <tr data-search="打开 设置 Ctrl S"><td class="key-desc">打开设置</td><td><span class="key-caps">Ctrl<span class="plus">+</span>S</span></td></tr>
+        <tr data-search="打开 帮助 Ctrl H"><td class="key-desc">打开帮助</td><td><span class="key-caps">Ctrl<span class="plus">+</span>H</span></td></tr>
+        <tr data-search="打开 片段库 Ctrl B"><td class="key-desc">打开片段库</td><td><span class="key-caps">Ctrl<span class="plus">+</span>B</span></td></tr>
+        <tr data-search="打开 内容提取 Ctrl E"><td class="key-desc">打开内容提取</td><td><span class="key-caps">Ctrl<span class="plus">+</span>E</span></td></tr>
+      </table>
+
+      <div class="key-group-label">列表操作</div>
+      <table class="key-table" data-search-group>
+        <tr data-search="导航 上下 移动 ↑ ↓ 方向键"><td class="key-desc">上下导航记录</td><td><span class="key-caps">↑ / ↓</span></td></tr>
+        <tr data-search="顶部 底部 Home End 跳转"><td class="key-desc">跳到顶部 / 底部</td><td><span class="key-caps">Home / End</span></td></tr>
+        <tr data-search="粘贴 选中 Enter 回车"><td class="key-desc">粘贴选中记录</td><td><span class="key-caps">Enter</span></td></tr>
+        <tr data-search="预览 内容 Space 空格"><td class="key-desc">快速预览内容</td><td><span class="key-caps">Space</span></td></tr>
+        <tr data-search="删除 记录 Delete"><td class="key-desc">删除选中记录</td><td><span class="key-caps">Delete</span></td></tr>
+        <tr data-search="右键 菜单 Shift F10 上下文"><td class="key-desc">打开右键菜单</td><td><span class="key-caps">Shift<span class="plus">+</span>F10</span></td></tr>
+        <tr data-search="全选 Ctrl A 选择"><td class="key-desc">全选</td><td><span class="key-caps">Ctrl<span class="plus">+</span>A</span></td></tr>
+        <tr data-search="置顶 取消 固定 Ctrl D"><td class="key-desc">置顶 / 取消置顶</td><td><span class="key-caps">Ctrl<span class="plus">+</span>D</span></td></tr>
+        <tr data-search="撤销 删除 恢复 Ctrl Z"><td class="key-desc">撤销删除</td><td><span class="key-caps">Ctrl<span class="plus">+</span>Z</span></td></tr>
+      </table>
+
+      <div class="key-group-label">多选操作</div>
+      <table class="key-table" data-search-group>
+        <tr data-search="多选 逐个 Ctrl Click 点击"><td class="key-desc">逐个多选</td><td><span class="key-caps">Ctrl<span class="plus">+</span>Click</span></td></tr>
+        <tr data-search="范围 选择 Shift Click 点击"><td class="key-desc">范围选择</td><td><span class="key-caps">Shift<span class="plus">+</span>Click</span></td></tr>
+      </table>
+
+      <div class="key-group-label">高级功能</div>
+      <table class="key-table" data-search-group>
+        <tr data-search="依次 粘贴 模式 Ctrl Q 批量"><td class="key-desc">依次粘贴模式</td><td><span class="key-caps">Ctrl<span class="plus">+</span>Q</span></td></tr>
+        <tr data-search="粘贴 第N条 Ctrl Alt 1 9 序号"><td class="key-desc">粘贴第 N 条</td><td><span class="key-caps">Ctrl<span class="plus">+</span>Alt<span class="plus">+</span>1~9</span></td></tr>
+      </table>
+    </div>
+
+    <!-- 2. 功能指南 — 2列迷你卡片 -->
+    <div class="help-section" data-section="guide">
+      <div class="section-head">
+        <span class="section-head-icon" style="background:linear-gradient(135deg,#8B5CF6,#5856D6)">🧩</span>
+        <span class="section-head-title">功能指南</span>
+      </div>
+      <div class="card-grid">
+        <div class="mini-card" data-search="剪贴板 历史 记录 搜索 筛选 标签 置顶">
+          <span class="mini-card-icon" style="background:rgba(79,140,255,0.15);color:#4f8cff">📋</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">剪贴板历史</div>
+            <div class="mini-card-desc">自动记录文本/图片/文件/颜色</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="片段库 模板 文本 保存 API SQL 导入 导出">
+          <span class="mini-card-icon" style="background:rgba(139,92,246,0.15);color:#8b5cf6">📦</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">片段库</div>
+            <div class="mini-card-desc">保存常用模板，一键粘贴</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="内容 提取 链接 邮箱 电话 代码 颜色">
+          <span class="mini-card-icon" style="background:rgba(52,211,153,0.15);color:#34d399">🔍</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">内容提取</div>
+            <div class="mini-card-desc">提取链接、邮箱、代码块等</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="工作 空间 隔离 场景 切换 项目">
+          <span class="mini-card-icon" style="background:rgba(251,191,36,0.15);color:#fbbf24">🗂</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">工作空间</div>
+            <div class="mini-card-desc">隔离不同场景的剪贴板</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="图片 处理 预览 OCR 识别 悬浮窗">
+          <span class="mini-card-icon" style="background:rgba(248,113,113,0.15);color:#f87171">🖼</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">图片处理</div>
+            <div class="mini-card-desc">预览、OCR、悬浮窗</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="局域网 同步 多设备 实时">
+          <span class="mini-card-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa">🔄</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">局域网同步</div>
+            <div class="mini-card-desc">多设备实时同步</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="粘贴 变换 纯文本 空格 大小写 Base64">
+          <span class="mini-card-icon" style="background:rgba(96,165,250,0.15);color:#60a5fa">📎</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">粘贴变换</div>
+            <div class="mini-card-desc">纯文本/大小写/Base64</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="数据 管理 导入 导出 清理 统计">
+          <span class="mini-card-icon" style="background:rgba(52,211,153,0.15);color:#34d399">📤</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">数据管理</div>
+            <div class="mini-card-desc">导入导出、自动清理</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="托盘 菜单 系统 常驻 最近 记录">
+          <span class="mini-card-icon" style="background:rgba(251,146,60,0.15);color:#fb923c">📌</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">托盘菜单</div>
+            <div class="mini-card-desc">系统托盘常驻</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="依次 粘贴 批量 表单 输入">
+          <span class="mini-card-icon" style="background:rgba(74,222,128,0.15);color:#4ade80">⚡</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">依次粘贴</div>
+            <div class="mini-card-desc">批量粘贴模式</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 设置说明 — 2列迷你卡片 -->
+    <div class="help-section" data-section="settings">
+      <div class="section-head">
+        <span class="section-head-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">⚙</span>
+        <span class="section-head-title">设置说明</span>
+      </div>
+      <div class="card-grid">
+        <div class="mini-card" data-search="主题 切换 深色 浅色 外观 标签">
+          <span class="mini-card-icon" style="background:rgba(79,140,255,0.15);color:#4f8cff">🎨</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">主题切换</div>
+            <div class="mini-card-desc">深色/浅色/跟随系统</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="自动 清理 过期 记录 过滤 空白">
+          <span class="mini-card-icon" style="background:rgba(251,191,36,0.15);color:#fbbf24">🗑</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">自动清理</div>
+            <div class="mini-card-desc">清理旧记录、过滤空白</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="窗口 置顶 开机 自启 隐藏 粘贴">
+          <span class="mini-card-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa">📌</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">窗口行为</div>
+            <div class="mini-card-desc">置顶、自启、自动粘贴</div>
+          </div>
+        </div>
+        <div class="mini-card" data-search="自定义 热键 快捷键 全局 依次 全选">
+          <span class="mini-card-icon" style="background:rgba(248,113,113,0.15);color:#f87171">⌨</span>
+          <div class="mini-card-body">
+            <div class="mini-card-title">自定义热键</div>
+            <div class="mini-card-desc">自定义全局热键</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. 技巧提示 -->
+    <div class="help-section" data-section="tips">
+      <div class="section-head">
+        <span class="section-head-icon" style="background:linear-gradient(135deg,#10B981,#34C759)">💡</span>
+        <span class="section-head-title">技巧提示</span>
+      </div>
+      <div class="tip-list">
+        <div class="tip-item" data-search="Ctrl Click 多选 批量 删除">
+          <span class="tip-num">1</span>
+          <span><strong>Ctrl + Click</strong> 逐个多选记录，然后批量操作</span>
+        </div>
+        <div class="tip-item" data-search="Shift Click 范围 选择">
+          <span class="tip-num">2</span>
+          <span><strong>Shift + Click</strong> 范围选择，从当前到点击位置</span>
+        </div>
+        <div class="tip-item" data-search="Space 预览 内容 详情">
+          <span class="tip-num">3</span>
+          <span>按 <strong>Space</strong> 快速预览内容，无需打开详情</span>
+        </div>
+        <div class="tip-item" data-search="双击 卡片 配置 粘贴 预览 复制">
+          <span class="tip-num">4</span>
+          <span>双击卡片行为可在设置中配置</span>
+        </div>
+        <div class="tip-item" data-search="Ctrl Z 撤销 恢复 误删">
+          <span class="tip-num">5</span>
+          <span>误删可按 <strong>Ctrl + Z</strong> 撤销恢复</span>
+        </div>
+        <div class="tip-item" data-search="Ctrl Alt 1 9 粘贴 序号">
+          <span class="tip-num">6</span>
+          <span><strong>Ctrl + Alt + 1~9</strong> 直接粘贴对应序号</span>
+        </div>
+        <div class="tip-item" data-search="置顶 固定 常用 列表 顶部">
+          <span class="tip-num">7</span>
+          <span>置顶记录始终显示在列表顶部</span>
+        </div>
+        <div class="tip-item" data-search="搜索 关键词 过滤 类型 筛选">
+          <span class="tip-num">8</span>
+          <span>搜索框支持关键词过滤和类型筛选</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="help-footer">
+    <button class="footer-btn">我知道了</button>
+    <span class="footer-ver">Filck v5.0.42</span>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  const searchInput = document.getElementById('searchInput');
+  const searchClear = document.getElementById('searchClear');
+  const helpBody = document.getElementById('helpBody');
+
+  function doSearch() {
+    const q = searchInput.value.trim().toLowerCase();
+
+    searchClear.classList.toggle('visible', q.length > 0);
+
+    const allItems = helpBody.querySelectorAll('[data-search]');
+    const sections = helpBody.querySelectorAll('[data-section]');
+    const groupLabels = helpBody.querySelectorAll('.key-group-label');
+    const tables = helpBody.querySelectorAll('[data-search-group]');
+
+    if (!q) {
+      allItems.forEach(el => el.classList.remove('hidden-by-search'));
+      groupLabels.forEach(el => el.classList.remove('hidden-by-search'));
+      sections.forEach(el => el.classList.remove('section-hidden'));
+      return;
+    }
+
+    let anyVisible = false;
+
+    allItems.forEach(el => {
+      const haystack = (el.getAttribute('data-search') || '').toLowerCase();
+      if (haystack.includes(q)) {
+        el.classList.remove('hidden-by-search');
+        anyVisible = true;
+      } else {
+        el.classList.add('hidden-by-search');
+      }
+    });
+
+    // Hide empty tables
+    tables.forEach(table => {
+      const hasVisibleRow = table.querySelector('[data-search]:not(.hidden-by-search)');
+      table.style.display = hasVisibleRow ? '' : 'none';
+    });
+
+    // Hide group labels if following table is hidden
+    groupLabels.forEach(label => {
+      let next = label.nextElementSibling;
+      if (next && next.hasAttribute('data-search-group') && next.style.display === 'none') {
+        label.classList.add('hidden-by-search');
+      } else {
+        label.classList.remove('hidden-by-search');
+      }
+    });
+
+    // Hide empty sections
+    sections.forEach(section => {
+      const hasVisible = section.querySelector('[data-search]:not(.hidden-by-search)');
+      section.classList.toggle('section-hidden', !hasVisible);
+    });
+
+    // Show no-results message
+    let nr = helpBody.querySelector('.no-results');
+    if (!anyVisible) {
+      if (!nr) {
+        nr = document.createElement('div');
+        nr.className = 'no-results';
+        nr.style.cssText = 'padding:32px 18px;text-align:center;font-size:12px;color:var(--text3);';
+        nr.textContent = '未找到匹配内容';
+        helpBody.appendChild(nr);
+      }
+    } else {
+      if (nr) nr.remove();
+    }
+  }
+
+  searchInput.addEventListener('input', doSearch);
+  searchClear.addEventListener('click', () => {
+    searchInput.value = '';
+    doSearch();
+    searchInput.focus();
+  });
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      doSearch();
+    }
+  });
+})();
+</script>
+
+</body>
+</html>

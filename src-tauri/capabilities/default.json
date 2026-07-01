@@ -5,6 +5,7 @@
   "windows": ["main", "tray-popup"],
   "permissions": [
     "core:default",
+    "core:event:default",
     "opener:default",
     "core:window:default",
     "core:window:allow-minimize",

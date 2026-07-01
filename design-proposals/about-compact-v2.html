@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>关于 PastePanda — 方案B 紧凑版</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f0f14;
+  --surface: #1a1a24;
+  --section-bg: #1e1e2a;
+  --border-color: #2a2a38;
+  --text-primary: #e4e4ed;
+  --text-secondary: #9d9db0;
+  --text-muted: #6b6b80;
+  --accent: #3B82F6;
+  --accent-light: rgba(59,130,246,0.08);
+  --green: #22C55E;
+  --green-bg: rgba(34,197,94,0.08);
+  --green-border: rgba(34,197,94,0.2);
+  --hover: rgba(255,255,255,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* 弹窗容器 */
+.dialog-box {
+  width: 480px;
+  max-height: 85vh;
+  overflow: hidden;
+  background: var(--surface);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 头部 */
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+.dialog-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.dialog-close {
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.15s;
+}
+.dialog-close:hover {
+  background: var(--hover);
+  color: var(--text-primary);
+}
+
+/* 内容区 */
+.dialog-body {
+  padding: 16px 20px 14px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== 英雄区 — 紧凑 ===== */
+.about-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px; /* 原28px */
+}
+.about-icon {
+  width: 52px; height: 52px; /* 原68px */
+  border-radius: 14px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #3B82F6, #0284C7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(0, 120, 212, 0.2);
+}
+.about-meta { flex: 1; min-width: 0; }
+.about-name {
+  font-size: 18px; /* 原20px */
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+  color: var(--text-primary);
+}
+.about-version-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.about-version-badge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--section-bg);
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-family: "SF Mono", "Fira Code", monospace;
+}
+.about-version-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+.about-version-status.latest {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+.about-status-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.about-status-dot.green { background: var(--green); }
+
+/* 分割线 — 去掉大 margin */
+.about-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 0 0 12px; /* 原24px */
+}
+
+/* 区块标签 */
+.about-section-label {
+  font-size: 10px; /* 原11px */
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.6px;
+  margin-bottom: 8px; /* 原12px */
+}
+
+/* 技术栈 2×3 网格 — 紧凑 */
+.about-tech-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px; /* 原8px */
+  margin-bottom: 14px; /* 原24px */
+}
+.about-tech-card {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* 原10px */
+  padding: 7px 10px; /* 原10px 14px */
+  border-radius: 8px;
+  background: var(--section-bg);
+  border: 1px solid transparent;
+  cursor: default;
+  transition: all 0.2s;
+}
+.about-tech-card:hover {
+  border-color: var(--border-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+.about-tech-icon {
+  width: 26px; height: 26px; /* 原34px */
+  border-radius: 7px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+.about-tech-info { min-width: 0; }
+.about-tech-name {
+  font-size: 12px; /* 原13px */
+  font-weight: 700;
+  margin-bottom: 1px;
+  color: var(--text-primary);
+}
+.about-tech-desc {
+  font-size: 9px; /* 原10px */
+  color: var(--text-muted);
+}
+
+/* 更新横幅 — 紧凑 */
+.update-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px; /* 原14px 16px */
+  border-radius: 10px;
+  width: 100%;
+  border: 1px solid var(--border-color);
+}
+.update-banner-idle {
+  background: var(--section-bg);
+}
+.update-banner-title {
+  font-size: 12px; /* 原13px */
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.update-banner-btn {
+  padding: 4px 10px; /* 原6px 14px */
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  background: transparent;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+}
+.update-banner-btn:hover {
+  background: var(--hover);
+  color: var(--text-primary);
+}
+
+/* 底部 — auto 推到底 */
+.about-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: auto; /* 始终贴在底部 */
+  padding-top: 10px;
+}
+.about-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.about-footer-link:hover {
+  background: var(--hover);
+  color: var(--text-primary);
+}
+.about-copyright {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* SVG 图标简化 */
+svg { display: block; }
+</style>
+</head>
+<body>
+
+<div class="dialog-box">
+  <!-- 头部 -->
+  <div class="dialog-header">
+    <h2 class="dialog-title">关于 PastePanda</h2>
+    <button class="dialog-close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  </div>
+
+  <!-- 内容 -->
+  <div class="dialog-body">
+    <!-- 英雄区 -->
+    <div class="about-hero">
+      <div class="about-icon">📋</div>
+      <div class="about-meta">
+        <div class="about-name">PastePanda</div>
+        <div class="about-version-row">
+          <span class="about-version-badge">v5.0.50</span>
+          <span class="about-version-status latest">
+            <span class="about-status-dot green"></span>
+            已是最新
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 分割线 -->
+    <div class="about-divider"></div>
+
+    <!-- 技术栈 -->
+    <div class="about-section-label">技术栈</div>
+    <div class="about-tech-grid">
+      <div class="about-tech-card">
+        <div class="about-tech-icon" style="background:rgba(255,193,49,0.15);color:#FFC131;">⚙️</div>
+        <div class="about-tech-info">
+          <div class="about-tech-name">Tauri 2</div>
+          <div class="about-tech-desc">桌面框架</div>
+        </div>
+      </div>
+      <div class="about-tech-card">
+        <div class="about-tech-icon" style="background:rgba(97,218,251,0.15);color:#61DAFB;">⚛️</div>
+        <div class="about-tech-info">
+          <div class="about-tech-name">React 19</div>
+          <div class="about-tech-desc">UI 框架</div>
+        </div>
+      </div>
+      <div class="about-tech-card">
+        <div class="about-tech-icon" style="background:rgba(49,120,198,0.15);color:#3178C6;">TS</div>
+        <div class="about-tech-info">
+          <div class="about-tech-name">TypeScript</div>
+          <div class="about-tech-desc">类型安全</div>
+        </div>
+      </div>
+      <div class="about-tech-card">
+        <div class="about-tech-icon" style="background:rgba(77,184,189,0.15);color:#4DB8BD;">🗄️</div>
+        <div class="about-tech-info">
+          <div class="about-tech-name">SQLite</div>
+          <div class="about-tech-desc">本地存储</div>
+        </div>
+      </div>
+      <div class="about-tech-card">
+        <div class="about-tech-icon" style="background:rgba(222,165,132,0.15);color:#DEA584;">🦀</div>
+        <div class="about-tech-info">
+          <div class="about-tech-name">Rust</div>
+          <div class="about-tech-desc">后端核心</div>
+        </div>
+      </div>
+      <div class="about-tech-card">
+        <div class="about-tech-icon" style="background:rgba(100,108,255,0.15);color:#646CFF;">⚡</div>
+        <div class="about-tech-info">
+          <div class="about-tech-name">Vite</div>
+          <div class="about-tech-desc">构建工具</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 更新横幅 -->
+    <div class="update-banner update-banner-idle">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+      <div style="flex:1">
+        <div class="update-banner-title">已是最新版本</div>
+      </div>
+      <button class="update-banner-btn">检查更新</button>
+    </div>
+
+    <!-- 底部 -->
+    <div class="about-footer">
+      <button class="about-footer-link">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        项目主页
+      </button>
+      <span class="about-copyright">© 2026 PastePanda</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

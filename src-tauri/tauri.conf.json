@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Filck",
-  "version": "5.0.50",
-  "identifier": "com.filck.app",
+  "productName": "PastePanda",
+  "version": "5.0.59",
+  "identifier": "com.pastepanda.app",
   "build": {
     "beforeBuildCommand": "npm run build",
     "beforeDevCommand": "npm run dev",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Filck",
+        "title": "PastePanda",
         "width": 480,
         "height": 700,
         "minWidth": 320,
@@ -26,7 +26,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: asset: http://asset.localhost; script-src 'self' https://esm.sh; connect-src 'self' https://esm.sh ipc: http://ipc.localhost",
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: asset: http://asset.localhost; script-src 'self' 'unsafe-eval' https://esm.sh; connect-src 'self' https://esm.sh ipc: http://ipc.localhost ws://localhost:1420 http://localhost:1420",
       "assetProtocol": {
         "enable": true,
         "scope": ["$APPDATA/**"]
@@ -36,7 +36,7 @@
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/1914520160/filck/releases/latest/download/updater.json"
+        "https://github.com/lzlkyb/pastepanda/releases/latest/download/updater.json"
       ],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJGQTNBQ0Y5OTIxNjg1RUUKUldUdWhSYVMrYXlqdnptREQvTlpWR1dRckVLVkZaRVBBOGYvQm0wL3FjMjVad1Nkd0ZPUlhSZUMK",
       "windows": {

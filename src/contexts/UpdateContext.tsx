@@ -39,7 +39,7 @@ export function useUpdate() {
 
 /** 自动检查间隔：24 小时 */
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
-const LAST_CHECK_KEY = "filck_last_update_check";
+const LAST_CHECK_KEY = "pastepanda_last_update_check";
 
 // ─── Provider ───────────────────────────────────────────
 

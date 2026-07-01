@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>主题配色预览 — 剪贴板管理</title>
+<style>
+/* ===== 全局基础 ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: #111;
+  padding: 24px 16px;
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page-title {
+  text-align: center;
+  margin-bottom: 24px;
+}
+.page-title h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+}
+.page-title p {
+  font-size: 12px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* ===== 主题网格 ===== */
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  max-width: 1500px;
+  width: 100%;
+}
+@media (max-width: 1440px) { .theme-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 960px) { .theme-grid { grid-template-columns: 1fr; max-width: 520px; } }
+
+/* ===== 主题卡片容器 ===== */
+.theme-wrapper {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  border: 1px solid rgba(255,255,255,0.06);
+}
+
+/* 主题标签栏 */
+.theme-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(10px);
+}
+.theme-label-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+.theme-label-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  flex: 1;
+}
+.theme-label-meta {
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+}
+.theme-label-badge {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 99px;
+  letter-spacing: 0.3px;
+}
+.badge-light { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); }
+.badge-dark  { background: rgba(0,0,0,0.35); color: rgba(255,255,255,0.7); }
+
+/* ===== 应用模拟窗口 ===== */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 460px;
+  overflow: hidden;
+  background: var(--app-bg);
+}
+
+/* ---- TopBar ---- */
+.topbar {
+  background: linear-gradient(180deg, var(--header-bg-start), var(--header-bg-end));
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+/* 标题行 */
+.header-top {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+}
+.header-logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark, var(--accent)));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.header-logo svg { width: 14px; height: 14px; color: #fff; }
+.header-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex: 1;
+}
+.header-ver {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 99px;
+  background: var(--accent-light);
+  color: var(--accent);
+}
+.header-btns {
+  display: flex;
+  gap: 3px;
+  margin-left: 6px;
+}
+.header-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+.header-btn:hover { background: var(--section-bg); }
+.header-btn.danger:hover { background: rgba(239,68,68,0.1); color: #EF4444; }
+
+/* 搜索框 */
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px 8px;
+}
+.search-input {
+  flex: 1;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--search-border);
+  background: var(--search-bg);
+  padding: 0 10px;
+  font-size: 12px;
+  font-family: inherit;
+  color: var(--text-primary);
+  outline: none;
+}
+.search-input::placeholder { color: var(--text-muted); }
+
+/* 分段控件 */
+.seg-row {
+  display: flex;
+  padding: 2px 12px 6px;
+  gap: 4px;
+}
+.seg-item {
+  flex: 1;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--seg-bg);
+  color: var(--text-secondary);
+  cursor: default;
+  white-space: nowrap;
+}
+.seg-item.active {
+  background: var(--seg-active-bg);
+  color: var(--text-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* 筛选栏 */
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  padding: 2px 12px 6px;
+}
+.filter-btn {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 5px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-muted);
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* ---- 卡片列表 ---- */
+.scroll-area {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 10px 8px;
+  background: var(--app-bg);
+}
+.card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* 卡片 */
+.card-item {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  position: relative;
+  overflow: hidden;
+}
+.card-item::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--accent);
+  opacity: 0.5;
+}
+.card-item.selected {
+  border-color: var(--accent);
+  background: var(--card-selected-bg);
+}
+.card-item.selected::before { opacity: 1; }
+
+.card-icon-slot {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.card-icon-slot.bg-blue  { background: linear-gradient(135deg, #DBEAFE, #BFDBFE); color: #2563EB; }
+.card-icon-slot.bg-green { background: linear-gradient(135deg, #D1FAE5, #A7F3D0); color: #059669; }
+.card-icon-slot.bg-pink  { background: linear-gradient(135deg, #FCE7F3, #FBCFE8); color: #DB2777; }
+.card-icon-slot.bg-purple{ background: linear-gradient(135deg, #EDE9FE, #DDD6FE); color: #7C3AED; }
+
+.card-body { flex: 1; min-width: 0; }
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.card-meta {
+  font-size: 10px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+}
+.meta-tag {
+  font-size: 9px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+}
+.card-time {
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ---- 底部状态栏 ---- */
+.bottom-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  border-top: 1px solid var(--border-color);
+  background: var(--header-bg-end);
+  font-size: 10px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.bb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22C55E;
+  box-shadow: 0 0 5px rgba(34,197,94,0.4);
+}
+.bb-spacer { flex: 1; }
+.bb-stat {
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 11px;
+}
+
+/* ---- FAB 悬浮按钮 ---- */
+.fab {
+  position: absolute;
+  bottom: 42px;
+  right: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px var(--accent-shadow);
+  z-index: 10;
+}
+
+/* ===== 色板区 ===== */
+.color-palette {
+  display: flex;
+  gap: 4px;
+  padding: 8px 10px 10px;
+  background: rgba(0,0,0,0.2);
+  overflow-x: auto;
+}
+.color-swatch {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  transition: transform 0.15s;
+  position: relative;
+}
+.color-swatch:hover {
+  transform: scale(1.15);
+  z-index: 2;
+}
+.color-swatch .sw-label {
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 7px;
+  color: rgba(255,255,255,0.4);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ===== 简易设置弹窗（右上角小面板） ===== */
+.settings-panel {
+  margin: 8px 10px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--dialog-bg);
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-primary);
+}
+.setting-label { color: var(--text-secondary); font-size: 11px; }
+.toggle {
+  width: 32px;
+  height: 18px;
+  border-radius: 9px;
+  background: var(--accent);
+  position: relative;
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  top: 2px;
+  right: 2px;
+}
+
+/* 滚动条 */
+.scroll-area::-webkit-scrollbar { width: 4px; }
+.scroll-area::-webkit-scrollbar-track { background: transparent; }
+.scroll-area::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="page-title">
+  <h1>剪贴板管理 · 主题配色预览</h1>
+  <p>6 套人群定制化主题 — 基于真实 UI 结构</p>
+</div>
+
+<div class="theme-grid" id="themeGrid"></div>
+
+<script>
+const themes = [
+  {
+    key: 'ocean', name: '海洋', type: 'light', badge: '默认浅色', audience: '通用 · 清新现代',
+    vars: {
+      '--app-bg': '#F5F7FA', '--header-bg-start': '#FFFFFF', '--header-bg-end': '#F5F7FA',
+      '--card-bg': '#FFFFFF', '--card-border': '#E2E8F0',
+      '--text-primary': '#0F172A', '--text-secondary': '#64748B', '--text-muted': '#94A3B8',
+      '--border-color': '#E2E8F0', '--accent': '#0EA5E9', '--accent-dark': '#0284C7',
+      '--accent-light': '#E0F2FE', '--seg-bg': '#E8ECF0', '--seg-active-bg': '#FFFFFF',
+      '--search-bg': '#FFFFFF', '--search-border': '#CBD5E1', '--input-bg': '#F5F7FA',
+      '--dialog-bg': '#FFFFFF', '--section-bg': '#F0F4F8',
+      '--card-selected-bg': 'linear-gradient(135deg, #E0F2FE, #E0F2FE)',
+      '--accent-shadow': 'rgba(14,165,233,0.15)'
+    },
+    palette: ['#0EA5E9','#0284C7','#E0F2FE','#F5F7FA','#FFFFFF','#0F172A'],
+    palLabels: ['主色','深色','浅底','背景','卡片','文字']
+  },
+  {
+    key: 'midnight', name: '午夜', type: 'dark', badge: '默认深色', audience: '夜间 · OLED 友好',
+    vars: {
+      '--app-bg': '#09090B', '--header-bg-start': '#18181B', '--header-bg-end': '#09090B',
+      '--card-bg': '#18181B', '--card-border': '#27272A',
+      '--text-primary': '#E4E4E7', '--text-secondary': '#A1A1AA', '--text-muted': '#71717A',
+      '--border-color': '#27272A', '--accent': '#818CF8', '--accent-dark': '#6366F1',
+      '--accent-light': '#1E1B4B', '--seg-bg': '#27272A', '--seg-active-bg': '#3F3F46',
+      '--search-bg': '#18181B', '--search-border': '#3F3F46', '--input-bg': '#27272A',
+      '--dialog-bg': '#18181B', '--section-bg': '#0F0F11',
+      '--card-selected-bg': 'linear-gradient(135deg, #1E1B4B, #1E1B4B)',
+      '--accent-shadow': 'rgba(129,140,248,0.2)'
+    },
+    palette: ['#818CF8','#6366F1','#1E1B4B','#09090B','#18181B','#E4E4E7'],
+    palLabels: ['主色','深色','浅底','背景','卡片','文字']
+  },
+  {
+    key: 'forest', name: '森林', type: 'light', badge: '护眼浅色', audience: '写作者 · 自然舒适',
+    vars: {
+      '--app-bg': '#F2F7F5', '--header-bg-start': '#FFFFFF', '--header-bg-end': '#F2F7F5',
+      '--card-bg': '#FFFFFF', '--card-border': '#D6D3D1',
+      '--text-primary': '#171717', '--text-secondary': '#78716C', '--text-muted': '#A8A29E',
+      '--border-color': '#D6D3D1', '--accent': '#059669', '--accent-dark': '#047857',
+      '--accent-light': '#ECFDF5', '--seg-bg': '#E7E5E4', '--seg-active-bg': '#FFFFFF',
+      '--search-bg': '#FFFFFF', '--search-border': '#D6D3D1', '--input-bg': '#F2F7F5',
+      '--dialog-bg': '#FFFFFF', '--section-bg': '#ECFDF5',
+      '--card-selected-bg': 'linear-gradient(135deg, #D1FAE5, #D1FAE5)',
+      '--accent-shadow': 'rgba(5,150,105,0.12)'
+    },
+    palette: ['#059669','#047857','#ECFDF5','#F2F7F5','#FFFFFF','#171717'],
+    palLabels: ['主色','深色','浅底','背景','卡片','文字']
+  },
+  {
+    key: 'blossom', name: '樱花', type: 'light', badge: '女性浅色', audience: '女性 · 温柔浪漫',
+    vars: {
+      '--app-bg': '#FFFBFD', '--header-bg-start': '#FFFFFF', '--header-bg-end': '#FFFBFD',
+      '--card-bg': '#FFFFFF', '--card-border': '#F3E8ED',
+      '--text-primary': '#1F1A1C', '--text-secondary': '#9D8B93', '--text-muted': '#C4B5BC',
+      '--border-color': '#F3E8ED', '--accent': '#EC4899', '--accent-dark': '#BE185D',
+      '--accent-light': '#FCE7F3', '--seg-bg': '#F3E8ED', '--seg-active-bg': '#FFFFFF',
+      '--search-bg': '#FFFFFF', '--search-border': '#F3E8ED', '--input-bg': '#FFFBFD',
+      '--dialog-bg': '#FFFFFF', '--section-bg': '#FDF2F8',
+      '--card-selected-bg': 'linear-gradient(135deg, #FBCFE8, #FBCFE8)',
+      '--accent-shadow': 'rgba(236,72,153,0.15)'
+    },
+    palette: ['#EC4899','#BE185D','#FCE7F3','#FFFBFD','#FFFFFF','#1F1A1C'],
+    palLabels: ['主色','深色','浅底','背景','卡片','文字']
+  },
+  {
+    key: 'terminal', name: '终端', type: 'dark', badge: '极客深色', audience: '开发者 · 硬核代码',
+    vars: {
+      '--app-bg': '#0A0A0A', '--header-bg-start': '#141414', '--header-bg-end': '#0A0A0A',
+      '--card-bg': '#141414', '--card-border': '#262626',
+      '--text-primary': '#E5E5E5', '--text-secondary': '#A3A3A3', '--text-muted': '#737373',
+      '--border-color': '#262626', '--accent': '#22C55E', '--accent-dark': '#16A34A',
+      '--accent-light': '#052E16', '--seg-bg': '#262626', '--seg-active-bg': '#404040',
+      '--search-bg': '#141414', '--search-border': '#404040', '--input-bg': '#262626',
+      '--dialog-bg': '#141414', '--section-bg': '#0F0F0F',
+      '--card-selected-bg': 'linear-gradient(135deg, #052E16, #052E16)',
+      '--accent-shadow': 'rgba(34,197,94,0.2)'
+    },
+    palette: ['#22C55E','#16A34A','#052E16','#0A0A0A','#141414','#E5E5E5'],
+    palLabels: ['主色','深色','浅底','背景','卡片','文字']
+  },
+  {
+    key: 'sunset', name: '日落', type: 'dark', badge: '潮流深色', audience: '学生 · 活力温暖',
+    vars: {
+      '--app-bg': '#1C1410', '--header-bg-start': '#281E18', '--header-bg-end': '#1C1410',
+      '--card-bg': '#281E18', '--card-border': '#3D3028',
+      '--text-primary': '#F5F0EB', '--text-secondary': '#B8A99A', '--text-muted': '#8B7B6B',
+      '--border-color': '#3D3028', '--accent': '#F97316', '--accent-dark': '#EA580C',
+      '--accent-light': '#431407', '--seg-bg': '#3D3028', '--seg-active-bg': '#504438',
+      '--search-bg': '#281E18', '--search-border': '#504438', '--input-bg': '#3D3028',
+      '--dialog-bg': '#281E18', '--section-bg': '#1F1610',
+      '--card-selected-bg': 'linear-gradient(135deg, #431407, #431407)',
+      '--accent-shadow': 'rgba(249,115,22,0.2)'
+    },
+    palette: ['#F97316','#EA580C','#431407','#1C1410','#281E18','#F5F0EB'],
+    palLabels: ['主色','深色','浅底','背景','卡片','文字']
+  }
+];
+
+const cardData = [
+  { icon: 'bg-blue',  title: '产品需求文档 v2.3 — 用户系统重构方案', meta: '文本', time: '2分钟前' },
+  { icon: 'bg-pink',  title: 'https://www.figma.com/file/abc123/Design-System', meta: '链接', time: '15分钟前' },
+  { icon: 'bg-purple',title: 'git commit -m "fix: 修复搜索高亮闪烁问题 #142"', meta: '代码', time: '32分钟前' },
+  { icon: 'bg-green', title: 'const API_BASE = "https://api.example.com/v2";', meta: '代码', time: '1小时前' },
+  { icon: 'bg-blue',  title: '会议纪要 2026-06-28：Q3 版本发布计划确认', meta: '文本', time: '2小时前' },
+];
+
+const headerIcons = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="8" y="2" width="8" height="4" rx="1.5"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M9 13h6"/></svg>`;
+const iconSettings = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`;
+const iconMinus = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+const iconX = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+const iconSearch = `<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`;
+const iconClock = `<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+const iconApp = `<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
+
+const cardIcons = {
+  'bg-blue':   `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>`,
+  'bg-green':  `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  'bg-pink':   `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>`,
+  'bg-purple': `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+};
+
+function renderThemes() {
+  const grid = document.getElementById('themeGrid');
+  grid.innerHTML = themes.map(t => {
+    const hBg = t.type === 'light' ? `linear-gradient(135deg, ${t.vars['--card-bg']}, ${t.vars['--section-bg']})` : `linear-gradient(135deg, ${t.vars['--card-bg']}, ${t.vars['--app-bg']})`;
+    const hText = t.type === 'light' ? '#1a1a1a' : '#fff';
+    const bc = t.type === 'light' ? 'badge-light' : 'badge-dark';
+
+    return `
+    <div class="theme-wrapper">
+      <div class="theme-label" style="background:${hBg}">
+        <div class="theme-label-dot" style="background:linear-gradient(135deg,${t.vars['--accent']},${t.vars['--accent-dark']})"></div>
+        <div class="theme-label-name" style="color:${hText}">${t.name}</div>
+        <div class="theme-label-meta">${t.audience}</div>
+        <span class="theme-label-badge ${bc}">${t.badge}</span>
+      </div>
+
+      <div class="app-shell" style="${Object.entries(t.vars).map(([k,v]) => `${k}:${v}`).join(';')}; position:relative;">
+
+        <!-- ===== TopBar ===== -->
+        <div class="topbar">
+          <!-- 标题行 -->
+          <div class="header-top">
+            <div class="header-logo">${headerIcons}</div>
+            <span class="header-title">剪贴板管理</span>
+            <span class="header-ver">v4.8</span>
+            <div class="header-btns">
+              <button class="header-btn" title="设置">${iconSettings}</button>
+              <button class="header-btn" title="最小化">${iconMinus}</button>
+              <button class="header-btn danger" title="退出">${iconX}</button>
+            </div>
+          </div>
+          <!-- 搜索框 -->
+          <div class="search-box">
+            <span style="color:var(--text-muted);flex-shrink:0;">${iconSearch}</span>
+            <input class="search-input" placeholder="搜索剪贴板内容…" disabled>
+          </div>
+          <!-- 分段控件 -->
+          <div class="seg-row">
+            <div class="seg-item active">全部</div>
+            <div class="seg-item">置顶</div>
+            <div class="seg-item">文本</div>
+            <div class="seg-item">链接</div>
+            <div class="seg-item">代码</div>
+          </div>
+          <!-- 筛选栏 -->
+          <div class="filter-bar">
+            <div class="filter-btn">${iconClock} 全部时间</div>
+            <div class="filter-btn">${iconApp} 全部来源</div>
+          </div>
+        </div>
+
+        <!-- ===== 卡片列表 ===== -->
+        <div class="scroll-area">
+          <div class="card-list">
+            ${cardData.map((c,i) => `
+            <div class="card-item${i===0?' selected':''}">
+              <div class="card-icon-slot ${c.icon}">${cardIcons[c.icon]}</div>
+              <div class="card-body">
+                <div class="card-title">${c.title}</div>
+                <div class="card-meta">
+                  <span class="meta-tag">${c.meta}</span>
+                  ${c.time}
+                </div>
+              </div>
+              <span class="card-time">${c.time}</span>
+            </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- ===== FAB ===== -->
+        <div class="fab">+</div>
+
+        <!-- ===== 底部状态栏 ===== -->
+        <div class="bottom-bar">
+          <div class="bb-dot"></div>
+          <span>监听中</span>
+          <span class="bb-spacer"></span>
+          <span>共</span>
+          <span class="bb-stat">128</span>
+          <span>条记录</span>
+        </div>
+      </div>
+
+      <!-- 色板 -->
+      <div class="color-palette">
+        ${t.palette.map((c,j) => `
+          <div class="color-swatch" style="background:${c}" title="${t.palLabels[j]}: ${c}">
+            <span class="sw-label">${t.palLabels[j]}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+renderThemes();
+</script>
+
+</body>
+</html>

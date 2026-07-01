@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ExternalLink } from "lucide-react";
-import { getAppVersion } from "@/lib/api";
+import { getAppVersion, getAppName } from "@/lib/api";
 import { UpdateBanner } from "@/components/UpdateBadge";
 import { useUpdate } from "@/contexts/UpdateContext";
 import { useState, useEffect, useMemo } from "react";
@@ -40,11 +40,13 @@ function useVersionStatus() {
 
 export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [appVersion, setAppVersion] = useState("");
+  const [appName, setAppName] = useState("PastePanda");
   const versionStatus = useVersionStatus();
 
   useEffect(() => {
     if (open) {
       getAppVersion().then(setAppVersion).catch(() => setAppVersion(""));
+      getAppName().then(setAppName).catch(() => setAppName("PastePanda"));
     }
   }, [open]);
 
@@ -53,7 +55,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
   const handleOpenProject = async () => {
     try {
       const { openUrl } = await import("@tauri-apps/plugin-opener");
-      await openUrl("https://github.com/1914520160/filck");
+      await openUrl("https://github.com/lzlkyb/pastepanda");
     } catch (e) {
       console.warn("打开项目主页失败", e);
     }
@@ -70,12 +72,12 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.96, opacity: 0, y: 10 }}
           transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          className="dialog-box w480"
+          className="dialog-box w500 about-dialog"
           onClick={(e) => e.stopPropagation()}
         >
           {/* 头部 */}
           <div className="dialog-header">
-            <h2 className="dialog-title">关于 Filck</h2>
+            <h2 className="dialog-title">关于 {appName}</h2>
             <button onClick={onClose} className="dialog-close"><X size={16} /></button>
           </div>
 
@@ -84,7 +86,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
             <div className="about-hero">
               <div className="about-icon">📋</div>
               <div className="about-meta">
-                <div className="about-name">Filck</div>
+                <div className="about-name">{appName}</div>
                 <div className="about-version-row">
                   <span className="about-version-badge">v{appVersion}</span>
                   <span className={`about-version-status ${versionStatus.cls}`}>
@@ -126,7 +128,7 @@ export function AboutDialog({ open, onClose }: { open: boolean; onClose: () => v
                 <ExternalLink size={14} />
                 项目主页
               </button>
-              <span className="about-copyright">© 2026 Filck</span>
+              <span className="about-copyright">© 2026 {appName}</span>
             </div>
           </div>
         </motion.div>

@@ -352,3 +352,12 @@ export async function getAppVersion(): Promise<string> {
     return "?.?.?";
   }
 }
+
+/** 获取应用名称 */
+export async function getAppName(): Promise<string> {
+  try {
+    return await invoke<string>("get_app_name");
+  } catch {
+    return "PastePanda";
+  }
+}

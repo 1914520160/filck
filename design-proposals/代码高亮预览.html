@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>代码语言检测 + 语法高亮 — 效果预览</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style>
+:root {
+  --bg: #f5f5f7;
+  --card-bg: #ffffff;
+  --text: #1d1d1f;
+  --text-secondary: #6e6e73;
+  --text-muted: #aeaeb2;
+  --border: #e5e5ea;
+  --accent: #007aff;
+  --accent-light: #e8f0fe;
+  --section-bg: #f9f9fb;
+  --hover: #f0f0f5;
+  --danger: #ff3b30;
+  --green: #34c759;
+  --orange: #ff9500;
+  --purple: #af52de;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #e8e8ed;
+  margin: 0; padding: 40px 20px;
+  display: flex; flex-direction: column; align-items: center;
+}
+
+h1 {
+  font-size: 24px; font-weight: 700; margin: 0 0 8px;
+  color: var(--text);
+}
+.subtitle {
+  font-size: 13px; color: var(--text-secondary); margin-bottom: 30px;
+  text-align: center; line-height: 1.6;
+}
+
+/* 语言选择标签栏 */
+.lang-tabs {
+  display: flex; gap: 6px; flex-wrap: wrap; justify-content: center;
+  margin-bottom: 28px; max-width: 900px;
+}
+.lang-tab {
+  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border);
+  background: var(--card-bg); color: var(--text-secondary);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.lang-tab:hover { border-color: var(--accent); color: var(--accent); }
+.lang-tab.active {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+}
+
+/* 弹窗容器 */
+.preview-row {
+  display: flex; gap: 24px; flex-wrap: wrap; justify-content: center;
+  align-items: flex-start;
+}
+
+/* 弹窗卡片 */
+.dialog-box {
+  background: var(--card-bg);
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  width: 460px; max-width: 95vw;
+}
+.dialog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 18px; border-bottom: 1px solid var(--border);
+}
+.dialog-title { font-size: 15px; font-weight: 700; margin: 0; }
+.dialog-close {
+  width: 28px; height: 28px; border-radius: 8px; border: none;
+  background: var(--hover); cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+}
+.dialog-body {
+  flex: 1; overflow-y: auto; padding: 14px 18px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.dialog-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 18px; border-top: 1px solid var(--border);
+  background: var(--section-bg); gap: 8px; flex-wrap: nowrap;
+}
+
+/* 元信息条 */
+.code-meta-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px; border-radius: 8px;
+  background: var(--section-bg); border: 1px solid var(--border);
+}
+.code-meta-left { display: flex; gap: 12px; align-items: center; }
+.code-meta-item {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 11px; color: var(--text-muted);
+}
+.code-meta-label { font-weight: 500; }
+.code-meta-val { font-weight: 700; color: var(--text); }
+.code-lang-badge {
+  font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+  background: var(--accent-light); color: var(--accent);
+}
+
+/* 代码查看器 */
+.code-viewer {
+  display: flex; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--card-bg);
+  max-height: 45vh; overflow: auto;
+}
+.code-lines {
+  display: flex; flex-direction: column; padding: 10px 0;
+  min-width: 36px; text-align: right; user-select: none;
+  background: var(--section-bg); border-right: 1px solid var(--border);
+  border-radius: 10px 0 0 10px;
+}
+.code-ln {
+  padding: 0 10px; font-family: 'SF Mono', Consolas, monospace;
+  font-size: 12px; line-height: 1.7; color: var(--text-muted);
+}
+.code-text {
+  flex: 1; margin: 0; padding: 10px 14px;
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 13px; line-height: 1.7; white-space: pre-wrap;
+  word-break: break-all; color: var(--text); overflow: hidden;
+}
+
+/* 编辑区 */
+.edit-code-area {
+  display: flex; border-radius: 10px;
+  border: 1.5px solid var(--accent); background: var(--card-bg);
+  min-height: 150px; max-height: 45vh; overflow: hidden;
+}
+.edit-code-area .code-lines {
+  min-width: 36px; padding-top: 10px;
+  background: var(--section-bg); border-right: 1px solid var(--border);
+  border-radius: 10px 0 0 10px;
+}
+.code-textarea {
+  flex: 1; padding: 10px 14px; border: none;
+  background: transparent; color: var(--text);
+  font-family: 'SF Mono', Consolas, monospace;
+  font-size: 13px; line-height: 1.7; resize: vertical; outline: none;
+}
+
+/* 工具栏 */
+.edit-toolbar {
+  display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
+}
+.tool-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--card-bg);
+  color: var(--text-secondary); font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tool-separator {
+  width: 1px; height: 18px; background: var(--border); margin: 0 4px;
+}
+.tool-hint {
+  margin-left: auto; font-size: 11px; color: var(--accent);
+  background: none; border: none; cursor: pointer; font-family: inherit;
+}
+
+/* 操作栏 */
+.code-actions-bar {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.btn-ghost {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--card-bg);
+  color: var(--text-secondary); font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: all 0.15s;
+}
+.btn-ghost:hover { background: var(--hover); color: var(--text); }
+.btn-primary {
+  padding: 5px 14px; border-radius: 8px; border: none;
+  background: var(--accent); color: #fff;
+  font-size: 12px; font-weight: 700; cursor: pointer;
+  font-family: inherit; transition: all 0.15s;
+}
+.btn-primary:hover { opacity: 0.85; }
+
+/* 支持的语言列表 */
+.lang-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px; margin-top: 16px; max-width: 900px;
+}
+.lang-chip {
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 10px; border-radius: 6px;
+  background: var(--card-bg); border: 1px solid var(--border);
+  font-size: 11px; color: var(--text-secondary);
+}
+.lang-chip .dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+
+h3 { font-size: 16px; margin: 30px 0 12px; color: var(--text); }
+h4 { font-size: 13px; margin: 0 0 8px; color: var(--text-secondary); }
+
+/* highlight.js 主题微调 */
+.hljs { background: transparent !important; padding: 0 !important; }
+</style>
+</head>
+<body>
+
+<h1>🔬 代码语言检测 + 语法高亮</h1>
+<p class="subtitle">
+  集成 highlight.js · 支持 190+ 语言 · 自动推断具体语言类型<br>
+  badge 从「💻 代码」升级为「💻 Python」「💻 JavaScript」等具体语言名
+</p>
+
+<!-- 语言标签切换 -->
+<div class="lang-tabs" id="langTabs"></div>
+
+<!-- 预览区：只读 QuickPreview + 编辑 EditDialog 并排 -->
+<div class="preview-row" id="previewRow"></div>
+
+<!-- 支持的语言列表 -->
+<h3>📋 支持的语言检测规则（15 种）</h3>
+<div class="lang-grid" id="langGrid"></div>
+
+<script>
+const samples = {
+  JavaScript: {
+    label: 'JavaScript',
+    code: `// React Hook 示例
+import { useState, useEffect } from "react";
+
+function useCounter(initial = 0) {
+  const [count, setCount] = useState(initial);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCount(c => c + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  return { count, reset: () => setCount(initial) };
+}
+
+export default useCounter;`,
+    rule: 'const/let/function/import/=>/useState',
+    color: '#f7df1e'
+  },
+  Python: {
+    label: 'Python',
+    code: `# 数据处理函数
+import pandas as pd
+from typing import List, Dict
+
+def process_data(items: List[Dict]) -> pd.DataFrame:
+    """清洗并转换数据"""
+    df = pd.DataFrame(items)
+
+    if df.empty:
+        raise ValueError("数据为空")
+
+    df["score"] = df["value"].apply(lambda x: x * 1.5)
+    df["category"] = df["name"].str.extract(r"([A-Z]+)")
+
+    return df.sort_values("score", ascending=False)`,
+    rule: 'def /import /class /类型标注',
+    color: '#3776AB'
+  },
+  Rust: {
+    label: 'Rust',
+    code: `// 异步 TCP 服务
+use tokio::net::TcpListener;
+use std::sync::Arc;
+
+#[derive(Debug, Clone)]
+struct AppState {
+    counter: Arc<Mutex<u64>>,
+}
+
+impl AppState {
+    pub fn new() -> Self {
+        Self { counter: Arc::new(Mutex::new(0)) }
+    }
+}
+
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
+    let state = AppState::new();
+    let listener = TcpListener::bind("0.0.0.0:8080").await?;
+    println!("Server running on :8080");
+    loop {
+        let (socket, _) = listener.accept().await?;
+        tokio::spawn(handle(socket, state.clone()));
+    }
+}`,
+    rule: 'fn /let mut/impl/pub/use/#[derive]',
+    color: '#DEA584'
+  },
+  Go: {
+    label: 'Go',
+    code: `// HTTP 中间件
+package middleware
+
+import (
+    "context"
+    "log"
+    "net/http"
+    "time"
+)
+
+type contextKey string
+
+func LoggingMiddleware(next http.Handler) http.Handler {
+    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+        start := time.Now()
+        defer func() {
+            log.Printf("%s %s %v", r.Method, r.URL.Path, time.Since(start))
+        }()
+        next.ServeHTTP(w, r)
+    })
+}`,
+    rule: 'func /package /import (/defer/go ',
+    color: '#00ADD8'
+  },
+  Java: {
+    label: 'Java',
+    code: `// 用户服务
+public class UserService {
+    private final UserRepository repository;
+    private final CacheManager cache;
+
+    public UserService(UserRepository repo, CacheManager cache) {
+        this.repository = repo;
+        this.cache = cache;
+    }
+
+    public Optional<User> findById(Long id) {
+        return Optional.ofNullable(
+            cache.get("user:" + id, () -> repository.findById(id))
+        );
+    }
+}`,
+    rule: 'public class/private/System.out/Optional',
+    color: '#ED8B00'
+  },
+  TypeScript: {
+    label: 'TypeScript',
+    code: `// 泛型工具类型
+interface ApiResponse<T> {
+  data: T;
+  status: number;
+  message: string;
+  timestamp: number;
+}
+
+type UserRole = "admin" | "editor" | "viewer";
+
+function fetchUsers<T extends { id: string }>(
+  endpoint: string
+): Promise<ApiResponse<T[]>> {
+  return fetch(\`/api/\${endpoint}\`)
+    .then(res => res.json())
+    .catch(err => {
+      console.error("请求失败:", err);
+      throw err;
+    });
+}`,
+    rule: 'interface/type X =/泛型<T>/类型标注',
+    color: '#3178C6'
+  },
+  'C/C++': {
+    label: 'C/C++',
+    code: `// 快速排序
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+void swap(int *a, int *b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+int partition(int arr[], int low, int high) {
+    int pivot = arr[high];
+    int i = (low - 1);
+    for (int j = low; j < high; j++) {
+        if (arr[j] <= pivot) {
+            i++;
+            swap(&arr[i], &arr[j]);
+        }
+    }
+    swap(&arr[i + 1], &arr[high]);
+    return (i + 1);
+}`,
+    rule: '#include/int main/printf/std::',
+    color: '#00599C'
+  },
+  SQL: {
+    label: 'SQL',
+    code: `-- 用户订单统计
+SELECT
+    u.id,
+    u.username,
+    COUNT(o.id) AS order_count,
+    SUM(o.total_price) AS total_spent,
+    MAX(o.created_at) AS last_order
+FROM users u
+LEFT JOIN orders o ON u.id = o.user_id
+WHERE u.status = 'active'
+  AND o.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+GROUP BY u.id, u.username
+HAVING order_count > 0
+ORDER BY total_spent DESC
+LIMIT 100;`,
+    rule: 'SELECT/INSERT/UPDATE/CREATE TABLE/JOIN',
+    color: '#4479A1'
+  },
+  'Bash/Shell': {
+    label: 'Bash/Shell',
+    code: `#!/bin/bash
+# 部署脚本
+set -euo pipefail
+
+APP_NAME="myapp"
+DEPLOY_DIR="/var/www/\${APP_NAME}"
+BACKUP_DIR="/tmp/backups"
+
+echo "🔧 开始部署 \${APP_NAME}..."
+
+# 备份当前版本
+if [ -d "\${DEPLOY_DIR}" ]; then
+    tar -czf "\${BACKUP_DIR}/\${APP_NAME}-\$(date +%Y%m%d-%H%M).tar.gz" "\${DEPLOY_DIR}"
+    echo "✅ 备份完成"
+fi
+
+# 构建
+cd /home/deploy/\${APP_NAME}
+npm ci --production
+npm run build
+
+# 重启服务
+sudo systemctl restart \${APP_NAME}
+echo "🚀 部署成功！"`,
+    rule: '#!/bin/npm /git /docker /cd /ls /命令前缀',
+    color: '#4EAA25'
+  },
+  JSON: {
+    label: 'JSON',
+    code: `{
+  "name": "clipboard-manager",
+  "version": "4.5.1",
+  "description": "剪贴板管理工具",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.3.0",
+    "framer-motion": "^11.0.0",
+    "lucide-react": "^0.400.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vite": "^5.4.0",
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}`,
+    rule: '{"key": 结构',
+    color: '#000000'
+  },
+  'HTML/XML': {
+    label: 'HTML/XML',
+    code: `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户仪表盘</title>
+  <link rel="stylesheet" href="/styles/main.css">
+</head>
+<body>
+  <div id="app">
+    <header class="navbar">
+      <h1>📊 数据看板</h1>
+      <nav>
+        <a href="/dashboard" class="active">概览</a>
+        <a href="/reports">报表</a>
+        <a href="/settings">设置</a>
+      </nav>
+    </header>
+    <main>
+      <section class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-value">12,847</span>
+          <span class="stat-label">活跃用户</span>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>`,
+    rule: '<!DOCTYPE/<html>/<div> 标签结构',
+    color: '#E34F26'
+  },
+  YAML: {
+    label: 'YAML',
+    code: `# GitHub Actions CI
+name: Build & Release
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: \${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test -- --coverage
+
+      - name: Build
+        run: npm run build`,
+    rule: 'key: 缩进结构/on:/jobs:/steps:',
+    color: '#CB171E'
+  },
+  CSS: {
+    label: 'CSS',
+    code: `/* 主题变量 */
+:root {
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}`,
+    rule: 'CSS 属性 { color:/margin:/padding: }',
+    color: '#1572B6'
+  },
+  Markdown: {
+    label: 'Markdown',
+    code: `# 剪贴板管理工具 v4.5
+
+> 跨平台剪贴板历史管理，支持文本、图片、文件
+
+## ✨ 核心功能
+
+- **实时监控** — 自动记录所有剪贴板内容
+- **智能分类** — 自动识别文本/链接/代码/邮件
+- **快速搜索** — 全文检索 + 拼音搜索
+- **代码高亮** — 支持 15+ 编程语言语法着色
+
+## 🚀 快速开始
+
+\`\`\`bash
+git clone https://github.com/user/clipboard-manager.git
+cd clipboard-manager
+npm install
+npm run tauri dev
+\`\`\`
+
+## 📋 快捷键
+
+| 快捷键 | 功能 |
+|--------|------|
+| \`Ctrl+Shift+V\` | 打开剪贴板面板 |
+| \`Space\` | 快速预览 |
+| \`Enter\` | 粘贴到当前窗口 |
+
+---
+
+**版本**: 4.5.1 · **平台**: Windows/macOS/Linux`,
+    rule: '# /## /**/` `/- /表格结构',
+    color: '#000000'
+  },
+  错误日志: {
+    label: '错误日志',
+    code: `[2026-06-27 23:15:42.831] [ERROR] [main] 数据库连接失败
+java.sql.SQLException: Connection refused (Connection refused)
+    at com.mysql.cj.jdbc.ConnectionImpl.<init>(ConnectionImpl.java:456)
+    at com.mysql.cj.jdbc.ConnectionImpl.getInstance(ConnectionImpl.java:245)
+    at com.mysql.cj.jdbc.NonRegisteringDriver.connect(NonRegisteringDriver.java:198)
+Caused by: java.net.ConnectException: Connection refused
+    at java.net.PlainSocketImpl.socketConnect(Native Method)
+    at java.net.AbstractPlainSocketImpl.doConnect(AbstractPlainSocketImpl.java:350)
+
+[2026-06-27 23:15:43.105] [WARN] [worker-3] 重试连接 (1/3)...
+[2026-06-27 23:15:44.211] [ERROR] [worker-3] 重试失败: 超时
+Exception in thread "main" org.springframework.boot.SpringApplication: 启动失败`,
+    rule: '时间戳 + ERROR/WARN/Exception/Traceback',
+    color: '#FF3B30'
+  }
+};
+
+// ========== 渲染语言标签 ==========
+const langTabs = document.getElementById('langTabs');
+const langGrid = document.getElementById('langGrid');
+const previewRow = document.getElementById('previewRow');
+const langKeys = Object.keys(samples);
+
+langKeys.forEach((key, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'lang-tab' + (i === 0 ? ' active' : '');
+  btn.textContent = key;
+  btn.onclick = () => {
+    document.querySelectorAll('.lang-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderPreview(key);
+  };
+  langTabs.appendChild(btn);
+});
+
+// 渲染支持语言网格
+langKeys.forEach(key => {
+  const s = samples[key];
+  const chip = document.createElement('div');
+  chip.className = 'lang-chip';
+  chip.innerHTML = `<span class="dot" style="background:${s.color}"></span>${s.label}<span style="margin-left:auto;font-size:10px;color:var(--text-muted)">${s.rule}</span>`;
+  langGrid.appendChild(chip);
+});
+
+// ========== 渲染预览弹窗 ==========
+function renderPreview(langKey) {
+  const s = samples[langKey];
+  const lines = s.code.split('\n');
+
+  const lineNumbers = lines.map((_, i) => `<span class="code-ln">${i + 1}</span>`).join('');
+
+  previewRow.innerHTML = `
+    <!-- 只读预览 QuickPreview -->
+    <div class="dialog-box">
+      <div class="dialog-header">
+        <h2 class="dialog-title">📄 快速预览</h2>
+        <button class="dialog-close">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="code-meta-bar">
+          <div class="code-meta-left">
+            <div class="code-meta-item"><span class="code-meta-label">行</span><span class="code-meta-val">${lines.length}</span></div>
+            <div class="code-meta-item"><span class="code-meta-label">字符</span><span class="code-meta-val">${s.code.length}</span></div>
+          </div>
+          <div class="code-lang-badge">💻 ${s.label}</div>
+        </div>
+        <div class="code-viewer">
+          <div class="code-lines">${lineNumbers}</div>
+          <pre class="code-text"><code class="language-${getHighlightLang(langKey)}">${escapeHtml(s.code)}</code></pre>
+        </div>
+        <div class="code-actions-bar">
+          <span style="font-size:10px;color:var(--text-muted)">Space / Esc 关闭 · 可选中文本</span>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button class="btn-ghost">📋 复制</button>
+            <button class="btn-ghost">📌 粘贴</button>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <span style="font-size:10px;color:var(--text-muted)">来自 VS Code · 刚刚</span>
+        <span></span>
+      </div>
+    </div>
+
+    <!-- 编辑模式 EditDialog -->
+    <div class="dialog-box">
+      <div class="dialog-header">
+        <h2 class="dialog-title">✏️ 编辑记录</h2>
+        <button class="dialog-close">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div class="code-meta-bar">
+          <div class="code-meta-left">
+            <div class="code-meta-item"><span class="code-meta-label">行</span><span class="code-meta-val">${lines.length}</span></div>
+            <div class="code-meta-item"><span class="code-meta-label">字符</span><span class="code-meta-val">${s.code.length}</span></div>
+          </div>
+          <div class="code-lang-badge">💻 ${s.label}</div>
+        </div>
+        <div class="edit-code-area">
+          <div class="code-lines">${lineNumbers}</div>
+          <textarea class="code-textarea" spellcheck="false">${escapeHtml(s.code)}</textarea>
+        </div>
+        <div class="edit-toolbar">
+          <button class="tool-btn">🔠 大写</button>
+          <button class="tool-btn">🔡 小写</button>
+          <button class="tool-btn">✂️ 去空白</button>
+          <button class="tool-btn">📐 去空行</button>
+          <button class="tool-btn">💬 加引号</button>
+          <div class="tool-separator"></div>
+          <button class="tool-btn">↩️ 撤销</button>
+          <button class="tool-btn">↪️ 重做</button>
+          <button class="tool-hint">对比原文 ▾</button>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <span style="font-size:10px;color:var(--text-muted)">Ctrl+Enter 保存 · Esc 取消</span>
+        <div style="display:flex;gap:4px;flex-shrink:0;align-items:center">
+          <button class="btn-ghost">📋 复制</button>
+          <button class="btn-ghost">📌 粘贴</button>
+          <button class="btn-ghost">⭐ 存片段</button>
+          <button class="btn-primary">💾 保存</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // highlight.js 重新高亮
+  document.querySelectorAll('pre code').forEach(block => {
+    hljs.highlightElement(block);
+  });
+}
+
+function escapeHtml(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function getHighlightLang(key) {
+  const map = {
+    'JavaScript': 'javascript',
+    'TypeScript': 'typescript',
+    'Python': 'python',
+    'Rust': 'rust',
+    'Go': 'go',
+    'Java': 'java',
+    'C/C++': 'cpp',
+    'SQL': 'sql',
+    'Bash/Shell': 'bash',
+    'JSON': 'json',
+    'HTML/XML': 'xml',
+    'YAML': 'yaml',
+    'CSS': 'css',
+    'Markdown': 'markdown',
+    '错误日志': 'plaintext'
+  };
+  return map[key] || 'plaintext';
+}
+
+// 初始渲染
+renderPreview('JavaScript');
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+</body>
+</html>

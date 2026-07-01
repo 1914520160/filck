@@ -1270,7 +1270,8 @@ button:disabled,
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-.spin-icon {
+.spin-icon,
+.spin {
   animation: spin 1s linear infinite;
 }
 
@@ -1480,6 +1481,9 @@ button:disabled,
 
 .dialog-box.w500 { width: 420px; max-height: 80vh; }
 .dialog-box.w480 { width: 380px; max-height: 70vh; }
+
+/* 关于页弹窗 — 更高，内容无需滚动 */
+.dialog-box.about-dialog { max-height: 85vh; }
 .dialog-box.w460 { width: 460px; max-height: 78vh; }
 
 /* ===== 文字详情：代码查看器（QuickPreview + EditDialog 共用） ===== */

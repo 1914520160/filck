@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>搜索+筛选+今日 — 合并方案</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "SF Pro Text", "Microsoft YaHei", system-ui, sans-serif;
+    background: #F5F5F7;
+    color: #1D1D1F;
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+    gap: 32px;
+    flex-wrap: wrap;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .phone-frame {
+    width: 400px;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+    flex-shrink: 0;
+  }
+
+  .label {
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #86868B;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== 方案 A: 搜索框+筛选+今日 统一容器 ===== */
+  .header-a {
+    padding: 12px 16px 0;
+    background: #fff;
+  }
+  .search-a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: #F5F5F7;
+    border: 1.5px solid transparent;
+  }
+  .search-a .icon { color: #AEAEB2; font-size: 14px; }
+  .search-a input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    color: #1D1D1F;
+    font-family: inherit;
+  }
+  .search-a input::placeholder { color: #AEAEB2; }
+  .search-a .clear { color: #AEAEB2; font-size: 14px; cursor: pointer; }
+
+  .tabs-a {
+    display: flex;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .tab-a {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 0;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: #86868B;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .tab-a.active {
+    background: #EBF3FE;
+    color: #0078D4;
+    font-weight: 600;
+  }
+  .tab-a .tab-count {
+    font-size: 10px;
+    font-weight: 700;
+    color: #AEAEB2;
+  }
+  .tab-a.active .tab-count { color: #0078D4; }
+  .tab-a.today-tab {
+    background: #E8F1FB;
+    color: #0078D4;
+    font-weight: 600;
+  }
+  .tab-a.today-tab .tab-count {
+    background: #0078D4;
+    color: #fff;
+    padding: 1px 5px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+
+  /* ===== 方案 B: 搜索框内嵌今日 + 筛选等宽 ===== */
+  .header-b {
+    padding: 12px 16px 0;
+    background: #fff;
+  }
+  .search-b-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .search-b {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: #F5F5F7;
+    border: 1.5px solid transparent;
+    flex: 1;
+  }
+  .search-b .icon { color: #AEAEB2; font-size: 14px; }
+  .search-b input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    color: #1D1D1F;
+    font-family: inherit;
+  }
+  .search-b input::placeholder { color: #AEAEB2; }
+  .search-b .clear { color: #AEAEB2; font-size: 14px; cursor: pointer; }
+
+  .today-b-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: #E8F1FB;
+    flex-shrink: 0;
+    height: 38px;
+  }
+  .today-b-badge .num {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0078D4;
+    font-variant-numeric: tabular-nums;
+  }
+  .today-b-badge .label-text {
+    font-size: 10px;
+    font-weight: 600;
+    color: #0078D4;
+  }
+
+  .tabs-b {
+    display: flex;
+    gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .tab-b {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 0;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: #86868B;
+    transition: all 0.15s;
+  }
+  .tab-b.active {
+    background: #EBF3FE;
+    color: #0078D4;
+    font-weight: 600;
+  }
+  .tab-b .tab-count {
+    font-size: 10px;
+    font-weight: 700;
+    color: #AEAEB2;
+  }
+  .tab-b.active .tab-count { color: #0078D4; }
+
+  /* ===== 卡片占位 ===== */
+  .card-placeholder {
+    margin: 8px 16px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #E5E5EA;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .card-icon-ph {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #F5F5F7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #AEAEB2;
+    flex-shrink: 0;
+  }
+  .card-text-ph { flex: 1; }
+  .card-title-ph { font-size: 13px; font-weight: 600; color: #1D1D1F; }
+  .card-sub-ph { font-size: 11px; color: #86868B; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<!-- 方案 A: 搜索框+筛选等宽+今日追加为第6个标签 -->
+<div>
+  <div class="label">方案 A · 筛选追加"今日"标签</div>
+  <div class="phone-frame">
+    <div class="header-a">
+      <div class="search-a">
+        <span class="icon">🔍</span>
+        <input type="text" placeholder="搜索剪贴板..." />
+        <span class="clear">✕</span>
+      </div>
+      <div class="tabs-a">
+        <button class="tab-a active">全部 <span class="tab-count">52</span></button>
+        <button class="tab-a">文本 <span class="tab-count">47</span></button>
+        <button class="tab-a">图片 <span class="tab-count">5</span></button>
+        <button class="tab-a">文件 <span class="tab-count">0</span></button>
+        <button class="tab-a">收藏 <span class="tab-count">0</span></button>
+        <button class="tab-a today-tab">今日 <span class="tab-count">12</span></button>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📋</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">nc.bs.so.m30.rule.rewrite...</div>
+        <div class="card-sub-ph">aier · 刚刚</div>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📝</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">CheckWithdrawNumRule</div>
+        <div class="card-sub-ph">aier · 刚刚</div>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph" style="background:#F3E8FF;color:#8B5CF6">T</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">事业待办</div>
+        <div class="card-sub-ph">剪贴板管理 v4.0.0 · 1分钟前</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 方案 B: 搜索框右侧今日徽章 + 筛选5标签等宽 -->
+<div>
+  <div class="label">方案 B · 搜索框右侧今日徽章</div>
+  <div class="phone-frame">
+    <div class="header-b">
+      <div class="search-b-row">
+        <div class="search-b">
+          <span class="icon">🔍</span>
+          <input type="text" placeholder="搜索剪贴板..." />
+          <span class="clear">✕</span>
+        </div>
+        <div class="today-b-badge">
+          <span class="num">12</span>
+          <span class="label-text">今日</span>
+        </div>
+      </div>
+      <div class="tabs-b">
+        <button class="tab-b active">全部 <span class="tab-count">52</span></button>
+        <button class="tab-b">文本 <span class="tab-count">47</span></button>
+        <button class="tab-b">图片 <span class="tab-count">5</span></button>
+        <button class="tab-b">文件 <span class="tab-count">0</span></button>
+        <button class="tab-b">收藏 <span class="tab-count">0</span></button>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📋</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">nc.bs.so.m30.rule.rewrite...</div>
+        <div class="card-sub-ph">aier · 刚刚</div>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph">📝</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">CheckWithdrawNumRule</div>
+        <div class="card-sub-ph">aier · 刚刚</div>
+      </div>
+    </div>
+    <div class="card-placeholder">
+      <div class="card-icon-ph" style="background:#F3E8FF;color:#8B5CF6">T</div>
+      <div class="card-text-ph">
+        <div class="card-title-ph">事业待办</div>
+        <div class="card-sub-ph">剪贴板管理 v4.0.0 · 1分钟前</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

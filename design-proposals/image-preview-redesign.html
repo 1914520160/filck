@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片预览 - 统一风格设计稿</title>
+<style>
+  /* ===== 主题变量（对齐 app.css） ===== */
+  :root {
+    --app-bg: #F5F5F7;
+    --card-bg: #fff;
+    --card-border: #E5E5EA;
+    --text-primary: #1D1D1F;
+    --text-secondary: #86868B;
+    --text-muted: #AEAEB2;
+    --border-color: #E5E5EA;
+    --accent: #007AFF;
+    --dialog-bg: #fff;
+    --section-bg: #F5F5F7;
+  }
+  .dark {
+    --app-bg: #1C1C1E;
+    --card-bg: #2C2C2E;
+    --card-border: #3A3A3C;
+    --text-primary: #F5F5F7;
+    --text-secondary: #AEAEB2;
+    --text-muted: #98989D;
+    --border-color: #3A3A3C;
+    --accent: #0A84FF;
+    --dialog-bg: #2C2C2E;
+    --section-bg: #232325;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--app-bg);
+    min-height: 100vh;
+    transition: background 0.3s;
+  }
+
+  /* ===== 页面头部 ===== */
+  .page-header {
+    padding: 24px 40px 0;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .page-header h1 { font-size: 18px; font-weight: 700; color: var(--text-primary); }
+  .theme-toggle {
+    padding: 6px 14px; border-radius: 8px; border: 1px solid var(--border-color);
+    background: var(--card-bg); color: var(--text-secondary); font-size: 12px;
+    cursor: pointer; font-family: inherit; transition: all 0.2s;
+  }
+  .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ===== 卡片网格模拟 ===== */
+  .card-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px; padding: 24px 40px;
+  }
+  .card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: 12px; padding: 16px; cursor: pointer; transition: all 0.15s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card-thumb {
+    width: 100%; height: 140px; border-radius: 8px; object-fit: cover;
+    background: var(--section-bg); display: flex; align-items: center; justify-content: center;
+    font-size: 40px; color: var(--text-muted); margin-bottom: 10px;
+  }
+  .card-name { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .card-meta { font-size: 11px; color: var(--text-muted); }
+
+  /* ===== Dialog 遮罩 ===== */
+  .dialog-backdrop {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(0,0,0,0.35); backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== Dialog 盒子 ===== */
+  .dialog-box {
+    background: var(--dialog-bg); border-radius: 16px; overflow: hidden;
+    display: flex; flex-direction: column;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .dialog-box.w680 { width: 680px; max-height: 88vh; }
+
+  /* ===== Dialog Header ===== */
+  .dialog-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 48px; flex-shrink: 0;
+    border-bottom: 1px solid var(--border-color);
+    transition: border-color 0.3s;
+  }
+  .dialog-title { font-size: 15px; font-weight: 600; color: var(--text-primary); }
+  .dialog-close {
+    width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; cursor: pointer; border: none; background: transparent;
+    color: var(--text-secondary); transition: background 0.15s; font-size: 14px;
+  }
+  .dialog-close:hover { background: var(--section-bg); }
+
+  /* ===== Dialog Body ===== */
+  .dialog-body {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+
+  /* ===== Dialog Footer ===== */
+  .dialog-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; height: 48px; flex-shrink: 0;
+    border-top: 1px solid var(--border-color);
+    transition: border-color 0.3s;
+  }
+
+  /* ===== 按钮样式 ===== */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; font-family: inherit; transition: all 0.15s; border: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-secondary {
+    background: var(--card-bg); color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+  }
+  .btn-secondary:hover { background: var(--section-bg); }
+  .btn-ghost {
+    background: transparent; color: var(--text-secondary); border: none;
+    padding: 6px 10px;
+  }
+  .btn-ghost:hover { background: var(--section-bg); }
+
+  /* ===== 图片预览内信息行 ===== */
+  .preview-meta-row {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  }
+  .preview-meta-tag {
+    font-size: 11px; color: var(--text-muted); padding: 2px 8px;
+    border-radius: 4px; background: var(--section-bg);
+    font-variant-numeric: tabular-nums;
+  }
+  .preview-meta-tag.accent {
+    color: var(--accent); background: rgba(0,122,255,0.08);
+  }
+  .dark .preview-meta-tag.accent { background: rgba(10,132,255,0.12); }
+
+  /* ===== 图片查看区 ===== */
+  .preview-viewport {
+    position: relative; border-radius: 10px; overflow: hidden;
+    background: var(--section-bg); border: 1px solid var(--border-color);
+    min-height: 320px; display: flex; align-items: center; justify-content: center;
+    transition: background 0.3s, border-color 0.3s;
+    cursor: grab;
+  }
+  .preview-viewport img {
+    max-width: 100%; max-height: 55vh; object-fit: contain;
+    border-radius: 4px; user-select: none; pointer-events: none;
+  }
+
+  /* ===== 工具栏（在图片区上方） ===== */
+  .preview-toolbar {
+    display: flex; align-items: center; gap: 4px;
+    padding: 6px 10px; border-radius: 10px;
+    background: var(--section-bg); border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .preview-toolbar .tool-btn {
+    width: 32px; height: 32px; border-radius: 8px; border: none;
+    background: transparent; color: var(--text-secondary); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; transition: all 0.15s;
+  }
+  .preview-toolbar .tool-btn:hover { background: var(--card-bg); color: var(--text-primary); }
+  .preview-toolbar .tool-btn.active { background: var(--accent); color: #fff; }
+  .preview-zoom-label {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    min-width: 40px; text-align: center; font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+
+  /* ===== 底部提示 ===== */
+  .preview-hint {
+    font-size: 10px; color: var(--text-muted); user-select: none;
+  }
+
+  /* ===== 缩放滑条 ===== */
+  .zoom-slider {
+    -webkit-appearance: none; width: 80px; height: 4px;
+    border-radius: 2px; background: var(--border-color); outline: none;
+    cursor: pointer; margin: 0 4px;
+  }
+  .zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; border: 2px solid var(--dialog-bg);
+  }
+
+  /* ===== 切换按钮组 ===== */
+  .toggle-group {
+    display: flex; gap: 8px; margin-bottom: 24px;
+  }
+  .toggle-btn {
+    padding: 8px 20px; border-radius: 8px; border: 1px solid var(--border-color);
+    background: var(--card-bg); color: var(--text-secondary); font-size: 13px;
+    cursor: pointer; font-family: inherit; font-weight: 600; transition: all 0.2s;
+  }
+  .toggle-btn:hover { border-color: var(--accent); }
+  .toggle-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ===== 对比布局 ===== */
+  .compare-section { padding: 0 40px 40px; }
+  .compare-label { font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 12px; }
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .compare-item {
+    background: var(--section-bg); border-radius: 16px; padding: 24px;
+    border: 1px solid var(--border-color);
+  }
+  .compare-item h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; }
+  .compare-item .mini-preview {
+    background: var(--dialog-bg); border-radius: 12px; overflow: hidden;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .mini-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; height: 40px; border-bottom: 1px solid var(--border-color);
+  }
+  .mini-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+  .mini-close { width: 24px; height: 24px; border-radius: 6px; border: none; background: transparent; color: var(--text-muted); cursor: pointer; font-size: 12px; }
+  .mini-body { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .mini-viewport {
+    background: var(--section-bg); border-radius: 8px; border: 1px solid var(--border-color);
+    height: 200px; display: flex; align-items: center; justify-content: center;
+    font-size: 48px; color: var(--text-muted);
+  }
+  .mini-toolbar {
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  .mini-tbtn {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border-color);
+    background: var(--card-bg); color: var(--text-secondary); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; font-size: 12px;
+    transition: all 0.15s;
+  }
+  .mini-tbtn:hover { border-color: var(--accent); color: var(--accent); }
+  .mini-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; height: 38px; border-top: 1px solid var(--border-color);
+  }
+  .mini-hint { font-size: 10px; color: var(--text-muted); }
+  .mini-btn {
+    padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600;
+    cursor: pointer; border: none; font-family: inherit;
+  }
+  .mini-btn-pri { background: var(--accent); color: #fff; }
+  .mini-btn-sec { background: var(--card-bg); color: var(--text-secondary); border: 1px solid var(--border-color); }
+
+  /* 旧版模拟 */
+  .old-preview {
+    background: rgba(0,0,0,0.6); border-radius: 12px; overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+  }
+  .old-toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  .old-toolbar .old-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .old-toolbar .old-meta { font-size: 11px; color: rgba(255,255,255,0.5); margin-left: 12px; }
+  .old-toolbar .old-btn {
+    width: 30px; height: 30px; border-radius: 6px; border: none;
+    background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); cursor: pointer;
+    font-size: 12px; display: inline-flex; align-items: center; justify-content: center;
+    margin-left: 4px;
+  }
+  .old-viewport {
+    background: rgba(0,0,0,0.2); height: 200px; display: flex; align-items: center;
+    justify-content: center; font-size: 48px; color: rgba(255,255,255,0.3);
+  }
+  .old-hint {
+    padding: 8px 20px; text-align: center; font-size: 11px;
+    color: rgba(255,255,255,0.3); background: rgba(0,0,0,0.25);
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .divider { border: none; border-top: 1px solid var(--border-color); margin: 24px 0; }
+</style>
+</head>
+<body>
+  <!-- 页面头部 -->
+  <div class="page-header">
+    <h1>🖼 图片预览 — 风格统一设计稿</h1>
+    <button class="theme-toggle" onclick="document.body.classList.toggle('dark')">切换深色/浅色</button>
+  </div>
+
+  <!-- 卡片网格 -->
+  <div class="card-grid">
+    <div class="card" style="opacity:0.5"><div class="card-thumb">🖼</div><div class="card-name">screenshot.png</div><div class="card-meta">1920×1080 · 1.2 MB</div></div>
+    <div class="card" style="opacity:0.5"><div class="card-thumb">📄</div><div class="card-name">document.pdf</div><div class="card-meta">3.4 MB · 2 分钟前</div></div>
+    <div class="card" style="opacity:0.5"><div class="card-thumb">📝</div><div class="card-name">笔记文本…</div><div class="card-meta">256 字符 · 5 分钟前</div></div>
+  </div>
+
+  <!-- 弹窗遮罩 -->
+  <div class="dialog-backdrop">
+    <div class="dialog-box w680">
+      <!-- Header — 标准 dialog 结构 -->
+      <div class="dialog-header">
+        <span class="dialog-title">🖼 图片详情</span>
+        <button class="dialog-close">✕</button>
+      </div>
+
+      <!-- Body -->
+      <div class="dialog-body">
+        <!-- 图片元信息标签行 -->
+        <div class="preview-meta-row">
+          <span class="preview-meta-tag accent">📄 screenshot_2026.png</span>
+          <span class="preview-meta-tag">1920 × 1080</span>
+          <span class="preview-meta-tag">1.2 MB</span>
+          <span class="preview-meta-tag">PNG 图片</span>
+          <span class="preview-meta-tag">来自剪贴板</span>
+        </div>
+
+        <!-- 工具栏 -->
+        <div class="preview-toolbar">
+          <button class="tool-btn" title="缩小">−</button>
+          <span class="preview-zoom-label">100%</span>
+          <button class="tool-btn" title="放大">+</button>
+          <input type="range" class="zoom-slider" min="20" max="500" value="100" title="缩放滑条">
+          <button class="tool-btn" title="适应窗口">⊡</button>
+          <button class="tool-btn" title="旋转">↻</button>
+          <button class="tool-btn" title="1:1 原始大小">1:1</button>
+        </div>
+
+        <!-- 图片查看区 -->
+        <div class="preview-viewport">
+          <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='380'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%234f46e5'/%3E%3Cstop offset='100%25' style='stop-color:%237c3aed'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='600' height='380' fill='url(%23g)' rx='8'/%3E%3Ctext x='300' y='175' text-anchor='middle' fill='white' font-size='48' font-family='system-ui'%3E🖼%3C/text%3E%3Ctext x='300' y='215' text-anchor='middle' fill='rgba(255,255,255,0.7)' font-size='14' font-family='system-ui'%3Escreenshot_2026.png%3C/text%3E%3Ctext x='300' y='240' text-anchor='middle' fill='rgba(255,255,255,0.5)' font-size='11' font-family='system-ui'%3E1920 × 1080 · 1.2 MB%3C/text%3E%3C/svg%3E" alt="预览图">
+        </div>
+      </div>
+
+      <!-- Footer — 操作按钮居左，提示文字居右 -->
+      <div class="dialog-footer">
+        <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+          <button class="btn btn-primary">📋 复制</button>
+          <button class="btn btn-secondary">💾 另存</button>
+        </div>
+        <span class="preview-hint" style="margin-left:16px">滚轮平移 · Ctrl+滚轮缩放 · +/- 缩放 · 0 重置</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider" style="margin:40px">
+
+  <!-- ===== 对比区域 ===== -->
+  <div class="compare-section">
+    <div class="compare-label" style="margin-bottom:16px;font-size:15px;color:var(--text-primary);">📊 新旧对比</div>
+    <div class="compare-grid">
+      <!-- 新版 -->
+      <div class="compare-item">
+        <h3>✅ 新版（统一 dialog 框架）</h3>
+        <div class="mini-preview">
+          <div class="mini-header">
+            <span class="mini-title">🖼 图片详情</span>
+            <button class="mini-close">✕</button>
+          </div>
+          <div class="mini-body">
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <span style="font-size:10px;color:var(--text-muted);padding:1px 6px;border-radius:4px;background:var(--section-bg)">📄 screen.png</span>
+              <span style="font-size:10px;color:var(--text-muted);padding:1px 6px;border-radius:4px;background:var(--section-bg)">1920×1080</span>
+              <span style="font-size:10px;color:var(--accent);padding:1px 6px;border-radius:4px;background:rgba(0,122,255,0.08)">1.2 MB</span>
+            </div>
+            <div class="mini-toolbar">
+              <button class="mini-tbtn">−</button>
+              <span style="font-size:10px;color:var(--text-muted);min-width:32px;text-align:center">100%</span>
+              <button class="mini-tbtn">+</button>
+              <button class="mini-tbtn">⊡</button>
+              <button class="mini-tbtn">↻</button>
+            </div>
+            <div class="mini-viewport">🖼</div>
+          </div>
+          <div class="mini-footer">
+            <div style="display:flex;gap:4px;align-items:center;flex-shrink:0">
+              <button class="mini-btn mini-btn-pri">复制</button>
+              <button class="mini-btn mini-btn-sec">另存</button>
+            </div>
+            <span class="mini-hint">滚轮平移 · Ctrl+缩放</span>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--text-secondary);line-height:1.6">
+          ✅ 跟随主题色（浅色/深色）<br>
+          ✅ 标准 Header/Footer 结构<br>
+          ✅ 按钮风格与其他弹窗一致<br>
+          ✅ 圆角 16px 卡片感
+        </div>
+      </div>
+
+      <!-- 旧版 -->
+      <div class="compare-item">
+        <h3>❌ 旧版（硬编码深色）</h3>
+        <div class="old-preview">
+          <div class="old-toolbar">
+            <div style="display:flex;align-items:center">
+              <span class="old-name">screenshot.png</span>
+              <span class="old-meta">1920×1080 · 1.2 MB</span>
+            </div>
+            <div>
+              <button class="old-btn">−</button>
+              <button class="old-btn">+</button>
+              <button class="old-btn">⊡</button>
+              <button class="old-btn">↻</button>
+              <button class="old-btn">✕</button>
+            </div>
+          </div>
+          <div class="old-viewport">🖼</div>
+          <div class="old-hint">点击背景或 ESC 关闭 · Ctrl+滚轮缩放</div>
+        </div>
+        <div style="margin-top:12px;font-size:11px;color:var(--text-secondary);line-height:1.6">
+          ❌ 不跟随主题，浅色下突兀<br>
+          ❌ 无标准 Header/Footer 框架<br>
+          ❌ 按钮硬编码白色半透明<br>
+          ❌ 与其他弹窗风格割裂
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

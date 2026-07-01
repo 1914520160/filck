@@ -1,15 +1,68 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, FolderOpen, Copy, ExternalLink } from "lucide-react";
+import { X, FolderOpen, Copy, ExternalLink, Loader } from "lucide-react";
 import { useToast } from "@/components/Toast";
 import { relativeTime } from "@/lib/utils";
 import { HistoryItem } from "@/stores/appStore";
 
+// 预加载 Tauri API 模块
+let _invoke: any = null;
+let _openUrl: any = null;
+const preloadApi = async () => {
+  if (!_invoke) {
+    const core = await import("@tauri-apps/api/core");
+    _invoke = core.invoke;
+  }
+  if (!_openUrl) {
+    const opener = await import("@tauri-apps/plugin-opener");
+    _openUrl = opener.openUrl;
+  }
+};
+
+// 根据文件扩展名返回图标
+function getFileIcon(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const map: Record<string, string> = {
+    pdf: "📕", doc: "📘", docx: "📘", xls: "📗", xlsx: "📗",
+    ppt: "📙", pptx: "📙", txt: "📄", md: "📝",
+    png: "🖼️", jpg: "🖼️", jpeg: "🖼️", gif: "🖼️", webp: "🖼️", bmp: "🖼️", svg: "🖼️",
+    mp4: "🎬", avi: "🎬", mkv: "🎬", mov: "🎬", wmv: "🎬",
+    mp3: "🎵", wav: "🎵", flac: "🎵", aac: "🎵",
+    zip: "📦", rar: "📦", "7z": "📦", tar: "📦", gz: "📦",
+    exe: "⚙️", msi: "⚙️", dll: "⚙️",
+    html: "🌐", css: "🎨", js: "📜", ts: "📜", jsx: "📜", tsx: "📜",
+    py: "🐍", rs: "🦀", go: "🔷", java: "☕", cpp: "⚡", c: "⚡",
+    json: "📋", xml: "📋", yaml: "📋", yml: "📋", toml: "📋",
+  };
+  return map[ext] || "📄";
+}
+
+// 文件图标颜色映射
+function getFileIconColor(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
+  const map: Record<string, string> = {
+    pdf: "linear-gradient(135deg, #EF4444, #DC2626)",
+    doc: "linear-gradient(135deg, #3B82F6, #2563EB)", docx: "linear-gradient(135deg, #3B82F6, #2563EB)",
+    xls: "linear-gradient(135deg, #10B981, #059669)", xlsx: "linear-gradient(135deg, #10B981, #059669)",
+    ppt: "linear-gradient(135deg, #F59E0B, #D97706)", pptx: "linear-gradient(135deg, #F59E0B, #D97706)",
+    png: "linear-gradient(135deg, #8B5CF6, #7C3AED)", jpg: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
+    jpeg: "linear-gradient(135deg, #8B5CF6, #7C3AED)", gif: "linear-gradient(135deg, #8B5CF6, #7C3AED)",
+    mp4: "linear-gradient(135deg, #EC4899, #DB2777)", mp3: "linear-gradient(135deg, #14B8A6, #0D9488)",
+    zip: "linear-gradient(135deg, #78716C, #57534E)",
+  };
+  return map[ext] || "linear-gradient(135deg, #06B6D4, #0078D4)";
+}
+
 export function FileDetailDialog({ item, onClose }: { item: HistoryItem; onClose: () => void }) {
   const { toast } = useToast();
   const [fileInfo, setFileInfo] = useState<{ size: number; exists: boolean } | null>(null);
+  const [openingFile, setOpeningFile] = useState(false);
+  const [openingFolder, setOpeningFolder] = useState(false);
+  const [apiReady, setApiReady] = useState(false);
 
+  // 预加载 API + 获取文件信息
   useEffect(() => {
+    preloadApi().then(() => setApiReady(true));
     async function getInfo() {
       try {
         const { invoke } = await import("@tauri-apps/api/core");
@@ -22,26 +75,37 @@ export function FileDetailDialog({ item, onClose }: { item: HistoryItem; onClose
     if (item?.content) getInfo();
   }, [item]);
 
-  const handleCopyPath = async () => {
+  const handleCopyPath = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(item.content);
       toast("路径已复制", "success");
     } catch { toast("复制失败", "error"); }
-  };
+  }, [item.content, toast]);
 
-  const handleOpenFile = async () => {
+  const handleOpenFile = useCallback(async () => {
+    if (openingFile || !fileInfo?.exists) return;
+    setOpeningFile(true);
     try {
-      const { openUrl } = await import("@tauri-apps/plugin-opener");
-      await openUrl(item.content);
-    } catch { toast("无法打开文件", "error"); }
-  };
+      await _invoke("open_file_with_system", { path: item.content });
+      toast(`已打开 ${fileName}`, "success");
+    } catch (e: any) {
+      toast(e?.toString?.() || "无法打开文件", "error");
+    } finally {
+      setOpeningFile(false);
+    }
+  }, [item.content, openingFile, fileInfo, toast]);
 
-  const handleOpenFolder = async () => {
+  const handleOpenFolder = useCallback(async () => {
+    if (openingFolder || !fileInfo?.exists) return;
+    setOpeningFolder(true);
     try {
-      const { invoke } = await import("@tauri-apps/api/core");
-      await invoke("open_file_location", { path: item.content });
-    } catch { toast("无法打开文件夹", "error"); }
-  };
+      await _invoke("open_file_location", { path: item.content });
+    } catch (e: any) {
+      toast(e?.toString?.() || "无法打开文件夹", "error");
+    } finally {
+      setOpeningFolder(false);
+    }
+  }, [item.content, openingFolder, fileInfo, toast]);
 
   const formatSize = (bytes: number) => {
     if (bytes === 0) return "未知";
@@ -55,6 +119,10 @@ export function FileDetailDialog({ item, onClose }: { item: HistoryItem; onClose
   const fileName = item.content?.split(/[\\/]/).pop() || "文件";
   const filePath = item.content || "";
   const time = relativeTime(item.time);
+  const fileExists = fileInfo?.exists === true;
+  const fileMissing = fileInfo?.exists === false;
+  const fileIcon = getFileIcon(fileName);
+  const iconColor = getFileIconColor(fileName);
 
   if (!item) return null;
 
@@ -73,7 +141,7 @@ export function FileDetailDialog({ item, onClose }: { item: HistoryItem; onClose
 
           {/* Header */}
           <div className="dialog-header">
-            <h2 className="dialog-title">📄 文件详情</h2>
+            <h2 className="dialog-title">文件详情</h2>
             <button onClick={onClose} className="dialog-close"><X size={16} /></button>
           </div>
 
@@ -83,16 +151,16 @@ export function FileDetailDialog({ item, onClose }: { item: HistoryItem; onClose
             <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
               <div style={{
                 width: 48, height: 48, borderRadius: 12,
-                background: "linear-gradient(135deg, #06B6D4, #0078D4)",
+                background: iconColor,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 22, flexShrink: 0,
-              }}>📄</div>
+              }}>{fileIcon}</div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {fileName}
                 </div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>
-                  {fileInfo ? (fileInfo.exists ? "文件存在" : "⚠ 文件不存在") : "检查中…"}
+                <div style={{ fontSize: 11, marginTop: 2, color: fileMissing ? "var(--danger, #EF4444)" : "var(--text-muted)" }}>
+                  {fileInfo === null ? "检查中…" : fileExists ? "✓ 文件正常" : "⚠ 文件不存在或已移动"}
                 </div>
               </div>
             </div>
@@ -107,9 +175,24 @@ export function FileDetailDialog({ item, onClose }: { item: HistoryItem; onClose
 
             {/* 操作按钮 */}
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <FileActionBtn icon={<ExternalLink size={14} />} label="打开文件" onClick={handleOpenFile} primary />
-              <FileActionBtn icon={<FolderOpen size={14} />} label="打开文件夹" onClick={handleOpenFolder} />
-              <FileActionBtn icon={<Copy size={14} />} label="复制路径" onClick={handleCopyPath} />
+              <FileActionBtn
+                icon={openingFile ? <Loader size={14} className="spin" /> : <ExternalLink size={14} />}
+                label={openingFile ? "打开中…" : "打开文件"}
+                onClick={handleOpenFile}
+                primary
+                disabled={!fileExists || openingFile}
+              />
+              <FileActionBtn
+                icon={openingFolder ? <Loader size={14} className="spin" /> : <FolderOpen size={14} />}
+                label={openingFolder ? "打开中…" : "打开文件夹"}
+                onClick={handleOpenFolder}
+                disabled={!fileExists || openingFolder}
+              />
+              <FileActionBtn
+                icon={<Copy size={14} />}
+                label="复制路径"
+                onClick={handleCopyPath}
+              />
             </div>
           </div>
 
@@ -137,16 +220,19 @@ function InfoRow({ label, value, mono }: { label: string; value: string; mono?: 
   );
 }
 
-function FileActionBtn({ icon, label, onClick, primary }: { icon: React.ReactNode; label: string; onClick: () => void; primary?: boolean }) {
+function FileActionBtn({ icon, label, onClick, primary, disabled }: {
+  icon: React.ReactNode; label: string; onClick: () => void; primary?: boolean; disabled?: boolean;
+}) {
   return (
-    <button onClick={onClick} style={{
+    <button onClick={onClick} disabled={disabled} style={{
       display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 8,
       border: primary ? "none" : "1px solid var(--border-color)",
-      background: primary ? "var(--accent)" : "var(--card-bg)",
-      color: primary ? "#fff" : "var(--text-secondary)",
-      fontSize: 12, fontWeight: 600, cursor: "pointer",
+      background: primary ? (disabled ? "var(--text-muted)" : "var(--accent)") : "var(--card-bg)",
+      color: primary ? "#fff" : (disabled ? "var(--text-muted)" : "var(--text-secondary)"),
+      fontSize: 12, fontWeight: 600, cursor: disabled ? "not-allowed" : "pointer",
       fontFamily: "inherit", transition: "all 0.15s",
-      boxShadow: primary ? "0 2px 8px rgba(0,120,212,0.25)" : "none",
+      boxShadow: primary && !disabled ? "0 2px 8px rgba(0,120,212,0.25)" : "none",
+      opacity: disabled ? 0.5 : 1,
     }}>
       {icon}{label}
     </button>

@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>左右留白修复方案</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #E8E8ED; min-height: 100vh; padding: 32px 16px; }
+
+.page-header { text-align: center; margin-bottom: 20px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1D1D1F; }
+.page-desc { font-size: 13px; color: #86868B; margin-top: 6px; line-height: 1.6; }
+
+.tabs { display: flex; justify-content: center; gap: 6px; margin-bottom: 28px; }
+.tab { padding: 10px 22px; cursor: pointer; border: none; background: #fff; font-size: 13px; font-weight: 600; color: #86868B; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); font-family: inherit; }
+.tab.active { background: #0078D4; color: #fff; box-shadow: 0 4px 12px rgba(0,120,212,0.3); }
+
+.panels { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+.phone { width: 400px; height: 340px; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15); position: relative; }
+.phone-label { text-align: center; margin-top: 14px; }
+.phone-label .name { font-size: 15px; font-weight: 700; color: #1D1D1F; }
+.phone-label .desc { font-size: 12px; color: #86868B; margin-top: 4px; line-height: 1.5; }
+
+/* Common elements */
+.shell { display: flex; flex-direction: column; height: 100%; background: #F8F9FB; }
+.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.title { font-size: 15px; font-weight: 700; color: #1D1D1F; display: flex; align-items: center; gap: 8px; }
+.badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: linear-gradient(135deg, #0078D4, #005A9E); color: #fff; }
+.icons { display: flex; gap: 2px; }
+.icon-btn { width: 32px; height: 32px; border: none; background: transparent; border-radius: 10px; color: #AEAEB2; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+.search-box {
+  display: flex; align-items: center; gap: 8px; height: 38px;
+  padding: 0 14px; border-radius: 12px;
+  background: #fff; border: 1px solid #E8E8ED;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  font-size: 13px; color: #C7C7CC;
+}
+.seg {
+  display: flex; background: #EDEDF0; border-radius: 10px; padding: 3px;
+}
+.seg-item {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  height: 34px; border-radius: 8px; border: none; background: transparent;
+  font-size: 12px; font-weight: 500; color: #86868B; font-family: inherit;
+}
+.seg-item.active { background: #fff; color: #1D1D1F; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+/* Placeholder cards */
+.card-placeholder {
+  display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+  background: #fff; border: none; border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04); position: relative; overflow: hidden;
+}
+.card-placeholder::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 0 3px 3px 0; background: #0078D4; }
+.card-icon { width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #E8F1FB, #D6E8FA); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: #0078D4; }
+.card-text { flex: 1; }
+.card-text .t { font-size: 12px; font-weight: 600; color: #1D1D1F; }
+.card-text .s { font-size: 10px; color: #AEAEB2; margin-top: 2px; }
+
+/* ===== Bug: current 32px each side ===== */
+.bug-header { padding: 16px 16px 0; background: linear-gradient(180deg, #fff 0%, #F8F9FB 100%); }
+.bug-controls { padding: 0 16px 10px; }  /* BUG: double padding */
+.bug-tabs-area { padding: 10px 0 0; }
+.bug-body { flex: 1; padding: 10px 32px; display: flex; flex-direction: column; gap: 8px; }
+
+/* ===== Fix A: 16px each side ===== */
+.fixA-header { padding: 16px 16px 0; background: linear-gradient(180deg, #fff 0%, #F8F9FB 100%); }
+.fixA-controls { padding: 0 0 10px; }  /* FIX: no horizontal padding */
+.fixA-tabs-area { padding: 10px 0 0; }
+.fixA-body { flex: 1; padding: 10px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+/* ===== Fix B: 12px each side (tighter) ===== */
+.fixB-header { padding: 16px 12px 0; background: linear-gradient(180deg, #fff 0%, #F8F9FB 100%); }
+.fixB-controls { padding: 0 0 10px; }
+.fixB-tabs-area { padding: 10px 0 0; }
+.fixB-body { flex: 1; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+
+/* Annotations */
+.anno { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 0; }
+.anno-line { flex: 1; border-top: 2px dashed #FF3B30; }
+.anno-tag { padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; background: rgba(255,59,48,0.9); color: #fff; white-space: nowrap; }
+.anno-ok { background: rgba(52,199,89,0.9); }
+.measure { display: flex; justify-content: space-between; padding: 0 0 4px; }
+.measure span { font-size: 9px; color: #FF3B30; font-weight: 700; }
+.measure-ok span { color: #34C759; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">搜索框/Tab 左右留白修复</div>
+  <div class="page-desc">
+    当前问题：<code>.header</code> 16px + <code>.header-controls</code> 16px = 每侧 32px 留白，太宽了
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">当前 · 32px（问题）</button>
+  <button class="tab" onclick="switchTab(1)">方案 A · 16px</button>
+  <button class="tab" onclick="switchTab(2)">方案 B · 12px</button>
+</div>
+
+<div class="panels">
+
+<!-- ========== 当前 32px ========== -->
+<div class="panel active" id="panel-0">
+  <div class="phone">
+    <div class="shell">
+      <div class="bug-header">
+        <div class="header-top">
+          <div class="title">📋 剪贴板管理 <span class="badge">v4.0</span></div>
+          <div class="icons"><div class="icon-btn">⚙</div><div class="icon-btn">?</div><div class="icon-btn">—</div><div class="icon-btn">✕</div></div>
+        </div>
+        <div class="bug-controls">
+          <div class="search-box">🔍 搜索剪贴板…</div>
+          <div class="bug-tabs-area">
+            <div class="seg">
+              <div class="seg-item active">📋 全部 <span style="font-size:10px;font-weight:700;color:#0078D4">8</span></div>
+              <div class="seg-item">📝 文本 <span style="font-size:10px;color:#AEAEB2">5</span></div>
+              <div class="seg-item">📸 图片 <span style="font-size:10px;color:#AEAEB2">2</span></div>
+              <div class="seg-item">📁 文件 <span style="font-size:10px;color:#AEAEB2">1</span></div>
+              <div class="seg-item">⭐ 收藏</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="bug-body">
+        <div class="card-placeholder"><div class="card-icon">T</div><div class="card-text"><div class="t">一定要先出方案等我确认在动手</div><div class="s">剪贴板管理 v4.0.0</div></div></div>
+        <div class="card-placeholder"><div class="card-icon" style="background:linear-gradient(135deg,#E5F8EC,#D4F2DE);color:#34C759">📁</div><div class="card-text"><div class="t">元数据建模.md</div><div class="s">D:\Altool\aiwork</div></div></div>
+      </div>
+      <!-- Annotation -->
+      <div style="position:absolute;bottom:8px;left:0;right:0;">
+        <div class="measure"><span>← 32px →</span><span style="font-size:10px;font-weight:700;color:#FF3B30">留白过多</span><span>← 32px →</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">当前 · 每侧 32px</div>
+    <div class="desc">header 16px + header-controls 16px = 32px，搜索框和 Tab 都太窄</div>
+  </div>
+</div>
+
+<!-- ========== 方案 A: 16px ========== -->
+<div class="panel" id="panel-1">
+  <div class="phone">
+    <div class="shell">
+      <div class="fixA-header">
+        <div class="header-top">
+          <div class="title">📋 剪贴板管理 <span class="badge">v4.0</span></div>
+          <div class="icons"><div class="icon-btn">⚙</div><div class="icon-btn">?</div><div class="icon-btn">—</div><div class="icon-btn">✕</div></div>
+        </div>
+        <div class="fixA-controls">
+          <div class="search-box">🔍 搜索剪贴板…</div>
+          <div class="fixA-tabs-area">
+            <div class="seg">
+              <div class="seg-item active">📋 全部 <span style="font-size:10px;font-weight:700;color:#0078D4">8</span></div>
+              <div class="seg-item">📝 文本 <span style="font-size:10px;color:#AEAEB2">5</span></div>
+              <div class="seg-item">📸 图片 <span style="font-size:10px;color:#AEAEB2">2</span></div>
+              <div class="seg-item">📁 文件 <span style="font-size:10px;color:#AEAEB2">1</span></div>
+              <div class="seg-item">⭐ 收藏</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fixA-body">
+        <div class="card-placeholder"><div class="card-icon">T</div><div class="card-text"><div class="t">一定要先出方案等我确认在动手</div><div class="s">剪贴板管理 v4.0.0</div></div></div>
+        <div class="card-placeholder"><div class="card-icon" style="background:linear-gradient(135deg,#E5F8EC,#D4F2DE);color:#34C759">📁</div><div class="card-text"><div class="t">元数据建模.md</div><div class="s">D:\Altool\aiwork</div></div></div>
+      </div>
+      <div style="position:absolute;bottom:8px;left:0;right:0;">
+        <div class="measure measure-ok"><span>16px</span><span style="font-size:10px;font-weight:700;color:#34C759">与标题行、卡片一致 ✓</span><span>16px</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">方案 A · 每侧 16px</div>
+    <div class="desc">去掉 header-controls 的水平 padding，只保留 header 的 16px<br>与标题行和卡片列表对齐，视觉平衡</div>
+  </div>
+</div>
+
+<!-- ========== 方案 B: 12px ========== -->
+<div class="panel" id="panel-2">
+  <div class="phone">
+    <div class="shell">
+      <div class="fixB-header">
+        <div class="header-top">
+          <div class="title">📋 剪贴板管理 <span class="badge">v4.0</span></div>
+          <div class="icons"><div class="icon-btn">⚙</div><div class="icon-btn">?</div><div class="icon-btn">—</div><div class="icon-btn">✕</div></div>
+        </div>
+        <div class="fixB-controls">
+          <div class="search-box">🔍 搜索剪贴板…</div>
+          <div class="fixB-tabs-area">
+            <div class="seg">
+              <div class="seg-item active">📋 全部 <span style="font-size:10px;font-weight:700;color:#0078D4">8</span></div>
+              <div class="seg-item">📝 文本 <span style="font-size:10px;color:#AEAEB2">5</span></div>
+              <div class="seg-item">📸 图片 <span style="font-size:10px;color:#AEAEB2">2</span></div>
+              <div class="seg-item">📁 文件 <span style="font-size:10px;color:#AEAEB2">1</span></div>
+              <div class="seg-item">⭐ 收藏</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="fixB-body">
+        <div class="card-placeholder"><div class="card-icon">T</div><div class="card-text"><div class="t">一定要先出方案等我确认在动手</div><div class="s">剪贴板管理 v4.0.0</div></div></div>
+        <div class="card-placeholder"><div class="card-icon" style="background:linear-gradient(135deg,#E5F8EC,#D4F2DE);color:#34C759">📁</div><div class="card-text"><div class="t">元数据建模.md</div><div class="s">D:\Altool\aiwork</div></div></div>
+      </div>
+      <div style="position:absolute;bottom:8px;left:0;right:0;">
+        <div class="measure measure-ok"><span>12px</span><span style="font-size:10px;font-weight:700;color:#34C759">更紧凑，内容区更宽 ✓</span><span>12px</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">方案 B · 每侧 12px</div>
+    <div class="desc">全局统一改为 12px 边距（header + 卡片列表都改）<br>内容区更宽，Tab 和搜索框有更多空间</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function switchTab(i) {
+  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
+  document.querySelectorAll('.panel').forEach((p, j) => p.classList.toggle('active', j === i));
+}
+</script>
+</body>
+</html>

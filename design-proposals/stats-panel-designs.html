@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数据统计面板 - UI 方案对比</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #F0F2F5;
+    color: #1D1D1F;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+  }
+
+  h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #1D1D1F;
+    text-align: center;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: #86868B;
+    text-align: center;
+    margin-top: -32px;
+  }
+
+  /* 方案容器 */
+  .plan-section {
+    width: 100%;
+    max-width: 900px;
+  }
+  .plan-label {
+    font-size: 18px;
+    font-weight: 700;
+    color: #007AFF;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .plan-label .tag {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+    background: #E8F0FE;
+    color: #007AFF;
+  }
+  .plan-label .tag.recommend {
+    background: #34C759;
+    color: #fff;
+  }
+
+  /* 设置弹窗外壳 */
+  .dialog-box {
+    width: 500px;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+    margin: 0 auto;
+  }
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .dialog-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1D1D1F;
+  }
+  .dialog-close {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #86868B;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+  }
+  .dialog-body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Section 标题 */
+  .s-section {
+    padding: 14px 20px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #86868B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #F5F5F7;
+    border-bottom: 1px solid #E5E5EA;
+  }
+
+  /* 底部 */
+  .s-footer {
+    padding: 16px 20px 20px;
+    border-top: 1px solid #E5E5EA;
+    background: #F5F5F7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .s-footer-ver {
+    font-size: 10px;
+    color: #C7C7CC;
+  }
+
+  /* 数据管理行 */
+  .s-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #E5E5EA;
+    gap: 12px;
+  }
+  .s-row:last-child { border-bottom: none; }
+  .s-row-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .s-row-body { flex: 1; min-width: 0; }
+  .s-row-label { font-size: 13px; font-weight: 600; color: #1D1D1F; }
+  .s-row-desc { font-size: 11px; color: #AEAEB2; margin-top: 2px; }
+
+  .s-action {
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid #E5E5EA;
+    background: #fff;
+    color: #007AFF;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .s-action:hover { background: #E8F0FE; }
+  .s-action.danger { color: #DC2626; border-color: #FECACA; background: #FEF2F2; }
+
+  /* ============================================== */
+  /* 方案 A: 卡片网格 (2x3)                          */
+  /* ============================================== */
+  .stats-grid-a {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 12px 20px;
+  }
+  .stat-cell-a {
+    background: #F5F5F7;
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+    border: 1px solid #E5E5EA;
+    transition: all 0.2s;
+  }
+  .stat-cell-a:hover {
+    background: #E8F0FE;
+    border-color: #007AFF30;
+  }
+  .stat-cell-a .num {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1D1D1F;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-cell-a .num.accent { color: #007AFF; }
+  .stat-cell-a .num.green { color: #34C759; }
+  .stat-cell-a .num.orange { color: #FF9500; }
+  .stat-cell-a .label {
+    font-size: 11px;
+    color: #86868B;
+    margin-top: 6px;
+    font-weight: 500;
+  }
+
+  /* ============================================== */
+  /* 方案 B: 横向条形统计                              */
+  /* ============================================== */
+  .stats-bar-b {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 20px;
+  }
+  .stat-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: #F5F5F7;
+    border: 1px solid #E5E5EA;
+  }
+  .stat-bar-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  .stat-bar-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .stat-bar-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: #1D1D1F;
+  }
+  .stat-bar-meta {
+    font-size: 10px;
+    color: #AEAEB2;
+    margin-top: 1px;
+  }
+  .stat-bar-val {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1D1D1F;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-bar-val.accent { color: #007AFF; }
+
+  /* 进度条 */
+  .stat-bar-progress {
+    flex: 1;
+    height: 4px;
+    border-radius: 2px;
+    background: #E5E5EA;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+  .stat-bar-progress-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.6s ease;
+  }
+
+  /* ============================================== */
+  /* 方案 C: 行内紧凑统计（替换当前清理行的 desc）      */
+  /* ============================================== */
+  .stats-inline-c {
+    padding: 12px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: #F5F5F7;
+    border: 1px solid #E5E5EA;
+    font-size: 11px;
+    font-weight: 500;
+    color: #86868B;
+  }
+  .stat-pill .count {
+    font-weight: 700;
+    color: #1D1D1F;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-pill .count.blue { color: #007AFF; }
+  .stat-pill .count.green { color: #34C759; }
+  .stat-pill .count.orange { color: #FF9500; }
+
+  /* ============================================== */
+  /* 方案 D: 展开式信息面板（卡片 + 详情）             */
+  /* ============================================== */
+  .stats-panel-d {
+    margin: 12px 20px;
+    background: #F5F5F7;
+    border-radius: 14px;
+    border: 1px solid #E5E5EA;
+    overflow: hidden;
+  }
+  .stats-panel-d-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 600;
+    color: #86868B;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .stats-panel-d-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: #E5E5EA;
+  }
+  .stat-d-cell {
+    background: #fff;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .stat-d-cell .num {
+    font-size: 22px;
+    font-weight: 700;
+    color: #1D1D1F;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-d-cell .num.accent { color: #007AFF; }
+  .stat-d-cell .num.green { color: #34C759; }
+  .stat-d-cell .num.orange { color: #FF9500; }
+  .stat-d-cell .num.purple { color: #8B5CF6; }
+  .stat-d-cell .label {
+    font-size: 10px;
+    color: #86868B;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .stats-panel-d-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: transparent;
+    font-size: 11px;
+    color: #AEAEB2;
+    border-top: 1px solid #E5E5EA;
+  }
+
+  /* ============================================== */
+  /* 方案 E: 卡片 + 图表混合                          */
+  /* ============================================== */
+  .stats-mixed-e {
+    padding: 12px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .stats-e-top {
+    display: flex;
+    gap: 8px;
+  }
+  .stat-e-card {
+    flex: 1;
+    background: #F5F5F7;
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid #E5E5EA;
+  }
+  .stat-e-card .num {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1D1D1F;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-e-card .num.accent { color: #007AFF; }
+  .stat-e-card .num.green { color: #34C759; }
+  .stat-e-card .num.orange { color: #FF9500; }
+  .stat-e-card .label {
+    font-size: 11px;
+    color: #86868B;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  .stats-e-breakdown {
+    background: #F5F5F7;
+    border-radius: 12px;
+    padding: 12px 14px;
+    border: 1px solid #E5E5EA;
+  }
+  .stats-e-breakdown-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: #86868B;
+    margin-bottom: 8px;
+  }
+  .type-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .type-bar-row:last-child { margin-bottom: 0; }
+  .type-bar-icon {
+    width: 20px; height: 20px;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+  .type-bar-label {
+    width: 36px;
+    font-size: 10px;
+    color: #86868B;
+    flex-shrink: 0;
+  }
+  .type-bar-track {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #E5E5EA;
+    overflow: hidden;
+  }
+  .type-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+  }
+  .type-bar-count {
+    width: 32px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #1D1D1F;
+    text-align: right;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* 对比表 */
+  .compare-table {
+    width: 100%;
+    max-width: 900px;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .compare-table th {
+    padding: 10px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #86868B;
+    text-transform: uppercase;
+    text-align: left;
+    background: #F5F5F7;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .compare-table td {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #1D1D1F;
+    border-bottom: 1px solid #F0F0F5;
+  }
+  .compare-table .check { color: #34C759; font-weight: 600; }
+  .compare-table .cross { color: #86868B; }
+  .compare-table .star { color: #FF9500; }
+
+  .highlight {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #FFF3CD;
+    font-size: 11px;
+    color: #856404;
+    margin-left: 4px;
+  }
+
+  /* 深色主题预览 */
+  .dark-preview {
+    margin-top: 40px;
+    width: 100%;
+    max-width: 900px;
+  }
+  .dark-preview h2 {
+    font-size: 16px;
+    color: #86868B;
+    margin-bottom: 16px;
+  }
+</style>
+</head>
+<body>
+
+<h1>数据统计面板 · UI 方案</h1>
+<p class="subtitle">在设置页"数据管理"区域上方插入统计面板 — 5 种风格方案</p>
+
+<!-- ========== 方案 A ========== -->
+<div class="plan-section">
+  <div class="plan-label">方案 A <span class="tag">卡片网格 2×3</span></div>
+  <div class="dialog-box">
+    <div class="dialog-header">
+      <span class="dialog-title">⚙ 设置</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+
+      <!-- 外观...通用...快捷键... 省略 -->
+
+      <!-- 数据统计 -->
+      <div class="s-section">数据统计</div>
+      <div class="stats-grid-a">
+        <div class="stat-cell-a">
+          <div class="num">124</div>
+          <div class="label">📊 总记录</div>
+        </div>
+        <div class="stat-cell-a">
+          <div class="num green">8</div>
+          <div class="label">⭐ 收藏</div>
+        </div>
+        <div class="stat-cell-a">
+          <div class="num orange">23</div>
+          <div class="label">🕐 今日</div>
+        </div>
+        <div class="stat-cell-a">
+          <div class="num accent">98</div>
+          <div class="label">📝 文本</div>
+        </div>
+        <div class="stat-cell-a">
+          <div class="num accent">22</div>
+          <div class="label">🖼 图片</div>
+        </div>
+        <div class="stat-cell-a">
+          <div class="num accent">4</div>
+          <div class="label">📁 文件</div>
+        </div>
+      </div>
+
+      <!-- 存储信息 -->
+      <div class="s-section">存储信息</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#8B5CF6,#5856D6)">💾</span>
+        <div class="s-row-body">
+          <div class="s-row-label">数据库大小</div>
+          <div class="s-row-desc">12.3 KB · 最早记录 2025-01-15</div>
+        </div>
+      </div>
+
+      <!-- 数据管理 -->
+      <div class="s-section">数据管理</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">📦</span>
+        <div class="s-row-body"><div class="s-row-label">导出数据</div></div>
+        <button class="s-action">导出</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#06B6D4,#0078D4)">📥</span>
+        <div class="s-row-body"><div class="s-row-label">导入数据</div></div>
+        <button class="s-action">导入</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">🧹</span>
+        <div class="s-row-body">
+          <div class="s-row-label">清理过期记录</div>
+          <div class="s-row-desc">8 条记录已过期</div>
+        </div>
+        <button class="s-action danger">清理 8 条</button>
+      </div>
+    </div>
+    <div class="s-footer">
+      <span class="s-footer-ver">剪贴板管理 v4.4.0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 方案 B ========== -->
+<div class="plan-section">
+  <div class="plan-label">方案 B <span class="tag">横向条形 + 进度条</span></div>
+  <div class="dialog-box">
+    <div class="dialog-header">
+      <span class="dialog-title">⚙ 设置</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+
+      <div class="s-section">数据统计</div>
+      <div class="stats-bar-b">
+        <div class="stat-bar-row">
+          <div class="stat-bar-icon" style="background:linear-gradient(135deg,#007AFF,#5856D6)">📊</div>
+          <div class="stat-bar-info">
+            <div class="stat-bar-name">总记录</div>
+            <div class="stat-bar-meta">所有历史剪贴板条目</div>
+          </div>
+          <div class="stat-bar-val accent">124</div>
+        </div>
+        <div class="stat-bar-row">
+          <div class="stat-bar-icon" style="background:linear-gradient(135deg,#34C759,#248A3D)">⭐</div>
+          <div class="stat-bar-info">
+            <div class="stat-bar-name">收藏</div>
+            <div class="stat-bar-meta">已固定的记录</div>
+          </div>
+          <div class="stat-bar-val" style="color:#34C759">8</div>
+        </div>
+        <div class="stat-bar-row">
+          <div class="stat-bar-icon" style="background:linear-gradient(135deg,#FF9500,#F59E0B)">🕐</div>
+          <div class="stat-bar-info">
+            <div class="stat-bar-name">今日新增</div>
+            <div class="stat-bar-meta">今天新增的记录</div>
+          </div>
+          <div class="stat-bar-val" style="color:#FF9500">23</div>
+        </div>
+        <div class="stat-bar-row">
+          <div class="stat-bar-icon" style="background:linear-gradient(135deg,#8B5CF6,#AF52DE)">📂</div>
+          <div class="stat-bar-info">
+            <div class="stat-bar-name">类型分布</div>
+            <div style="display:flex;gap:4px;margin-top:4px;">
+              <span style="font-size:10px;color:#007AFF;width:36px;">📝 98</span>
+              <div class="stat-bar-progress"><div class="stat-bar-progress-fill" style="width:79%;background:#007AFF;"></div></div>
+              <span style="font-size:10px;color:#34C759;width:36px;">🖼 22</span>
+              <div class="stat-bar-progress"><div class="stat-bar-progress-fill" style="width:18%;background:#34C759;"></div></div>
+              <span style="font-size:10px;color:#FF9500;width:36px;">📁 4</span>
+              <div class="stat-bar-progress"><div class="stat-bar-progress-fill" style="width:3%;background:#FF9500;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="s-section">存储信息</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#8B5CF6,#5856D6)">💾</span>
+        <div class="s-row-body">
+          <div class="s-row-label">数据库大小</div>
+          <div class="s-row-desc">12.3 KB · 最早记录 2025-01-15</div>
+        </div>
+      </div>
+
+      <div class="s-section">数据管理</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">📦</span>
+        <div class="s-row-body"><div class="s-row-label">导出数据</div></div>
+        <button class="s-action">导出</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#06B6D4,#0078D4)">📥</span>
+        <div class="s-row-body"><div class="s-row-label">导入数据</div></div>
+        <button class="s-action">导入</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">🧹</span>
+        <div class="s-row-body">
+          <div class="s-row-label">清理过期记录</div>
+          <div class="s-row-desc">8 条记录已过期</div>
+        </div>
+        <button class="s-action danger">清理 8 条</button>
+      </div>
+    </div>
+    <div class="s-footer">
+      <span class="s-footer-ver">剪贴板管理 v4.4.0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 方案 C ========== -->
+<div class="plan-section">
+  <div class="plan-label">方案 C <span class="tag">行内胶囊 + 极简</span></div>
+  <div class="dialog-box">
+    <div class="dialog-header">
+      <span class="dialog-title">⚙ 设置</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+
+      <div class="s-section">数据统计</div>
+      <div class="stats-inline-c">
+        <span class="stat-pill">📊 总记录 <span class="count blue">124</span></span>
+        <span class="stat-pill">⭐ 收藏 <span class="count green">8</span></span>
+        <span class="stat-pill">🕐 今日 <span class="count orange">23</span></span>
+        <span class="stat-pill">📝 文本 <span class="count">98</span></span>
+        <span class="stat-pill">🖼 图片 <span class="count">22</span></span>
+        <span class="stat-pill">📁 文件 <span class="count">4</span></span>
+        <span class="stat-pill">💾 大小 <span class="count">12.3KB</span></span>
+      </div>
+
+      <div class="s-section">数据管理</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">📦</span>
+        <div class="s-row-body"><div class="s-row-label">导出数据</div></div>
+        <button class="s-action">导出</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#06B6D4,#0078D4)">📥</span>
+        <div class="s-row-body"><div class="s-row-label">导入数据</div></div>
+        <button class="s-action">导入</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">🧹</span>
+        <div class="s-row-body">
+          <div class="s-row-label">清理过期记录</div>
+          <div class="s-row-desc">8 条记录已过期</div>
+        </div>
+        <button class="s-action danger">清理 8 条</button>
+      </div>
+    </div>
+    <div class="s-footer">
+      <span class="s-footer-ver">剪贴板管理 v4.4.0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 方案 D ========== -->
+<div class="plan-section">
+  <div class="plan-label">方案 D <span class="tag">嵌入式面板 + 3×2 表格式</span> <span class="tag recommend">推荐</span></div>
+  <div class="dialog-box">
+    <div class="dialog-header">
+      <span class="dialog-title">⚙ 设置</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+
+      <div class="s-section">数据统计</div>
+      <div class="stats-panel-d">
+        <div class="stats-panel-d-header">
+          <span>📊</span> 剪贴板数据概览
+        </div>
+        <div class="stats-panel-d-grid">
+          <div class="stat-d-cell">
+            <div class="num">124</div>
+            <div class="label">总记录</div>
+          </div>
+          <div class="stat-d-cell">
+            <div class="num green">8</div>
+            <div class="label">⭐ 收藏</div>
+          </div>
+          <div class="stat-d-cell">
+            <div class="num orange">23</div>
+            <div class="label">今日新增</div>
+          </div>
+          <div class="stat-d-cell">
+            <div class="num accent">98</div>
+            <div class="label">📝 文本</div>
+          </div>
+          <div class="stat-d-cell">
+            <div class="num accent">22</div>
+            <div class="label">🖼 图片</div>
+          </div>
+          <div class="stat-d-cell">
+            <div class="num accent">4</div>
+            <div class="label">📁 文件</div>
+          </div>
+        </div>
+        <div class="stats-panel-d-footer">
+          <span>💾 12.3 KB</span>
+          <span>📅 最早: 2025-01-15</span>
+          <span>📦 1 个工作空间</span>
+        </div>
+      </div>
+
+      <div class="s-section">数据管理</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">📦</span>
+        <div class="s-row-body"><div class="s-row-label">导出数据</div></div>
+        <button class="s-action">导出</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#06B6D4,#0078D4)">📥</span>
+        <div class="s-row-body"><div class="s-row-label">导入数据</div></div>
+        <button class="s-action">导入</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">🧹</span>
+        <div class="s-row-body">
+          <div class="s-row-label">清理过期记录</div>
+          <div class="s-row-desc">8 条记录已过期</div>
+        </div>
+        <button class="s-action danger">清理 8 条</button>
+      </div>
+    </div>
+    <div class="s-footer">
+      <span class="s-footer-ver">剪贴板管理 v4.4.0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 方案 E ========== -->
+<div class="plan-section">
+  <div class="plan-label">方案 E <span class="tag">卡片 + 类型分布图</span></div>
+  <div class="dialog-box">
+    <div class="dialog-header">
+      <span class="dialog-title">⚙ 设置</span>
+      <button class="dialog-close">✕</button>
+    </div>
+    <div class="dialog-body">
+
+      <div class="s-section">数据统计</div>
+      <div class="stats-mixed-e">
+        <div class="stats-e-top">
+          <div class="stat-e-card">
+            <div class="num">124</div>
+            <div class="label">📊 总记录</div>
+          </div>
+          <div class="stat-e-card">
+            <div class="num green">8</div>
+            <div class="label">⭐ 收藏</div>
+          </div>
+          <div class="stat-e-card">
+            <div class="num orange">23</div>
+            <div class="label">🕐 今日</div>
+          </div>
+        </div>
+        <div class="stats-e-breakdown">
+          <div class="stats-e-breakdown-title">类型分布</div>
+          <div class="type-bar-row">
+            <div class="type-bar-icon" style="background:#E8F0FE;color:#007AFF;">📝</div>
+            <span class="type-bar-label">文本</span>
+            <div class="type-bar-track"><div class="type-bar-fill" style="width:79%;background:#007AFF;"></div></div>
+            <span class="type-bar-count">98</span>
+          </div>
+          <div class="type-bar-row">
+            <div class="type-bar-icon" style="background:#E8F8ED;color:#34C759;">🖼</div>
+            <span class="type-bar-label">图片</span>
+            <div class="type-bar-track"><div class="type-bar-fill" style="width:18%;background:#34C759;"></div></div>
+            <span class="type-bar-count">22</span>
+          </div>
+          <div class="type-bar-row">
+            <div class="type-bar-icon" style="background:#FFF3E0;color:#FF9500;">📁</div>
+            <span class="type-bar-label">文件</span>
+            <div class="type-bar-track"><div class="type-bar-fill" style="width:3%;background:#FF9500;"></div></div>
+            <span class="type-bar-count">4</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="s-section">存储信息</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#8B5CF6,#5856D6)">💾</span>
+        <div class="s-row-body">
+          <div class="s-row-label">数据库大小</div>
+          <div class="s-row-desc">12.3 KB · 最早记录 2025-01-15</div>
+        </div>
+      </div>
+
+      <div class="s-section">数据管理</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">📦</span>
+        <div class="s-row-body"><div class="s-row-label">导出数据</div></div>
+        <button class="s-action">导出</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#06B6D4,#0078D4)">📥</span>
+        <div class="s-row-body"><div class="s-row-label">导入数据</div></div>
+        <button class="s-action">导入</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">🧹</span>
+        <div class="s-row-body">
+          <div class="s-row-label">清理过期记录</div>
+          <div class="s-row-desc">8 条记录已过期</div>
+        </div>
+        <button class="s-action danger">清理 8 条</button>
+      </div>
+    </div>
+    <div class="s-footer">
+      <span class="s-footer-ver">剪贴板管理 v4.4.0</span>
+    </div>
+  </div>
+</div>
+
+<!-- ========== 对比表 ========== -->
+<div class="plan-section" style="margin-top:20px;">
+  <div class="plan-label">📋 方案对比</div>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="width:14%">维度</th>
+        <th style="width:17%">A 卡片网格</th>
+        <th style="width:17%">B 条形+进度</th>
+        <th style="width:17%">C 胶囊极简</th>
+        <th style="width:17%">D 嵌入式面板</th>
+        <th style="width:17%">E 卡片+图表</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><b>视觉冲击力</b></td>
+        <td class="star">⭐⭐⭐</td>
+        <td class="star">⭐⭐⭐⭐</td>
+        <td class="cross">⭐⭐</td>
+        <td class="star">⭐⭐⭐⭐</td>
+        <td class="star">⭐⭐⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><b>信息密度</b></td>
+        <td class="star">⭐⭐⭐⭐</td>
+        <td class="star">⭐⭐⭐⭐</td>
+        <td class="star">⭐⭐⭐⭐⭐</td>
+        <td class="star">⭐⭐⭐⭐</td>
+        <td class="cross">⭐⭐⭐</td>
+      </tr>
+      <tr>
+        <td><b>与设置页风格一致性</b></td>
+        <td class="check">✅ 高</td>
+        <td class="check">✅ 高</td>
+        <td class="cross">⚠ 偏低</td>
+        <td class="check">✅ 高</td>
+        <td class="check">✅ 高</td>
+      </tr>
+      <tr>
+        <td><b>占用高度</b></td>
+        <td>~110px</td>
+        <td>~200px</td>
+        <td>~40px <span class="highlight">最省</span></td>
+        <td>~160px</td>
+        <td>~170px</td>
+      </tr>
+      <tr>
+        <td><b>实现复杂度</b></td>
+        <td>低</td>
+        <td>中</td>
+        <td>低</td>
+        <td>低</td>
+        <td>中</td>
+      </tr>
+      <tr>
+        <td><b>可扩展性</b></td>
+        <td>中</td>
+        <td>高</td>
+        <td>低</td>
+        <td>高</td>
+        <td>高</td>
+      </tr>
+      <tr>
+        <td><b>适合场景</b></td>
+        <td>快速扫一眼数据</td>
+        <td>详细分析型用户</td>
+        <td>不占空间</td>
+        <td>平衡美观与实用</td>
+        <td>数据可视化优先</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ========== 推荐说明 ========== -->
+<div class="plan-section" style="margin-top:20px;">
+  <div class="plan-label">💡 我的推荐</div>
+  <div class="dialog-box" style="padding:20px;">
+    <p style="font-size:14px;font-weight:600;color:#1D1D1F;margin-bottom:8px;">首选：方案 D — 嵌入式面板</p>
+    <p style="font-size:13px;color:#86868B;line-height:1.8;margin-bottom:16px;">
+      用独立的卡片式面板包裹统计，<strong style="color:#007AFF;">3×2 网格</strong>展示 6 个核心指标，
+      底部一行显示存储和时间跨度。视觉上与设置页的 section/row 体系自然融合，
+      既有清晰的信息层级又有精致的面板感。
+    </p>
+
+    <p style="font-size:14px;font-weight:600;color:#1D1D1F;margin-bottom:8px;">备选：方案 A — 卡片网格</p>
+    <p style="font-size:13px;color:#86868B;line-height:1.8;">
+      如果希望更轻量、与设置行风格更一致，方案 A 的独立圆角卡片网格是不错的选择。
+      实现最简单，高度适中。
+    </p>
+  </div>
+</div>
+
+</body>
+</html>

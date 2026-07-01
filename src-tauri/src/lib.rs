@@ -8,6 +8,7 @@ mod paste_engine;
 mod tray_manager;
 mod hotkey_manager;
 mod lan_sync;
+mod pinned_window;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -132,7 +133,7 @@ pub fn run() {
                 }
             }
 
-            log::info!("Filck v{} 启动", commands::APP_VERSION);
+            log::info!("{} v{} 启动", *commands::APP_NAME, *commands::APP_VERSION);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -162,6 +163,7 @@ pub fn run() {
             commands::get_image_info,
             commands::reregister_hotkeys,
             commands::get_file_info,
+            commands::open_file_with_system,
             commands::open_file_location,
             commands::set_startup,
             commands::get_startup,
@@ -172,6 +174,7 @@ pub fn run() {
             commands::send_lan_test,
             commands::get_lan_devices,
             commands::get_app_version,
+            commands::get_app_name,
             commands::ocr_image,
             commands::open_pinned_image,
             commands::close_pinned_image,
@@ -179,6 +182,7 @@ pub fn run() {
             commands::get_tray_popup_data,
             commands::emit_tray_open_settings,
             commands::show_main_window,
+            commands::save_image_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

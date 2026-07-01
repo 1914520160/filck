@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>图片详情 - OCR识别 & 置顶 设计稿</title>
+<style>
+:root {
+  --bg: #f8f9fa;
+  --surface: #ffffff;
+  --border: #e5e7eb;
+  --text: #1f2937;
+  --text-muted: #9ca3af;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --pink: #ec4899;
+  --green: #10b981;
+  --red: #ef4444;
+  --radius: 12px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+  background: #e8eaed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* ========== 主弹窗 ========== */
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.dialog-box {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: 780px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.dialog-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+}
+.dialog-close {
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-muted);
+  font-size: 18px;
+}
+.dialog-close:hover { background: #f3f4f6; color: var(--text); }
+
+/* Body */
+.dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* 元信息标签 */
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.meta-tag {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #f3f4f6;
+  color: #6b7280;
+  white-space: nowrap;
+}
+.meta-tag.accent {
+  background: #eef2ff;
+  color: var(--accent);
+  font-weight: 500;
+}
+
+/* 工具栏 */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #f9fafb;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.toolbar .sep {
+  width: 1px; height: 20px;
+  background: var(--border);
+  margin: 0 6px;
+}
+.tool-btn {
+  width: 32px; height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: #6b7280;
+  font-size: 15px;
+  transition: all 0.15s;
+}
+.tool-btn:hover { background: #e5e7eb; color: var(--text); }
+.tool-btn.active { background: var(--accent); color: #fff; }
+.tool-btn.ocr-btn {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 5px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+}
+.tool-btn.ocr-btn:hover { background: linear-gradient(135deg, #4f46e5, #7c3aed); }
+.tool-btn.ocr-btn.loading {
+  opacity: 0.7;
+  pointer-events: none;
+}
+.tool-btn.pin-btn {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 5px;
+  background: linear-gradient(135deg, #ec4899, #f43f5e);
+  color: #fff;
+}
+.tool-btn.pin-btn:hover { background: linear-gradient(135deg, #db2777, #e11d48); }
+.tool-btn.pin-btn.pinned {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+.zoom-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 40px;
+  text-align: center;
+  user-select: none;
+}
+
+/* 图片查看区 */
+.viewport {
+  background: #1a1a2e;
+  border-radius: 8px;
+  min-height: 260px;
+  max-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  cursor: grab;
+  flex-shrink: 0;
+}
+.viewport img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+/* OCR 结果区 */
+.ocr-section {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.ocr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fefce8;
+  border-bottom: 1px solid #fde68a;
+}
+.ocr-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ocr-header-badge {
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #fef3c7;
+  color: #b45309;
+}
+.ocr-copy-btn {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s;
+}
+.ocr-copy-btn:hover { background: #fef3c7; }
+.ocr-copy-btn.copied { background: #d1fae5; border-color: #6ee7b7; color: #065f46; }
+.ocr-text {
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 160px;
+  overflow-y: auto;
+  background: #fffbeb;
+  user-select: text;
+}
+.ocr-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  color: #b45309;
+  font-size: 13px;
+}
+.ocr-loading .spinner {
+  width: 18px; height: 18px;
+  border: 2px solid #fde68a;
+  border-top-color: #d97706;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+.ocr-empty {
+  padding: 24px;
+  text-align: center;
+  color: #d4a574;
+  font-size: 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Footer */
+.dialog-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.footer-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn-primary {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary {
+  padding: 7px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.btn-secondary:hover { background: #f9fafb; }
+.hint-text {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* ========== 置顶小窗 ========== */
+.pinned-overlay {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  z-index: 9999;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+  overflow: hidden;
+  border: 2px solid #ec4899;
+  transition: all 0.2s;
+  min-width: 280px;
+  max-width: 420px;
+  max-height: 500px;
+}
+.pinned-overlay.dragging { opacity: 0.9; }
+.pinned-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+  cursor: move;
+  user-select: none;
+}
+.pinned-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #be185d;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.pinned-actions {
+  display: flex;
+  gap: 2px;
+}
+.pinned-act-btn {
+  width: 24px; height: 24px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #be185d;
+  font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.pinned-act-btn:hover { background: rgba(236,72,153,0.15); }
+.pinned-body {
+  max-height: 380px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.pinned-body img {
+  width: 100%;
+  display: block;
+  user-select: none;
+  pointer-events: none;
+}
+.pinned-ocr-mini {
+  padding: 8px 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #6b7280;
+  border-top: 1px solid #f3f4f6;
+  max-height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  user-select: text;
+  background: #fafafa;
+}
+
+/* 响应式适配 */
+@media (max-width: 820px) {
+  .dialog-box { width: 95vw; }
+}
+</style>
+</head>
+<body>
+
+<!-- ==================== 主弹窗：图片详情 ==================== -->
+<div class="dialog-backdrop">
+  <div class="dialog-box">
+
+    <!-- Header -->
+    <div class="dialog-header">
+      <h2 class="dialog-title">🖼 图片详情</h2>
+      <button class="dialog-close" title="关闭">✕</button>
+    </div>
+
+    <!-- Body -->
+    <div class="dialog-body">
+
+      <!-- 元信息 -->
+      <div class="meta-row">
+        <span class="meta-tag accent">📄 screenshot_20240628.png</span>
+        <span class="meta-tag">1920 × 1080</span>
+        <span class="meta-tag">245 KB</span>
+        <span class="meta-tag">来自剪贴板</span>
+      </div>
+
+      <!-- 工具栏 -->
+      <div class="toolbar">
+        <button class="tool-btn" title="缩小">−</button>
+        <span class="zoom-label">100%</span>
+        <button class="tool-btn" title="放大">+</button>
+        <button class="tool-btn" title="适应窗口">1:1</button>
+        <button class="tool-btn" title="旋转">↻</button>
+        <span class="sep"></span>
+        <!-- 🔑 OCR 识别按钮 -->
+        <button class="tool-btn ocr-btn" title="识别图片中的文字">
+          🔍 识别文字
+        </button>
+        <!-- 🔑 置顶按钮 -->
+        <button class="tool-btn pin-btn" title="将图片钉在屏幕最上层">
+          📌 置顶
+        </button>
+      </div>
+
+      <!-- 图片查看区 -->
+      <div class="viewport">
+        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='340'%3E%3Crect fill='%231a1a2e' width='600' height='340'/%3E%3Crect x='40' y='30' width='520' height='40' rx='6' fill='%232d2d44'/%3E%3Ctext x='60' y='56' fill='%23e2e8f0' font-size='14' font-family='monospace'%3Econst fetchUser = async (id: string) =%3E %7B%3C/text%3E%3Crect x='40' y='80' width='520' height='40' rx='6' fill='%232d2d44'/%3E%3Ctext x='60' y='106' fill='%23e2e8f0' font-size='14' font-family='monospace'%3E  const res = await fetch('/api/users/' + id);%3C/text%3E%3Crect x='40' y='130' width='520' height='40' rx='6' fill='%232d2d44'/%3E%3Ctext x='60' y='156' fill='%23e2e8f0' font-size='14' font-family='monospace'%3E  const data = await res.json();%3C/text%3E%3Crect x='40' y='180' width='520' height='40' rx='6' fill='%232d2d44'/%3E%3Ctext x='60' y='206' fill='%2394a3b8' font-size='14' font-family='monospace'%3E  return %7B name: data.name, email: data.email %7D;%3C/text%3E%3Crect x='40' y='230' width='520' height='40' rx='6' fill='%232d2d44'/%3E%3Ctext x='60' y='256' fill='%23e2e8f0' font-size='14' font-family='monospace'%3E%7D;%3C/text%3E%3C/svg%3E" alt="预览">
+      </div>
+
+      <!-- 🔑 OCR 识别结果区（有结果状态） -->
+      <div class="ocr-section">
+        <div class="ocr-header">
+          <span class="ocr-header-title">
+            🔍 文字识别
+            <span class="ocr-header-badge">127 字符</span>
+          </span>
+          <button class="ocr-copy-btn" title="复制识别文字">
+            📋 复制文字
+          </button>
+        </div>
+        <div class="ocr-text">const fetchUser = async (id: string) => {
+  const res = await fetch('/api/users/' + id);
+  const data = await res.json();
+  return { name: data.name, email: data.email };
+};
+
+// TODO: Add error handling
+// Created by zhangsan 2024-06-28</div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="dialog-footer">
+      <div class="footer-actions">
+        <button class="btn-primary">📋 复制图片</button>
+        <button class="btn-secondary">💾 另存为</button>
+      </div>
+      <span class="hint-text">滚轮平移 · Ctrl+滚轮缩放 · +/- 缩放</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== 置顶小窗（右下角悬浮） ==================== -->
+<div class="pinned-overlay">
+  <div class="pinned-header">
+    <span class="pinned-title">📌 置顶图片</span>
+    <div class="pinned-actions">
+      <button class="pinned-act-btn" title="切换 OCR 文字显示">📝</button>
+      <button class="pinned-act-btn" title="取消置顶">✕</button>
+    </div>
+  </div>
+  <div class="pinned-body">
+    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='230'%3E%3Crect fill='%231a1a2e' width='400' height='230'/%3E%3Crect x='20' y='15' width='360' height='30' rx='4' fill='%232d2d44'/%3E%3Ctext x='30' y='36' fill='%23e2e8f0' font-size='12' font-family='monospace'%3Econst fetchUser = async (id) =%3E %7B%3C/text%3E%3Crect x='20' y='50' width='360' height='30' rx='4' fill='%232d2d44'/%3E%3Ctext x='30' y='71' fill='%23e2e8f0' font-size='12' font-family='monospace'%3E  const res = await fetch('/api/users/' + id);%3C/text%3E%3Crect x='20' y='85' width='360' height='30' rx='4' fill='%232d2d44'/%3E%3Ctext x='30' y='106' fill='%23e2e8f0' font-size='12' font-family='monospace'%3E  const data = await res.json();%3C/text%3E%3Crect x='20' y='120' width='360' height='30' rx='4' fill='%232d2d44'/%3E%3Ctext x='30' y='141' fill='%2394a3b8' font-size='12' font-family='monospace'%3E  return %7B name, email %7D;%3C/text%3E%3Crect x='20' y='155' width='360' height='30' rx='4' fill='%232d2d44'/%3E%3Ctext x='30' y='176' fill='%23e2e8f0' font-size='12' font-family='monospace'%3E%7D;%3C/text%3E%3C/svg%3E" alt="置顶预览">
+    <div class="pinned-ocr-mini">识别文字: const fetchUser = async (id: string) => { ... }; // Created by zhangsan 2024-06-28</div>
+  </div>
+</div>
+
+<!-- 交互演示脚本 -->
+<script>
+// OCR 复制按钮演示
+document.querySelector('.ocr-copy-btn').addEventListener('click', function() {
+  this.textContent = '✅ 已复制';
+  this.classList.add('copied');
+  setTimeout(() => {
+    this.textContent = '📋 复制文字';
+    this.classList.remove('copied');
+  }, 1500);
+});
+
+// 置顶窗口拖拽演示
+const pinned = document.querySelector('.pinned-overlay');
+const pinnedHeader = document.querySelector('.pinned-header');
+let isDragging = false, startX, startY, startLeft, startTop;
+
+pinnedHeader.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  pinned.classList.add('dragging');
+  startX = e.clientX;
+  startY = e.clientY;
+  const rect = pinned.getBoundingClientRect();
+  startLeft = rect.left;
+  startTop = rect.top;
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - startX;
+  const dy = e.clientY - startY;
+  pinned.style.right = 'auto';
+  pinned.style.bottom = 'auto';
+  pinned.style.left = (startLeft + dx) + 'px';
+  pinned.style.top = (startTop + dy) + 'px';
+});
+
+document.addEventListener('mouseup', () => {
+  isDragging = false;
+  pinned.classList.remove('dragging');
+});
+</script>
+
+</body>
+</html>

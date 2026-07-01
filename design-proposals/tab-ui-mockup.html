@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>剪贴板管理 - Tab UI 方案</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "SF Pro Text", "Microsoft YaHei", system-ui, sans-serif;
+    background: #F5F5F7;
+    color: #1D1D1F;
+    display: flex;
+    justify-content: center;
+    padding: 20px;
+    gap: 32px;
+    flex-wrap: wrap;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .phone-frame {
+    width: 380px;
+    background: #fff;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+    flex-shrink: 0;
+  }
+
+  .label {
+    text-align: center;
+    margin-bottom: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #86868B;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== Header ===== */
+  .header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #E5E5EA;
+    background: #fff;
+  }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-title span:first-child { font-size: 18px; }
+  .header-title span:nth-child(2) { font-size: 15px; font-weight: 700; color: #1D1D1F; }
+  .header-title .badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #E8F1FB;
+    color: #0078D4;
+  }
+  .header-count {
+    font-size: 11px;
+    color: #AEAEB2;
+    font-weight: 500;
+  }
+  .header-icons {
+    display: flex;
+    gap: 4px;
+  }
+  .header-icons button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 15px;
+    color: #86868B;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s;
+  }
+  .header-icons button:hover { background: #F0F0F2; }
+
+  /* ===== Search ===== */
+  .search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: #F5F5F7;
+    border: 1.5px solid transparent;
+    transition: all 0.2s;
+  }
+  .search-box:focus-within {
+    border-color: #0078D4;
+    box-shadow: 0 0 0 3px rgba(0,120,212,0.12);
+    background: #fff;
+  }
+  .search-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 13px;
+    color: #1D1D1F;
+  }
+  .search-box input::placeholder { color: #AEAEB2; }
+  .search-icon { color: #AEAEB2; font-size: 14px; }
+
+  /* ===== 方案 A: 大图标横向 Tab ===== */
+  .tabs-a {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    padding: 16px 16px 8px;
+    background: #fff;
+  }
+  .tab-a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 16px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    background: transparent;
+    position: relative;
+  }
+  .tab-a .icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .tab-a.active .icon-wrap {
+    background: #0078D4;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,120,212,0.3);
+    transform: scale(1.05);
+  }
+  .tab-a:not(.active) .icon-wrap {
+    background: #F5F5F7;
+    color: #86868B;
+  }
+  .tab-a:not(.active):hover .icon-wrap {
+    background: #E8E8ED;
+    color: #636366;
+  }
+  .tab-a .tab-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: #AEAEB2;
+    transition: color 0.2s;
+  }
+  .tab-a.active .tab-label { color: #0078D4; }
+  .tab-a .tab-count {
+    position: absolute;
+    top: 4px;
+    right: 8px;
+    font-size: 9px;
+    font-weight: 700;
+    background: #E8F1FB;
+    color: #0078D4;
+    padding: 1px 5px;
+    border-radius: 6px;
+    min-width: 18px;
+    text-align: center;
+  }
+  .tab-a:not(.active) .tab-count {
+    background: #F0F0F2;
+    color: #86868B;
+  }
+
+  /* ===== 方案 B: iOS Segmented Control ===== */
+  .tabs-b {
+    padding: 16px 16px 8px;
+    background: #fff;
+  }
+  .segmented {
+    display: flex;
+    background: #F0F0F2;
+    border-radius: 10px;
+    padding: 2px;
+    position: relative;
+  }
+  .seg-item {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 500;
+    color: #86868B;
+    transition: all 0.2s;
+    z-index: 1;
+    position: relative;
+  }
+  .seg-item.active {
+    color: #1D1D1F;
+    font-weight: 600;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08), 0 0.5px 1px rgba(0,0,0,0.04);
+  }
+  .seg-item .seg-icon { font-size: 15px; }
+  .seg-item .seg-count {
+    font-size: 10px;
+    font-weight: 700;
+    color: #AEAEB2;
+    margin-left: 1px;
+  }
+  .seg-item.active .seg-count { color: #0078D4; }
+
+  /* ===== 方案 C: 圆形图标 + 角标 ===== */
+  .tabs-c {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    padding: 20px 16px 12px;
+    background: #fff;
+  }
+  .tab-c {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    position: relative;
+  }
+  .tab-c .circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 2px solid transparent;
+  }
+  .tab-c.active .circle {
+    background: linear-gradient(135deg, #0078D4, #005A9E);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(0,120,212,0.35);
+    transform: scale(1.08);
+    border-color: rgba(0,120,212,0.2);
+  }
+  .tab-c:not(.active) .circle {
+    background: #F5F5F7;
+    color: #86868B;
+    border-color: #E5E5EA;
+  }
+  .tab-c:not(.active):hover .circle {
+    background: #E8E8ED;
+    border-color: #D2D2D7;
+    transform: scale(1.04);
+  }
+  .tab-c .c-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #AEAEB2;
+    transition: color 0.2s;
+  }
+  .tab-c.active .c-label { color: #0078D4; }
+  .tab-c .c-badge {
+    position: absolute;
+    top: -2px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border: 2px solid #fff;
+  }
+  .tab-c.active .c-badge {
+    background: #FF3B30;
+    color: #fff;
+  }
+  .tab-c:not(.active) .c-badge {
+    background: #D2D2D7;
+    color: #fff;
+  }
+
+  /* ===== Cards (common) ===== */
+  .cards {
+    padding: 8px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid #E5E5EA;
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .card:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+  }
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .card-content { flex: 1; min-width: 0; }
+  .card-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1D1D1F;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-sub {
+    font-size: 11px;
+    color: #86868B;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-time {
+    font-size: 11px;
+    color: #AEAEB2;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .sep { height: 1px; background: #E5E5EA; margin: 0 16px; }
+</style>
+</head>
+<body>
+
+<!-- 方案 A: 大图标 Tab -->
+<div>
+  <div class="label">方案 A：大图标 Tab 栏</div>
+  <div class="phone-frame">
+    <div class="header">
+      <div class="header-top">
+        <div class="header-title">
+          <span>📋</span>
+          <span>剪贴板管理</span>
+          <span class="badge">v4.0</span>
+        </div>
+        <div class="header-icons">
+          <button>⚙</button>
+          <button>?</button>
+          <button>─</button>
+          <button>✕</button>
+        </div>
+      </div>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="搜索剪贴板..." />
+      </div>
+    </div>
+    <div class="tabs-a">
+      <button class="tab-a active">
+        <div class="icon-wrap">📋</div>
+        <span class="tab-label">全部</span>
+        <span class="tab-count">26</span>
+      </button>
+      <button class="tab-a">
+        <div class="icon-wrap">📝</div>
+        <span class="tab-label">文本</span>
+        <span class="tab-count">24</span>
+      </button>
+      <button class="tab-a">
+        <div class="icon-wrap">🖼</div>
+        <span class="tab-label">图片</span>
+        <span class="tab-count">2</span>
+      </button>
+      <button class="tab-a">
+        <div class="icon-wrap">📁</div>
+        <span class="tab-label">文件</span>
+        <span class="tab-count">0</span>
+      </button>
+      <button class="tab-a">
+        <div class="icon-wrap">⭐</div>
+        <span class="tab-label">收藏</span>
+        <span class="tab-count">0</span>
+      </button>
+    </div>
+    <div class="sep"></div>
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon" style="background:#F3E8FF;color:#8B5CF6">⌨</div>
+        <div class="card-content">
+          <div class="card-title">T2170588</div>
+          <div class="card-sub"><span>剪贴板管理 v4.0.0</span></div>
+        </div>
+        <span class="card-time">31分钟前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#FEF3C7;color:#F59E0B">⌨</div>
+        <div class="card-content">
+          <div class="card-title">1027282</div>
+          <div class="card-sub"><span>企业微信</span></div>
+        </div>
+        <span class="card-time">37分钟前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#E0F2FE;color:#0EA5E9">📂</div>
+        <div class="card-content">
+          <div class="card-title">C:\Users\19145\.qoderwork\...</div>
+          <div class="card-sub"><span>win多次复制粘...</span></div>
+        </div>
+        <span class="card-time">1小时前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#FCE7F3;color:#EC4899">T</div>
+        <div class="card-content">
+          <div class="card-title">帮我重新设计一下这个页面</div>
+          <div class="card-sub"><span>重新设计页面...</span></div>
+        </div>
+        <span class="card-time">1小时前</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 方案 B: Segmented Control -->
+<div>
+  <div class="label">方案 B：分段控件</div>
+  <div class="phone-frame">
+    <div class="header">
+      <div class="header-top">
+        <div class="header-title">
+          <span>📋</span>
+          <span>剪贴板管理</span>
+          <span class="badge">v4.0</span>
+        </div>
+        <div class="header-icons">
+          <button>⚙</button>
+          <button>?</button>
+          <button>─</button>
+          <button>✕</button>
+        </div>
+      </div>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="搜索剪贴板..." />
+      </div>
+    </div>
+    <div class="tabs-b">
+      <div class="segmented">
+        <button class="seg-item active">
+          <span class="seg-icon">📋</span>
+          <span>全部</span>
+          <span class="seg-count">26</span>
+        </button>
+        <button class="seg-item">
+          <span class="seg-icon">📝</span>
+          <span>文本</span>
+          <span class="seg-count">24</span>
+        </button>
+        <button class="seg-item">
+          <span class="seg-icon">🖼</span>
+          <span>图片</span>
+          <span class="seg-count">2</span>
+        </button>
+        <button class="seg-item">
+          <span class="seg-icon">📁</span>
+          <span>文件</span>
+          <span class="seg-count">0</span>
+        </button>
+        <button class="seg-item">
+          <span class="seg-icon">⭐</span>
+          <span>收藏</span>
+          <span class="seg-count">0</span>
+        </button>
+      </div>
+    </div>
+    <div class="sep"></div>
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon" style="background:#F3E8FF;color:#8B5CF6">⌨</div>
+        <div class="card-content">
+          <div class="card-title">T2170588</div>
+          <div class="card-sub"><span>剪贴板管理 v4.0.0</span></div>
+        </div>
+        <span class="card-time">31分钟前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#FEF3C7;color:#F59E0B">⌨</div>
+        <div class="card-content">
+          <div class="card-title">1027282</div>
+          <div class="card-sub"><span>企业微信</span></div>
+        </div>
+        <span class="card-time">37分钟前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#E0F2FE;color:#0EA5E9">📂</div>
+        <div class="card-content">
+          <div class="card-title">C:\Users\19145\.qoderwork\...</div>
+          <div class="card-sub"><span>win多次复制粘...</span></div>
+        </div>
+        <span class="card-time">1小时前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#FCE7F3;color:#EC4899">T</div>
+        <div class="card-content">
+          <div class="card-title">帮我重新设计一下这个页面</div>
+          <div class="card-sub"><span>重新设计页面...</span></div>
+        </div>
+        <span class="card-time">1小时前</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 方案 C: 圆形图标 + 角标 -->
+<div>
+  <div class="label">方案 C：圆形图标 + 角标</div>
+  <div class="phone-frame">
+    <div class="header">
+      <div class="header-top">
+        <div class="header-title">
+          <span>📋</span>
+          <span>剪贴板管理</span>
+          <span class="badge">v4.0</span>
+        </div>
+        <div class="header-icons">
+          <button>⚙</button>
+          <button>?</button>
+          <button>─</button>
+          <button>✕</button>
+        </div>
+      </div>
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="搜索剪贴板..." />
+      </div>
+    </div>
+    <div class="tabs-c">
+      <button class="tab-c active">
+        <div class="circle">📋</div>
+        <span class="c-label">全部</span>
+        <span class="c-badge">26</span>
+      </button>
+      <button class="tab-c">
+        <div class="circle">📝</div>
+        <span class="c-label">文本</span>
+        <span class="c-badge">24</span>
+      </button>
+      <button class="tab-c">
+        <div class="circle">🖼</div>
+        <span class="c-label">图片</span>
+        <span class="c-badge">2</span>
+      </button>
+      <button class="tab-c">
+        <div class="circle">📁</div>
+        <span class="c-label">文件</span>
+        <span class="c-badge">0</span>
+      </button>
+      <button class="tab-c">
+        <div class="circle">⭐</div>
+        <span class="c-label">收藏</span>
+        <span class="c-badge">0</span>
+      </button>
+    </div>
+    <div class="sep"></div>
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon" style="background:#F3E8FF;color:#8B5CF6">⌨</div>
+        <div class="card-content">
+          <div class="card-title">T2170588</div>
+          <div class="card-sub"><span>剪贴板管理 v4.0.0</span></div>
+        </div>
+        <span class="card-time">31分钟前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#FEF3C7;color:#F59E0B">⌨</div>
+        <div class="card-content">
+          <div class="card-title">1027282</div>
+          <div class="card-sub"><span>企业微信</span></div>
+        </div>
+        <span class="card-time">37分钟前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#E0F2FE;color:#0EA5E9">📂</div>
+        <div class="card-content">
+          <div class="card-title">C:\Users\19145\.qoderwork\...</div>
+          <div class="card-sub"><span>win多次复制粘...</span></div>
+        </div>
+        <span class="card-time">1小时前</span>
+      </div>
+      <div class="card">
+        <div class="card-icon" style="background:#FCE7F3;color:#EC4899">T</div>
+        <div class="card-content">
+          <div class="card-title">帮我重新设计一下这个页面</div>
+          <div class="card-sub"><span>重新设计页面...</span></div>
+        </div>
+        <span class="card-time">1小时前</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>托盘弹窗预览 - 470px</title>
+<style>
+:root {
+  --dialog-bg: #ffffff;
+  --section-bg: #f3f3f3;
+  --border-color: #e0e0e0;
+  --text-primary: #1a1a1a;
+  --text-secondary: #666;
+  --text-muted: #999;
+  --hover-bg: #e8e8e8;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: #1e1e2e;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+}
+
+.wrapper {
+  position: relative;
+}
+
+.popup {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  height: 470px;
+  overflow: hidden;
+  background: var(--dialog-bg);
+  border-radius: 14px;
+  user-select: none;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+/* 头部 */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px 8px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #0078D4, #005A9E);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.title-group {
+  display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0;
+}
+
+.app-name { font-size: 13px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+
+.version-badge {
+  display: inline-block;
+  font-size: 12px; font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--section-bg);
+  border-radius: 6px;
+  padding: 2px 10px;
+}
+
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #34C759; box-shadow: 0 0 6px rgba(52,199,89,0.4);
+  flex-shrink: 0;
+}
+
+/* 统计卡片 */
+.cards { display: flex; gap: 6px; padding: 6px 10px; }
+
+.card {
+  flex: 1; padding: 8px 6px 6px;
+  background: var(--section-bg); border-radius: 10px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+
+.card-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 11px;
+}
+.card-icon.today  { background: linear-gradient(135deg, #3B82F6, #0078D4); }
+.card-icon.total  { background: linear-gradient(135deg, #8B5CF6, #5856D6); }
+.card-icon.pinned { background: linear-gradient(135deg, #F59E0B, #FF9500); }
+
+.card-value { font-size: 16px; font-weight: 700; line-height: 1.1; }
+.card-value.today  { color: #0078D4; }
+.card-value.total  { color: #5856D6; }
+.card-value.pinned { color: #FF9500; }
+.card-label { font-size: 10px; color: var(--text-muted); }
+
+/* 分隔线 */
+.divider { height: 1px; background: var(--border-color); margin: 2px 12px; opacity: 0.6; }
+
+/* 分区标签 */
+.section-label {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 14px 2px;
+  font-size: 10.5px; font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+.section-icon {
+  width: 20px; height: 20px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #8B5CF6, #5856D6);
+  color: #fff; font-size: 10px;
+}
+
+/* 记录/操作区 */
+.recents { display: flex; flex-direction: column; padding: 2px 6px; }
+.actions { display: flex; flex-direction: column; padding: 2px 6px 6px; flex: 1; }
+
+/* 菜单项 */
+.item {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; padding: 6px 8px;
+  border: none; border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary); font-size: 12.5px;
+  font-family: inherit; cursor: pointer;
+  text-align: left;
+}
+
+.item:hover { background: var(--hover-bg); }
+.item.danger { color: #EF4444; }
+.item.danger:hover { background: rgba(239,68,68,0.08); color: #DC2626; }
+
+.item-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 6px;
+  flex-shrink: 0; color: #fff; font-size: 11px; line-height: 1;
+}
+.item-icon.blue   { background: linear-gradient(135deg, #3B82F6, #0078D4); }
+.item-icon.orange { background: linear-gradient(135deg, #F59E0B, #FF9500); }
+.item-icon.purple { background: linear-gradient(135deg, #8B5CF6, #AF52DE); }
+.item-icon.red    { background: linear-gradient(135deg, #EF4444, #FF3B30); }
+
+.item-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.3; }
+.item-hint { flex-shrink: 0; font-size: 10.5px; color: var(--text-muted); opacity: 0.6; }
+
+/* 底部 */
+.footer {
+  padding: 8px 12px; font-size: 10.5px; color: var(--text-muted);
+  border-top: 1px solid var(--border-color);
+  display: flex; align-items: center; gap: 8px;
+}
+
+.footer-icon {
+  width: 20px; height: 20px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #06B6D4, #3B82F6);
+  color: #fff; flex-shrink: 0; font-size: 10px;
+}
+
+.footer-info { flex: 1; min-width: 0; white-space: nowrap; }
+
+.footer-bar-wrap { width: 80px; flex-shrink: 0; }
+.footer-bar {
+  width: 100%; height: 4px; border-radius: 2px;
+  background: var(--border-color); overflow: hidden;
+}
+.footer-bar-fill {
+  height: 100%; border-radius: 2px;
+  background: linear-gradient(90deg, #3B82F6, #0078D4);
+  width: 42%;
+}
+.footer-text { font-size: 10px; color: var(--text-muted); flex-shrink: 0; }
+
+/* 高度标尺 */
+.ruler {
+  position: absolute; right: -50px; top: 0;
+  height: 470px; width: 30px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.ruler span {
+  font-size: 9px; color: #888; text-align: center;
+  position: relative;
+}
+.ruler span::after {
+  content: ''; position: absolute; left: 30px; top: 50%;
+  width: 12px; height: 1px; background: #666;
+}
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+  <div class="popup">
+    <!-- 头部 -->
+    <div class="header">
+      <div class="logo">📋</div>
+      <div class="title-group">
+        <span class="app-name">Filck</span>
+        <span class="version-badge">v4.4.1</span>
+      </div>
+      <div class="status-dot"></div>
+    </div>
+
+    <!-- 统计卡片 -->
+    <div class="cards">
+      <div class="card">
+        <div class="card-icon today">📅</div>
+        <div class="card-value today">128</div>
+        <div class="card-label">今日</div>
+      </div>
+      <div class="card">
+        <div class="card-icon total">📋</div>
+        <div class="card-value total">12,456</div>
+        <div class="card-label">总计</div>
+      </div>
+      <div class="card">
+        <div class="card-icon pinned">📌</div>
+        <div class="card-value pinned">8</div>
+        <div class="card-label">置顶</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 最近复制 -->
+    <div class="section-label">
+      <div class="section-icon">🕐</div>
+      最近复制
+    </div>
+    <div class="recents">
+      <button class="item"><span class="item-icon blue">📝</span><span class="item-text">https://github.com/user/project/pull/1234</span><span class="item-hint">粘贴</span></button>
+      <button class="item"><span class="item-icon orange">📁</span><span class="item-text">C:\Users\文档\项目方案_v3.docx</span><span class="item-hint">粘贴</span></button>
+      <button class="item"><span class="item-icon blue">📝</span><span class="item-text">const apiUrl = "https://api.example.com/v2"</span><span class="item-hint">粘贴</span></button>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- 操作区 -->
+    <div class="actions">
+      <button class="item"><span class="item-icon blue">📂</span><span class="item-text">显示主窗口</span><span class="item-hint">Ctrl+Shift+V</span></button>
+      <button class="item"><span class="item-icon orange">⏸</span><span class="item-text">暂停监听</span></button>
+      <button class="item"><span class="item-icon purple">⚙</span><span class="item-text">设置…</span><span class="item-hint">Ctrl+S</span></button>
+      <button class="item danger"><span class="item-icon red">🚪</span><span class="item-text">退出</span></button>
+    </div>
+
+    <!-- 底部 -->
+    <div class="footer">
+      <div class="footer-icon">📊</div>
+      <span class="footer-info">2.3 MB / 100 MB</span>
+      <div class="footer-bar-wrap">
+        <div class="footer-bar"><div class="footer-bar-fill"></div></div>
+      </div>
+      <span class="footer-text">2.3%</span>
+    </div>
+  </div>
+
+  <!-- 高度标尺 -->
+  <div class="ruler">
+    <span>0</span><span>100</span><span>200</span><span>300</span><span>400</span><span>470</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="ocean">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>内容提取 & 片段库 UI 优化预览 - 6套主题</title>
+<style>
+  /* ===== 全局盒模型 ===== */
+  * { box-sizing: border-box; }
+
+  /* ===== 全局主题切换过渡 ===== */
+  body, .sidebar, .main-panel, .extract-panel, .panel-header, .snippet-card,
+  .search-input, .filter-chip, .extract-tab, .extract-item, .btn, .btn-icon,
+  .preview-overlay, .preview-modal, .toast, .tag, .empty-state, .action-btn {
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  /* ========================================================================
+     主题变量 — 与 clipboard-manager-tauri/src/styles/app.css 完全一致
+     ======================================================================== */
+
+  /* ── 1. ocean 海洋（默认浅色）── */
+  :root,
+  [data-theme="ocean"] {
+    --app-bg: #F4F6F9;
+    --header-bg-start: #fff;
+    --header-bg-end: #F4F6F9;
+    --card-bg: #fff;
+    --card-border: #E0E4EB;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --text-muted: #7888A0;
+    --border-color: #E0E4EB;
+    --accent: #0284C7;
+    --accent-light: #E0F2FE;
+    --seg-bg: #E8E8ED;
+    --seg-active-bg: #fff;
+    --search-bg: #fff;
+    --search-border: #E0E4EB;
+    --input-bg: #F1F5F9;
+    --dialog-bg: #fff;
+    --section-bg: #F0F4F8;
+    --toggle-off-bg: #E2E8F0;
+    --toggle-off-label: #94A3B8;
+    --card-selected-bg: #E0F2FE;
+    --card-selected-border: #0284C7;
+    --card-selected-shadow: 0 0 0 2px rgba(2, 132, 199, 0.25);
+    --accent-shadow: rgba(2, 132, 199, 0.15);
+    --hover: #E8ECF2;
+    --toast-success-bg: #ECFDF5; --toast-success-text: #065F46; --toast-success-border: #A7F3D0;
+    --toast-error-bg: #FEF2F2; --toast-error-text: #991B1B; --toast-error-border: #FECACA;
+    --toast-info-bg: #E0F2FE; --toast-info-text: #0284C7; --toast-info-border: rgba(2, 132, 199, 0.2);
+    --green: #16A34A; --green-bg: #DCFCE7; --green-border: #BBF7D0;
+    --orange: #EA580C; --orange-bg: #FFF7ED; --orange-border: #FED7AA;
+    --red-bg: #FEF2F2; --danger: #DC2626;
+  }
+
+  /* ── 2. midnight 午夜（深色·OLED）── */
+  [data-theme="midnight"] {
+    --app-bg: #09090B;
+    --header-bg-start: #18181B;
+    --header-bg-end: #09090B;
+    --card-bg: #18181B;
+    --card-border: #27272A;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    --text-primary: #E4E4E7;
+    --text-secondary: #A1A1AA;
+    --text-muted: #71717A;
+    --border-color: #27272A;
+    --accent: #818CF8;
+    --accent-light: #1E1B4B;
+    --seg-bg: #27272A;
+    --seg-active-bg: #3F3F46;
+    --search-bg: #27272A;
+    --search-border: #3F3F46;
+    --input-bg: #27272A;
+    --dialog-bg: #18181B;
+    --section-bg: #0F0F11;
+    --toggle-off-bg: #3F3F46;
+    --toggle-off-label: #71717A;
+    --card-selected-bg: #1E1B4B;
+    --card-selected-border: #818CF8;
+    --card-selected-shadow: 0 0 0 2px rgba(129, 140, 248, 0.25);
+    --accent-shadow: rgba(129, 140, 248, 0.2);
+    --hover: #1F1F23;
+    --toast-success-bg: #064E3B; --toast-success-text: #A7F3D0; --toast-success-border: #065F46;
+    --toast-error-bg: #7F1D1D; --toast-error-text: #FECACA; --toast-error-border: #991B1B;
+    --toast-info-bg: #1E1B4B; --toast-info-text: #A5B4FC; --toast-info-border: #312E81;
+    --green: #4ADE80; --green-bg: #052E16; --green-border: #166534;
+    --orange: #FB923C; --orange-bg: #431407; --orange-border: #9A3412;
+    --red-bg: #450A0A; --danger: #F87171;
+  }
+
+  /* ── 3. forest 森林（浅色·护眼绿）── */
+  [data-theme="forest"] {
+    --app-bg: #F2F7F5;
+    --header-bg-start: #fff;
+    --header-bg-end: #F2F7F5;
+    --card-bg: #fff;
+    --card-border: #D1D9D3;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    --text-primary: #171717;
+    --text-secondary: #78716C;
+    --text-muted: #A8A29E;
+    --border-color: #D1D9D3;
+    --accent: #059669;
+    --accent-light: #ECFDF5;
+    --seg-bg: #E4E8E5;
+    --seg-active-bg: #fff;
+    --search-bg: #fff;
+    --search-border: #D1D9D3;
+    --input-bg: #F5F5F4;
+    --dialog-bg: #fff;
+    --section-bg: #ECFDF5;
+    --toggle-off-bg: #D1D9D3;
+    --toggle-off-label: #A8A29E;
+    --card-selected-bg: #ECFDF5;
+    --card-selected-border: #059669;
+    --card-selected-shadow: 0 0 0 2px rgba(5, 150, 105, 0.2);
+    --accent-shadow: rgba(5, 150, 105, 0.15);
+    --hover: #E8EDE8;
+    --toast-success-bg: #ECFDF5; --toast-success-text: #065F46; --toast-success-border: #A7F3D0;
+    --toast-error-bg: #FEF2F2; --toast-error-text: #991B1B; --toast-error-border: #FECACA;
+    --toast-info-bg: #ECFDF5; --toast-info-text: #047857; --toast-info-border: rgba(4, 120, 87, 0.2);
+    --green: #16A34A; --green-bg: #DCFCE7; --green-border: #BBF7D0;
+    --orange: #EA580C; --orange-bg: #FFF7ED; --orange-border: #FED7AA;
+    --red-bg: #FEF2F2; --danger: #DC2626;
+  }
+
+  /* ── 4. blossom 樱花（浅色·浪漫）── */
+  [data-theme="blossom"] {
+    --app-bg: #FFFBFD;
+    --header-bg-start: #fff;
+    --header-bg-end: #FFFBFD;
+    --card-bg: #fff;
+    --card-border: #F3E8ED;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    --text-primary: #1F1A1C;
+    --text-secondary: #A68A96;
+    --text-muted: #A8909A;
+    --border-color: #F3E8ED;
+    --accent: #EC4899;
+    --accent-light: #FCE7F3;
+    --seg-bg: #F0EEEF;
+    --seg-active-bg: #fff;
+    --search-bg: #fff;
+    --search-border: #F3E8ED;
+    --input-bg: #FDF2F8;
+    --dialog-bg: #fff;
+    --section-bg: #FDF2F8;
+    --toggle-off-bg: #F3E8ED;
+    --toggle-off-label: #C4B5BC;
+    --card-selected-bg: #FCE7F3;
+    --card-selected-border: #EC4899;
+    --card-selected-shadow: 0 0 0 2px rgba(236, 72, 153, 0.2);
+    --accent-shadow: rgba(236, 72, 153, 0.15);
+    --hover: #F5E8F0;
+    --toast-success-bg: #ECFDF5; --toast-success-text: #065F46; --toast-success-border: #A7F3D0;
+    --toast-error-bg: #FEF2F2; --toast-error-text: #991B1B; --toast-error-border: #FECACA;
+    --toast-info-bg: #FCE7F3; --toast-info-text: #BE185D; --toast-info-border: rgba(190, 24, 93, 0.2);
+    --green: #16A34A; --green-bg: #DCFCE7; --green-border: #BBF7D0;
+    --orange: #EA580C; --orange-bg: #FFF7ED; --orange-border: #FED7AA;
+    --red-bg: #FEF2F2; --danger: #DC2626;
+  }
+
+  /* ── 5. terminal 终端（深色·极客）── */
+  [data-theme="terminal"] {
+    --app-bg: #0A0A0A;
+    --header-bg-start: #141414;
+    --header-bg-end: #0A0A0A;
+    --card-bg: #141414;
+    --card-border: #262626;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    --text-primary: #E5E5E5;
+    --text-secondary: #A3A3A3;
+    --text-muted: #737373;
+    --border-color: #262626;
+    --accent: #22C55E;
+    --accent-light: #052E16;
+    --seg-bg: #262626;
+    --seg-active-bg: #404040;
+    --search-bg: #262626;
+    --search-border: #404040;
+    --input-bg: #262626;
+    --dialog-bg: #141414;
+    --section-bg: #0F0F0F;
+    --toggle-off-bg: #404040;
+    --toggle-off-label: #737373;
+    --card-selected-bg: #052E16;
+    --card-selected-border: #22C55E;
+    --card-selected-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+    --accent-shadow: rgba(34, 197, 94, 0.2);
+    --hover: #1A1A1A;
+    --toast-success-bg: #052E16; --toast-success-text: #86EFAC; --toast-success-border: #166534;
+    --toast-error-bg: #7F1D1D; --toast-error-text: #FECACA; --toast-error-border: #991B1B;
+    --toast-info-bg: #052E16; --toast-info-text: #86EFAC; --toast-info-border: #166534;
+    --green: #4ADE80; --green-bg: #052E16; --green-border: #166534;
+    --orange: #FB923C; --orange-bg: #431407; --orange-border: #9A3412;
+    --red-bg: #450A0A; --danger: #F87171;
+  }
+
+  /* ── 6. sunset 日落（深色·潮流）── */
+  [data-theme="sunset"] {
+    --app-bg: #1C1410;
+    --header-bg-start: #281E18;
+    --header-bg-end: #1C1410;
+    --card-bg: #281E18;
+    --card-border: #3D3028;
+    --card-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    --text-primary: #F5F0EB;
+    --text-secondary: #B8A99A;
+    --text-muted: #8B7B6B;
+    --border-color: #3D3028;
+    --accent: #F97316;
+    --accent-light: #431407;
+    --seg-bg: #3D3028;
+    --seg-active-bg: #57534E;
+    --search-bg: #3D3028;
+    --search-border: #57534E;
+    --input-bg: #3D3028;
+    --dialog-bg: #281E18;
+    --section-bg: #1F1610;
+    --toggle-off-bg: #57534E;
+    --toggle-off-label: #8B7B6B;
+    --card-selected-bg: #431407;
+    --card-selected-border: #F97316;
+    --card-selected-shadow: 0 0 0 2px rgba(249, 115, 22, 0.25);
+    --accent-shadow: rgba(249, 115, 22, 0.2);
+    --hover: #33261E;
+    --toast-success-bg: #064E3B; --toast-success-text: #A7F3D0; --toast-success-border: #065F46;
+    --toast-error-bg: #7F1D1D; --toast-error-text: #FECACA; --toast-error-border: #991B1B;
+    --toast-info-bg: #431407; --toast-info-text: #FDBA74; --toast-info-border: #7C2D12;
+    --green: #4ADE80; --green-bg: #052E16; --green-border: #166534;
+    --orange: #FB923C; --orange-bg: #431407; --orange-border: #9A3412;
+    --red-bg: #450A0A; --danger: #F87171;
+  }
+
+  /* ========================================================================
+     布局 & 通用样式
+     ======================================================================== */
+  :root {
+    --radius: 12px;
+    --radius-sm: 8px;
+    --radius-xs: 6px;
+    --font: "Inter", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --mono: "SF Mono", "JetBrains Mono", "Consolas", monospace;
+  }
+
+  body {
+    margin: 0; padding: 0;
+    font-family: var(--font);
+    background: var(--app-bg);
+    color: var(--text-primary);
+    display: flex; height: 100vh; overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ===== 侧边栏 ===== */
+  .sidebar {
+    width: 56px; background: var(--card-bg);
+    border-right: 1px solid var(--border-color);
+    display: flex; flex-direction: column;
+    align-items: center; padding: 16px 0; gap: 4px; flex-shrink: 0;
+  }
+  .sidebar-btn {
+    width: 40px; height: 40px; border-radius: var(--radius-xs);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; background: transparent;
+    color: var(--text-secondary); font-size: 18px;
+    transition: all 0.15s; position: relative;
+  }
+  .sidebar-btn:hover { background: var(--hover); color: var(--text-primary); }
+  .sidebar-btn.active { background: var(--accent-light); color: var(--accent); }
+  .sidebar-btn .badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent);
+  }
+  .sidebar-spacer { flex: 1; }
+
+  /* ===== 主题选择器 ===== */
+  .theme-selector {
+    position: relative; width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .theme-selector-btn {
+    width: 40px; height: 40px; border-radius: var(--radius-xs);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; background: transparent;
+    color: var(--text-secondary); font-size: 18px;
+    transition: all 0.15s;
+  }
+  .theme-selector-btn:hover { background: var(--hover); color: var(--text-primary); }
+  .theme-dropdown {
+    position: absolute; left: 48px; bottom: 0;
+    background: var(--dialog-bg); border: 1px solid var(--border-color);
+    border-radius: var(--radius); padding: 8px;
+    display: none; flex-direction: column; gap: 2px;
+    z-index: 200; min-width: 200px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .theme-dropdown.show { display: flex; }
+  .theme-option {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: var(--radius-xs);
+    cursor: pointer; border: none; background: transparent;
+    color: var(--text-primary); font-family: var(--font);
+    font-size: 12px; font-weight: 500; text-align: left;
+    transition: all 0.12s;
+  }
+  .theme-option:hover { background: var(--hover); }
+  .theme-option.active { background: var(--accent-light); color: var(--accent); }
+  .theme-swatch {
+    width: 20px; height: 20px; border-radius: 50%;
+    flex-shrink: 0; border: 2px solid var(--border-color);
+  }
+  .theme-swatch.ocean { background: linear-gradient(135deg, #0284C7 50%, #F4F6F9 50%); }
+  .theme-swatch.midnight { background: linear-gradient(135deg, #818CF8 50%, #09090B 50%); }
+  .theme-swatch.forest { background: linear-gradient(135deg, #059669 50%, #F2F7F5 50%); }
+  .theme-swatch.blossom { background: linear-gradient(135deg, #EC4899 50%, #FFFBFD 50%); }
+  .theme-swatch.terminal { background: linear-gradient(135deg, #22C55E 50%, #0A0A0A 50%); }
+  .theme-swatch.sunset { background: linear-gradient(135deg, #F97316 50%, #1C1410 50%); }
+
+  /* ===== 主面板 ===== */
+  .main-panel {
+    flex: 1; display: flex; flex-direction: column;
+    max-width: 800px; min-width: 0;
+  }
+
+  /* Header */
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 12px; gap: 12px;
+    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(180deg, var(--header-bg-start) 0%, var(--header-bg-end) 100%);
+  }
+  .panel-header-left { display: flex; align-items: center; gap: 10px; }
+  .panel-title { font-size: 16px; font-weight: 600; letter-spacing: -0.01em; color: var(--text-primary); }
+  .panel-count {
+    font-size: 11px; color: var(--text-secondary); background: var(--seg-bg);
+    padding: 2px 8px; border-radius: 20px; font-weight: 500;
+  }
+  .panel-header-right { display: flex; gap: 6px; }
+  .btn {
+    height: 32px; padding: 0 12px; border-radius: var(--radius-xs);
+    font-size: 12px; font-weight: 500; cursor: pointer; border: none;
+    font-family: var(--font); display: flex; align-items: center; gap: 5px;
+    transition: all 0.15s; white-space: nowrap;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { box-shadow: 0 0 12px var(--accent-shadow); opacity: 0.9; }
+  .btn-ghost { background: transparent; color: var(--text-secondary); }
+  .btn-ghost:hover { background: var(--hover); color: var(--text-primary); }
+  .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-sm { height: 26px; padding: 0 8px; font-size: 11px; border-radius: 5px; }
+  .btn-icon {
+    width: 32px; height: 32px; border-radius: var(--radius-xs);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; background: transparent;
+    color: var(--text-secondary); font-size: 15px; transition: all 0.15s;
+  }
+  .btn-icon:hover { background: var(--hover); color: var(--text-primary); }
+
+  /* Search */
+  .search-wrap { padding: 0 20px 12px; position: relative; }
+  .search-input {
+    width: 100%; height: 36px; padding: 0 12px 0 34px;
+    border-radius: var(--radius-xs); font-size: 12px;
+    background: var(--search-bg); color: var(--text-primary);
+    border: 1px solid var(--search-border); outline: none;
+    font-family: var(--font); transition: border 0.15s;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .search-input::placeholder { color: var(--text-muted); }
+  .search-icon-pos {
+    position: absolute; left: 28px; top: 50%; transform: translateY(-50%);
+    font-size: 13px; color: var(--text-muted); pointer-events: none;
+  }
+
+  /* Filter bar */
+  .filter-bar {
+    display: flex; align-items: center; gap: 6px;
+    padding: 0 20px 12px; flex-wrap: wrap;
+  }
+  .filter-chip {
+    height: 28px; padding: 0 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 500; cursor: pointer; border: none;
+    font-family: var(--font); display: flex; align-items: center; gap: 5px;
+    transition: all 0.15s; background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+  }
+  .filter-chip:hover { border-color: var(--text-muted); color: var(--text-primary); }
+  .filter-chip.active {
+    background: var(--accent-light); color: var(--accent);
+    border-color: var(--accent);
+  }
+  .filter-chip .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .filter-chip .count {
+    font-size: 10px; color: var(--text-muted); margin-left: 2px;
+  }
+  .filter-chip.active .count { color: var(--accent); }
+
+  /* Content area */
+  .content-area {
+    flex: 1; overflow-y: auto; padding: 0 20px 20px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .content-area::-webkit-scrollbar { width: 4px; }
+  .content-area::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+  /* Snippet Card */
+  .snippet-card {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: var(--radius); padding: 12px 14px;
+    cursor: pointer; transition: all 0.15s;
+    display: flex; flex-direction: column; gap: 8px;
+    box-shadow: var(--card-shadow);
+  }
+  .snippet-card:hover {
+    border-color: var(--accent);
+    background: var(--hover);
+  }
+  .snippet-card.selected {
+    border-color: var(--card-selected-border);
+    background: var(--card-selected-bg);
+    box-shadow: var(--card-selected-shadow);
+  }
+  .snippet-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .snippet-card-title {
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .snippet-card-tags { display: flex; gap: 4px; }
+  .tag {
+    height: 20px; padding: 0 7px; border-radius: 4px;
+    font-size: 10px; font-weight: 500; display: flex; align-items: center;
+  }
+  .tag-accent { background: var(--accent-light); color: var(--accent); }
+  .tag-green { background: var(--green-bg); color: var(--green); }
+  .tag-orange { background: var(--orange-bg); color: var(--orange); }
+  .tag-danger { background: var(--red-bg); color: var(--danger); }
+  .tag-purple { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+
+  .snippet-card-body {
+    font-size: 12px; color: var(--text-secondary); line-height: 1.5;
+    font-family: var(--mono); overflow: hidden;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    word-break: break-all;
+  }
+  .snippet-card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    opacity: 0; transition: opacity 0.15s;
+  }
+  .snippet-card:hover .snippet-card-footer { opacity: 1; }
+  .snippet-card-meta {
+    font-size: 10px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .snippet-card-actions { display: flex; gap: 2px; }
+  .action-btn {
+    width: 26px; height: 26px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; background: transparent;
+    color: var(--text-secondary); font-size: 12px; transition: all 0.12s;
+  }
+  .action-btn:hover { background: var(--seg-bg); color: var(--text-primary); }
+  .action-btn.copy:hover { background: var(--accent-light); color: var(--accent); }
+  .action-btn.danger:hover { background: var(--red-bg); color: var(--danger); }
+
+  /* ===== 内容提取面板（右侧）===== */
+  .extract-panel {
+    width: 380px; background: var(--card-bg);
+    border-left: 1px solid var(--border-color);
+    display: flex; flex-direction: column;
+    flex-shrink: 0; transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .extract-panel.hidden { transform: translateX(100%); position: absolute; right: 0; }
+
+  .extract-tabs {
+    display: flex; gap: 4px; padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    overflow-x: auto;
+  }
+  .extract-tab {
+    display: flex; align-items: center; gap: 5px;
+    height: 32px; padding: 0 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 500; cursor: pointer; border: none;
+    font-family: var(--font); transition: all 0.15s;
+    background: transparent; color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .extract-tab:hover { background: var(--hover); color: var(--text-primary); }
+  .extract-tab.active {
+    background: var(--accent); color: #fff;
+    box-shadow: 0 2px 8px var(--accent-shadow);
+  }
+  .extract-tab .tab-icon { font-size: 13px; }
+  .extract-tab .tab-count {
+    font-size: 10px; opacity: 0.7; background: rgba(255,255,255,0.2);
+    padding: 1px 6px; border-radius: 10px;
+  }
+  .extract-tab:not(.active) .tab-count {
+    background: var(--seg-bg); color: var(--text-muted);
+  }
+
+  .extract-results {
+    flex: 1; overflow-y: auto; padding: 8px 12px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .extract-results::-webkit-scrollbar { width: 4px; }
+  .extract-results::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+  .extract-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; border-radius: var(--radius-xs);
+    border: 1px solid transparent; cursor: pointer;
+    transition: all 0.12s; position: relative;
+  }
+  .extract-item:hover { background: var(--hover); border-color: var(--border-color); }
+  .extract-item.selected {
+    background: var(--card-selected-bg); border-color: var(--card-selected-border);
+  }
+  .extract-check {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 1.5px solid var(--border-color); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; font-size: 10px;
+  }
+  .extract-item.selected .extract-check {
+    background: var(--accent); border-color: var(--accent); color: #fff;
+  }
+  .extract-item-text {
+    font-size: 11px; color: var(--text-primary); font-family: var(--mono);
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .extract-item-actions {
+    display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s;
+  }
+  .extract-item:hover .extract-item-actions { opacity: 1; }
+  .extract-item-action {
+    width: 24px; height: 24px; border-radius: 4px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; background: transparent;
+    color: var(--text-secondary); font-size: 11px; transition: all 0.12s;
+  }
+  .extract-item-action:hover { background: var(--seg-bg); color: var(--text-primary); }
+  .extract-item-action.save:hover { background: var(--accent-light); color: var(--accent); }
+
+  .extract-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-top: 1px solid var(--border-color);
+    gap: 8px;
+  }
+  .extract-footer-left { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-secondary); }
+  .extract-footer-right { display: flex; gap: 6px; }
+
+  /* ===== 预览弹窗 ===== */
+  .preview-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; backdrop-filter: blur(4px);
+  }
+  .preview-modal {
+    width: 560px; max-height: 70vh; background: var(--dialog-bg);
+    border-radius: var(--radius); border: 1px solid var(--border-color);
+    display: flex; flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+  .preview-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid var(--border-color);
+  }
+  .preview-body {
+    flex: 1; overflow-y: auto; padding: 16px;
+    font-family: var(--mono); font-size: 13px; line-height: 1.7;
+    color: var(--text-primary); white-space: pre-wrap; word-break: break-all;
+  }
+  .preview-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-top: 1px solid var(--border-color);
+    gap: 8px;
+  }
+
+  /* ===== 空状态 ===== */
+  .empty-state {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; padding: 48px 20px; gap: 12px;
+    color: var(--text-muted);
+  }
+  .empty-state-icon {
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--seg-bg); display: flex;
+    align-items: center; justify-content: center;
+    font-size: 24px;
+  }
+  .empty-state-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+  .empty-state-desc { font-size: 11px; text-align: center; line-height: 1.5; }
+
+  /* ===== 拖拽手柄 ===== */
+  .drag-handle {
+    width: 8px; height: 20px; cursor: grab;
+    display: flex; flex-direction: column; gap: 2px;
+    align-items: center; opacity: 0; transition: opacity 0.12s;
+  }
+  .snippet-card:hover .drag-handle { opacity: 0.4; }
+  .drag-handle:hover { opacity: 1 !important; }
+  .drag-dot {
+    width: 3px; height: 3px; border-radius: 50%; background: var(--text-muted);
+  }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: var(--dialog-bg); color: var(--text-primary);
+    padding: 10px 20px; border-radius: 20px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    z-index: 200; display: flex; align-items: center; gap: 8px;
+    animation: toastIn 0.3s ease;
+  }
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+  .toast.success { border-color: var(--green); }
+  .toast-icon { font-size: 14px; }
+
+  /* ===== Tooltip ===== */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip); position: absolute; bottom: 100%; left: 50%;
+    transform: translateX(-50%); margin-bottom: 6px;
+    padding: 4px 8px; border-radius: 4px; font-size: 10px;
+    background: var(--dialog-bg); color: var(--text-primary);
+    border: 1px solid var(--border-color); white-space: nowrap;
+    pointer-events: none; z-index: 50;
+  }
+
+  /* ===== Section Divider ===== */
+  .section-label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    color: var(--text-muted); letter-spacing: 0.05em;
+    padding: 16px 20px 8px;
+  }
+
+  /* ===== 响应式 ===== */
+  @media (max-width: 900px) {
+    .extract-panel { position: fixed; right: 0; top: 0; bottom: 0; z-index: 50; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== 侧边栏 ===== -->
+<div class="sidebar">
+  <button class="sidebar-btn active" data-tip="片段库" title="片段库">📝<span class="badge"></span></button>
+  <button class="sidebar-btn" data-tip="收藏夹" title="收藏夹">⭐</button>
+  <button class="sidebar-btn" data-tip="标签管理" title="标签管理">🏷</button>
+  <div class="sidebar-spacer"></div>
+  <button class="sidebar-btn" id="toggleExtract" data-tip="内容提取" title="内容提取" style="color:var(--accent)">🧲<span class="badge" style="background:var(--green)"></span></button>
+  <!-- 主题选择器 -->
+  <div class="theme-selector" id="themeSelector">
+    <button class="theme-selector-btn" id="themeToggleBtn" title="切换主题">🎨</button>
+    <div class="theme-dropdown" id="themeDropdown">
+      <button class="theme-option active" data-theme="ocean"><span class="theme-swatch ocean"></span>海洋</button>
+      <button class="theme-option" data-theme="midnight"><span class="theme-swatch midnight"></span>午夜</button>
+      <button class="theme-option" data-theme="forest"><span class="theme-swatch forest"></span>森林</button>
+      <button class="theme-option" data-theme="blossom"><span class="theme-swatch blossom"></span>樱花</button>
+      <button class="theme-option" data-theme="terminal"><span class="theme-swatch terminal"></span>终端</button>
+      <button class="theme-option" data-theme="sunset"><span class="theme-swatch sunset"></span>日落</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 主面板（片段库）===== -->
+<div class="main-panel" id="mainPanel">
+  <!-- Header -->
+  <div class="panel-header">
+    <div class="panel-header-left">
+      <span class="panel-title">片段库</span>
+      <span class="panel-count">12</span>
+    </div>
+    <div class="panel-header-right">
+      <button class="btn btn-outline btn-sm" id="batchBtn">☐ 批量管理</button>
+      <button class="btn btn-outline btn-sm">📥 导出</button>
+      <button class="btn btn-primary btn-sm" id="addSnippetBtn">+ 新建片段</button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <span class="search-icon-pos">🔍</span>
+    <input class="search-input" placeholder="搜索片段名称或内容..." id="snippetSearch">
+  </div>
+
+  <!-- Tag Filter -->
+  <div class="filter-bar">
+    <button class="filter-chip active">全部 <span class="count">12</span></button>
+    <button class="filter-chip"><span class="dot" style="background:var(--accent)"></span>API <span class="count">4</span></button>
+    <button class="filter-chip"><span class="dot" style="background:var(--green)"></span>SQL <span class="count">3</span></button>
+    <button class="filter-chip"><span class="dot" style="background:var(--orange)"></span>配置 <span class="count">2</span></button>
+    <button class="filter-chip"><span class="dot" style="background:#a855f7"></span>模板 <span class="count">2</span></button>
+    <button class="filter-chip"><span class="dot" style="background:var(--danger)"></span>命令 <span class="count">1</span></button>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area" id="snippetList">
+    <div class="snippet-card" onclick="openPreview(this)" data-id="1">
+      <div class="snippet-card-header">
+        <div class="snippet-card-title">
+          <span class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></span>
+          GitHub API Token 配置
+          <span class="snippet-card-tags">
+            <span class="tag tag-accent">API</span>
+            <span class="tag tag-orange">配置</span>
+          </span>
+        </div>
+      </div>
+      <div class="snippet-card-body">export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+# 用于 GitHub Actions 和 API 调用
+# 权限范围：repo, workflow, read:org</div>
+      <div class="snippet-card-footer">
+        <span class="snippet-card-meta">
+          <span>🕐 2 小时前</span>
+          <span>📋 已复制 23 次</span>
+        </span>
+        <div class="snippet-card-actions">
+          <button class="action-btn copy" data-tip="复制" onclick="event.stopPropagation(); toast('已复制到剪贴板','success')">📋</button>
+          <button class="action-btn" data-tip="编辑" onclick="event.stopPropagation()">✏️</button>
+          <button class="action-btn danger" data-tip="删除" onclick="event.stopPropagation()">🗑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="snippet-card" onclick="openPreview(this)" data-id="2">
+      <div class="snippet-card-header">
+        <div class="snippet-card-title">
+          <span class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></span>
+          用户表建表 SQL
+          <span class="snippet-card-tags">
+            <span class="tag tag-green">SQL</span>
+          </span>
+        </div>
+      </div>
+      <div class="snippet-card-body">CREATE TABLE users (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(64) NOT NULL UNIQUE,
+    email VARCHAR(128) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_username (username),
+    INDEX idx_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;</div>
+      <div class="snippet-card-footer">
+        <span class="snippet-card-meta">
+          <span>🕐 昨天</span>
+          <span>📋 已复制 15 次</span>
+        </span>
+        <div class="snippet-card-actions">
+          <button class="action-btn copy" data-tip="复制" onclick="event.stopPropagation(); toast('已复制到剪贴板','success')">📋</button>
+          <button class="action-btn" data-tip="编辑" onclick="event.stopPropagation()">✏️</button>
+          <button class="action-btn danger" data-tip="删除" onclick="event.stopPropagation()">🗑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="snippet-card" onclick="openPreview(this)" data-id="3">
+      <div class="snippet-card-header">
+        <div class="snippet-card-title">
+          <span class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></span>
+          Docker Compose 开发环境
+          <span class="snippet-card-tags">
+            <span class="tag tag-orange">配置</span>
+            <span class="tag tag-purple">模板</span>
+          </span>
+        </div>
+      </div>
+      <div class="snippet-card-body">version: '3.8'
+services:
+  app:
+    build: .
+    ports: ["3000:3000"]
+    volumes: [".:/app"]
+    environment:
+      - NODE_ENV=development
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: myapp
+      POSTGRES_PASSWORD: devpass</div>
+      <div class="snippet-card-footer">
+        <span class="snippet-card-meta">
+          <span>🕐 3 天前</span>
+          <span>📋 已复制 8 次</span>
+        </span>
+        <div class="snippet-card-actions">
+          <button class="action-btn copy" data-tip="复制" onclick="event.stopPropagation(); toast('已复制到剪贴板','success')">📋</button>
+          <button class="action-btn" data-tip="编辑" onclick="event.stopPropagation()">✏️</button>
+          <button class="action-btn danger" data-tip="删除" onclick="event.stopPropagation()">🗑</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="snippet-card" onclick="openPreview(this)" data-id="4">
+      <div class="snippet-card-header">
+        <div class="snippet-card-title">
+          <span class="drag-handle"><span class="drag-dot"></span><span class="drag-dot"></span><span class="drag-dot"></span></span>
+          Nginx 反向代理配置
+          <span class="snippet-card-tags">
+            <span class="tag tag-orange">配置</span>
+            <span class="tag tag-danger">命令</span>
+          </span>
+        </div>
+      </div>
+      <div class="snippet-card-body">server {
+    listen 80;
+    server_name api.example.com;
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}</div>
+      <div class="snippet-card-footer">
+        <span class="snippet-card-meta">
+          <span>🕐 1 周前</span>
+          <span>📋 已复制 5 次</span>
+        </span>
+        <div class="snippet-card-actions">
+          <button class="action-btn copy" data-tip="复制" onclick="event.stopPropagation(); toast('已复制到剪贴板','success')">📋</button>
+          <button class="action-btn" data-tip="编辑" onclick="event.stopPropagation()">✏️</button>
+          <button class="action-btn danger" data-tip="删除" onclick="event.stopPropagation()">🗑</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 最近使用 -->
+  <div class="section-label">最近使用</div>
+  <div style="padding:0 20px 12px; display:flex; gap:8px; flex-wrap:wrap;">
+    <span style="font-size:11px;color:var(--text-secondary);background:var(--seg-bg);padding:4px 10px;border-radius:12px;cursor:pointer;">GitHub Token</span>
+    <span style="font-size:11px;color:var(--text-secondary);background:var(--seg-bg);padding:4px 10px;border-radius:12px;cursor:pointer;">用户表SQL</span>
+    <span style="font-size:11px;color:var(--text-secondary);background:var(--seg-bg);padding:4px 10px;border-radius:12px;cursor:pointer;">Docker Compose</span>
+    <span style="font-size:11px;color:var(--text-secondary);background:var(--seg-bg);padding:4px 10px;border-radius:12px;cursor:pointer;">curl 示例</span>
+  </div>
+</div>
+
+<!-- ===== 内容提取面板 ===== -->
+<div class="extract-panel" id="extractPanel">
+  <div class="panel-header">
+    <div class="panel-header-left">
+      <span class="panel-title">内容提取</span>
+    </div>
+    <button class="btn-icon" id="closeExtract" title="关闭">✕</button>
+  </div>
+
+  <!-- 提取类型标签 -->
+  <div class="extract-tabs">
+    <button class="extract-tab active" data-type="url">
+      <span class="tab-icon">🔗</span> 链接 <span class="tab-count">8</span>
+    </button>
+    <button class="extract-tab" data-type="email">
+      <span class="tab-icon">📧</span> 邮箱 <span class="tab-count">3</span>
+    </button>
+    <button class="extract-tab" data-type="phone">
+      <span class="tab-icon">📞</span> 电话 <span class="tab-count">2</span>
+    </button>
+    <button class="extract-tab" data-type="ip">
+      <span class="tab-icon">🌐</span> IP <span class="tab-count">5</span>
+    </button>
+    <button class="extract-tab" data-type="code">
+      <span class="tab-icon">💻</span> 代码块 <span class="tab-count">4</span>
+    </button>
+  </div>
+
+  <!-- 提取结果 -->
+  <div class="extract-results" id="extractResults">
+    <div class="extract-item" onclick="toggleSelect(this)">
+      <div class="extract-check">✓</div>
+      <span class="extract-item-text">https://api.github.com/repos/user/repo</span>
+      <div class="extract-item-actions">
+        <button class="extract-item-action" data-tip="复制" onclick="event.stopPropagation(); toast('已复制','success')">📋</button>
+        <button class="extract-item-action save" data-tip="存为片段" onclick="event.stopPropagation(); toast('已保存到片段库','success')">💾</button>
+      </div>
+    </div>
+    <div class="extract-item" onclick="toggleSelect(this)">
+      <div class="extract-check">✓</div>
+      <span class="extract-item-text">https://www.npmjs.com/package/react</span>
+      <div class="extract-item-actions">
+        <button class="extract-item-action" data-tip="复制" onclick="event.stopPropagation(); toast('已复制','success')">📋</button>
+        <button class="extract-item-action save" data-tip="存为片段" onclick="event.stopPropagation(); toast('已保存到片段库','success')">💾</button>
+      </div>
+    </div>
+    <div class="extract-item" onclick="toggleSelect(this)">
+      <div class="extract-check">✓</div>
+      <span class="extract-item-text">https://docs.docker.com/engine/install</span>
+      <div class="extract-item-actions">
+        <button class="extract-item-action" data-tip="复制" onclick="event.stopPropagation(); toast('已复制','success')">📋</button>
+        <button class="extract-item-action save" data-tip="存为片段" onclick="event.stopPropagation(); toast('已保存到片段库','success')">💾</button>
+      </div>
+    </div>
+    <div class="extract-item selected" onclick="toggleSelect(this)">
+      <div class="extract-check">✓</div>
+      <span class="extract-item-text">https://github.com/1914520160/filck/releases</span>
+      <div class="extract-item-actions">
+        <button class="extract-item-action" data-tip="复制" onclick="event.stopPropagation(); toast('已复制','success')">📋</button>
+        <button class="extract-item-action save" data-tip="存为片段" onclick="event.stopPropagation(); toast('已保存到片段库','success')">💾</button>
+      </div>
+    </div>
+    <div class="extract-item" onclick="toggleSelect(this)">
+      <div class="extract-check">✓</div>
+      <span class="extract-item-text">https://stackoverflow.com/questions/12345</span>
+      <div class="extract-item-actions">
+        <button class="extract-item-action" data-tip="复制" onclick="event.stopPropagation(); toast('已复制','success')">📋</button>
+        <button class="extract-item-action save" data-tip="存为片段" onclick="event.stopPropagation(); toast('已保存到片段库','success')">💾</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 底部操作栏 -->
+  <div class="extract-footer">
+    <div class="extract-footer-left">
+      <span>已选 <strong id="selectCount">1</strong> / 8 项</span>
+      <button class="btn btn-ghost btn-sm" id="selectAllBtn">全选</button>
+    </div>
+    <div class="extract-footer-right">
+      <button class="btn btn-outline btn-sm">📋 复制选中</button>
+      <button class="btn btn-primary btn-sm">💾 全部存为片段</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 片段详情弹窗 ===== -->
+<div class="preview-overlay" id="previewOverlay" style="display:none;" onclick="closePreview()">
+  <div class="preview-modal" onclick="event.stopPropagation()">
+    <div class="preview-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="previewTitle" style="font-size:14px;font-weight:600;color:var(--text-primary);">GitHub API Token 配置</span>
+        <span class="tag tag-accent">API</span>
+        <span class="tag tag-orange">配置</span>
+      </div>
+      <button class="btn-icon" onclick="closePreview()">✕</button>
+    </div>
+    <div class="preview-body" id="previewBody">
+export GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
+# 用于 GitHub Actions 和 API 调用
+# 权限范围：repo, workflow, read:org
+    </div>
+    <div class="preview-footer">
+      <span style="font-size:11px;color:var(--text-muted);">🕐 2 小时前 · 📋 已复制 23 次</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-outline btn-sm" onclick="toast('已复制','success')">📋 复制</button>
+        <button class="btn btn-outline btn-sm">✏️ 编辑</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="closePreview()">🗑 删除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Toast 容器 ===== -->
+<div id="toastContainer"></div>
+
+<script>
+// --- 主题系统 ---
+const html = document.documentElement;
+const THEMES = [
+  { key: 'ocean',    name: '海洋' },
+  { key: 'midnight', name: '午夜' },
+  { key: 'forest',   name: '森林' },
+  { key: 'blossom',  name: '樱花' },
+  { key: 'terminal', name: '终端' },
+  { key: 'sunset',   name: '日落' },
+];
+
+// 读取保存的主题，默认 ocean
+const savedTheme = localStorage.getItem('theme') || 'ocean';
+applyTheme(savedTheme);
+
+function applyTheme(themeKey) {
+  html.setAttribute('data-theme', themeKey);
+  localStorage.setItem('theme', themeKey);
+  // 更新下拉菜单选中状态
+  document.querySelectorAll('.theme-option').forEach(opt => {
+    opt.classList.toggle('active', opt.dataset.theme === themeKey);
+  });
+}
+
+// 主题切换按钮：显示/隐藏下拉菜单
+const themeToggleBtn = document.getElementById('themeToggleBtn');
+const themeDropdown = document.getElementById('themeDropdown');
+
+themeToggleBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  themeDropdown.classList.toggle('show');
+});
+
+// 主题选项点击
+themeDropdown.addEventListener('click', (e) => {
+  const option = e.target.closest('.theme-option');
+  if (option) {
+    applyTheme(option.dataset.theme);
+    themeDropdown.classList.remove('show');
+  }
+});
+
+// 点击外部关闭下拉菜单
+document.addEventListener('click', () => {
+  themeDropdown.classList.remove('show');
+});
+
+// --- 内容提取面板切换 ---
+const extractPanel = document.getElementById('extractPanel');
+const toggleBtn = document.getElementById('toggleExtract');
+const closeExtract = document.getElementById('closeExtract');
+
+toggleBtn.addEventListener('click', () => {
+  extractPanel.classList.toggle('hidden');
+  toggleBtn.classList.toggle('active', !extractPanel.classList.contains('hidden'));
+});
+
+closeExtract.addEventListener('click', () => {
+  extractPanel.classList.add('hidden');
+  toggleBtn.classList.remove('active');
+});
+
+// --- 提取项选中 ---
+function toggleSelect(el) {
+  el.classList.toggle('selected');
+  updateSelectCount();
+}
+
+function updateSelectCount() {
+  const total = document.querySelectorAll('#extractResults .extract-item').length;
+  const selected = document.querySelectorAll('#extractResults .extract-item.selected').length;
+  document.getElementById('selectCount').textContent = selected;
+}
+
+document.getElementById('selectAllBtn').addEventListener('click', function() {
+  const items = document.querySelectorAll('#extractResults .extract-item');
+  const allSelected = [...items].every(i => i.classList.contains('selected'));
+  items.forEach(i => {
+    if (allSelected) i.classList.remove('selected');
+    else i.classList.add('selected');
+  });
+  updateSelectCount();
+  this.textContent = allSelected ? '全选' : '取消全选';
+});
+
+// --- 提取类型标签切换 ---
+document.querySelectorAll('.extract-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.extract-tab').forEach(t => t.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// --- 筛选标签切换 ---
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// --- 片段预览弹窗 ---
+function openPreview(card) {
+  const title = card.querySelector('.snippet-card-title').childNodes[2]?.textContent?.trim() || '';
+  const body = card.querySelector('.snippet-card-body').textContent;
+  const meta = card.querySelector('.snippet-card-meta').textContent;
+  const tags = card.querySelector('.snippet-card-tags')?.innerHTML || '';
+
+  document.getElementById('previewTitle').innerHTML = title + ' ' + tags;
+  document.getElementById('previewBody').textContent = body;
+  document.querySelector('.preview-footer span').textContent = meta;
+  document.getElementById('previewOverlay').style.display = 'flex';
+}
+
+function closePreview() {
+  document.getElementById('previewOverlay').style.display = 'none';
+}
+
+// --- Toast ---
+function toast(msg, type) {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast ' + (type || '');
+  el.innerHTML = `<span class="toast-icon">${type === 'success' ? '✅' : 'ℹ️'}</span> ${msg}`;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 0.3s';
+    setTimeout(() => el.remove(), 300);
+  }, 2000);
+}
+
+// --- 键盘快捷键 ---
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closePreview();
+    if (!extractPanel.classList.contains('hidden')) {
+      extractPanel.classList.add('hidden');
+      toggleBtn.classList.remove('active');
+    }
+    themeDropdown.classList.remove('show');
+  }
+});
+
+// --- 侧边栏按钮 ---
+document.querySelectorAll('.sidebar-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    if (this.id === 'toggleExtract') return;
+    document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

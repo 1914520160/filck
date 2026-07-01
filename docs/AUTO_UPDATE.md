@@ -1,4 +1,4 @@
-# Filck 自动更新体系 — 运维文档
+# PastePanda 自动更新体系 — 运维文档
 
 > **面向 AI 开发工具 / 新接手开发者** — 读完本文档即可完全掌握版本更新体系。
 
@@ -17,7 +17,7 @@
 | 项目 | 值 |
 |------|-----|
 | **更新服务器** | GitHub Releases（无需自建服务器） |
-| **更新端点** | `https://github.com/1914520160/filck/releases/latest/download/updater.json` |
+| **更新端点** | `https://github.com/lzlkyb/pastepanda/releases/latest/download/updater.json` |
 | **安装模式** | NSIS `passive`（静默安装，用户无感知） |
 | **检查频率** | 启动时自动检查 + 每 24 小时定时检查 |
 | **签名算法** | ECDSA P-256 (secp256r1) |
@@ -30,7 +30,7 @@
 
 | 项目 | 路径 / 存储位置 | 用途 |
 |------|----------------|------|
-| **私钥** | `%USERPROFILE%\.tauri\filck.key` | 签名安装包（构建机使用） |
+| **私钥** | `%USERPROFILE%\.tauri\pastepanda.key` | 签名安装包（构建机使用） |
 | **私钥** | GitHub Secrets → `TAURI_SIGNING_PRIVATE_KEY` | Actions 自动签名 |
 | **公钥** | `tauri.conf.json` → `plugins.updater.pubkey` | 客户端验证签名 |
 
@@ -57,9 +57,9 @@ const pri = privateKey.toString('base64');
 const fs = require('fs');
 const home = process.env.USERPROFILE || process.env.HOME;
 fs.mkdirSync(home + '/.tauri', { recursive: true });
-fs.writeFileSync(home + '/.tauri/filck.key', pri);
+fs.writeFileSync(home + '/.tauri/pastepanda.key', pri);
 console.log('新公钥: ' + pub);
-console.log('私钥已保存到: ' + home + '/.tauri/filck.key');
+console.log('私钥已保存到: ' + home + '/.tauri/pastepanda.key');
 "
 ```
 
@@ -119,7 +119,7 @@ git push origin master --tags
 
 ### 3.4 手动检查构建状态
 
-打开 https://github.com/1914520160/filck/actions 查看工作流运行状态。
+打开 https://github.com/lzlkyb/pastepanda/actions 查看工作流运行状态。
 
 ---
 
@@ -132,7 +132,7 @@ git push origin master --tags
   "plugins": {
     "updater": {
       "endpoints": [
-        "https://github.com/1914520160/filck/releases/latest/download/updater.json"
+        "https://github.com/lzlkyb/pastepanda/releases/latest/download/updater.json"
       ],
       "pubkey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE...",
       "windows": {
@@ -262,7 +262,7 @@ errorMessage: string | null
   "platforms": {
     "windows-x86_64": {
       "signature": "从构建日志中获取签名",
-      "url": "https://github.com/1914520160/filck/releases/download/v5.0.37/剪贴板管理_5.0.37_x64-setup.exe"
+      "url": "https://github.com/lzlkyb/pastepanda/releases/download/v5.0.37/剪贴板管理_5.0.37_x64-setup.exe"
     }
   }
 }
@@ -274,11 +274,11 @@ errorMessage: string | null
 
 | 项目 | 值 |
 |------|-----|
-| **GitHub 仓库** | `https://github.com/1914520160/filck` |
+| **GitHub 仓库** | `https://github.com/lzlkyb/pastepanda` |
 | **仓库可见性** | Private |
 | **默认分支** | master |
 | **Actions Secret** | `TAURI_SIGNING_PRIVATE_KEY` |
-| **Git remote** | `origin https://github.com/1914520160/filck.git` |
+| **Git remote** | `origin https://github.com/lzlkyb/pastepanda.git` |
 
 ### Git 认证
 
@@ -286,7 +286,7 @@ errorMessage: string | null
 
 ```powershell
 # 设置带 token 的 remote（token 已脱敏，需替换 YOUR_TOKEN）
-git remote set-url origin https://1914520160:YOUR_TOKEN@github.com/1914520160/filck.git
+git remote set-url origin https://lzlkyb:YOUR_TOKEN@github.com/lzlkyb/pastepanda.git
 ```
 
 ---
@@ -296,7 +296,7 @@ git remote set-url origin https://1914520160:YOUR_TOKEN@github.com/1914520160/fi
 换机器或切换 AI 工具后，按以下顺序恢复：
 
 - [ ] 1. 确认 Git remote 指向正确仓库
-- [ ] 2. 确认 `%USERPROFILE%\.tauri\filck.key` 私钥文件存在
+- [ ] 2. 确认 `%USERPROFILE%\.tauri\pastepanda.key` 私钥文件存在
 - [ ] 3. 确认 GitHub Secrets → `TAURI_SIGNING_PRIVATE_KEY` 已设置
 - [ ] 4. 确认 `tauri.conf.json` 中 `pubkey` 与私钥匹配
 - [ ] 5. 确认 `updater.active: true`

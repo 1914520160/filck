@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore, FilterType, TimeFilter, SourceFilter, HistoryItem } from "@/stores/appStore";
-import { getAppVersion } from "@/lib/api";
+import { getAppVersion, getAppName } from "@/lib/api";
 import { UpdateBadge } from "@/components/UpdateBadge";
 import { logger } from "@/lib/logger";
 import { X, ChevronDown } from "lucide-react";
@@ -66,6 +66,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
   const [tabStyle, setTabStyle] = useState<TabStyle>(getTabStyle);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [appVersion, setAppVersion] = useState("...");
+  const [appName, setAppName] = useState("PastePanda");
 
   // ESC 关闭退出确认弹窗
   useEffect(() => {
@@ -82,6 +83,10 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
 
   useEffect(() => {
     getAppVersion().then(setAppVersion).catch(() => setAppVersion("?.?.?"));
+    getAppName().then((name) => {
+      setAppName(name);
+      document.title = name;
+    }).catch(() => setAppName("PastePanda"));
   }, []);
 
   // 监听 localStorage 变化（SettingsDialog 更新 tabStyle 时触发）
@@ -132,7 +137,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
       <div className="header-top" data-tauri-drag-region>
         <div className="header-title">
           <span className="header-title-icon">📋</span>
-          <span className="header-title-text">Filck</span>
+          <span className="header-title-text">{appName}</span>
           <span className="header-badge">v{appVersion}</span>
           <UpdateBadge />
         </div>
@@ -157,7 +162,7 @@ export function TopBar({ onSettings, onHelp, onSnippets, onExtract, onAbout }: {
               className="quit-confirm-box" onClick={(e) => e.stopPropagation()}>
               <button className="quit-confirm-close" onClick={() => setShowQuitConfirm(false)} aria-label="关闭"><X size={16} /></button>
               <div className="quit-confirm-icon">⚠️</div>
-              <h3 className="quit-confirm-title">退出 Filck</h3>
+              <h3 className="quit-confirm-title">退出 {appName}</h3>
               <p className="quit-confirm-desc">
                 退出后剪贴板监听将停止，托盘图标也会消失。<br />
                 如果只想让窗口在后台运行，请选择<b>「隐藏窗口」</b>，托盘图标仍会保留。

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>搜索图标对比</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #E8E8ED; min-height: 100vh; padding: 32px 16px; }
+
+.page-header { text-align: center; margin-bottom: 24px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1D1D1F; }
+.page-desc { font-size: 13px; color: #86868B; margin-top: 6px; line-height: 1.6; }
+
+.cards { display: flex; flex-direction: column; gap: 24px; max-width: 440px; margin: 0 auto; }
+
+.card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+.card-label { font-size: 11px; font-weight: 700; color: #86868B; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+.card-title { font-size: 16px; font-weight: 700; color: #1D1D1F; margin-bottom: 12px; }
+
+/* Search box */
+.search-box {
+  display: flex; align-items: center; gap: 8px; height: 38px;
+  padding: 0 14px; border-radius: 12px;
+  background: #fff; border: 1px solid #E8E8ED;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+}
+.search-text { font-size: 13px; color: #C7C7CC; flex: 1; }
+
+/* Lucide Search icon (SVG) */
+.lucide-search { width: 14px; height: 14px; color: #AEAEB2; stroke: currentColor; stroke-width: 2; fill: none; }
+
+/* Emoji */
+.emoji-icon { font-size: 14px; line-height: 1; }
+
+/* Comparison table */
+.compare { display: flex; gap: 12px; margin-top: 16px; }
+.compare-item { flex: 1; text-align: center; padding: 12px 8px; background: #F8F9FB; border-radius: 10px; }
+.compare-item .icon-preview { font-size: 24px; margin-bottom: 6px; display: flex; align-items: center; justify-content: center; height: 36px; }
+.compare-item .label { font-size: 11px; font-weight: 600; color: #86868B; }
+.compare-item.current { border: 2px solid #FF3B30; background: #FFF5F5; }
+.compare-item.proposed { border: 2px solid #34C759; background: #F0FFF4; }
+.compare-item.current .label { color: #FF3B30; }
+.compare-item.proposed .label { color: #34C759; }
+
+/* Header icons preview */
+.header-icons { display: flex; gap: 4px; margin-top: 12px; justify-content: center; }
+.h-icon-btn { width: 36px; height: 36px; border: none; background: #F5F5F7; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #86868B; }
+.h-icon-btn svg { width: 15px; height: 15px; stroke: currentColor; stroke-width: 2; fill: none; }
+
+.tag { display: inline-flex; padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; }
+.tag-red { background: rgba(255,59,48,0.1); color: #FF3B30; }
+.tag-green { background: rgba(52,199,89,0.1); color: #34C759; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">搜索框图标不一致</div>
+  <div class="page-desc">
+    当前代码用 Lucide SVG <code>&lt;Search&gt;</code> 图标，设计稿用 🔍 emoji。<br>
+    两者视觉风格不同，需要统一。
+  </div>
+</div>
+
+<div class="cards">
+
+  <!-- Card 1: Search icon comparison -->
+  <div class="card">
+    <div class="card-label">搜索框图标</div>
+    <div class="card-title">当前 vs 设计稿</div>
+
+    <div class="compare">
+      <div class="compare-item current">
+        <div class="icon-preview">
+          <svg class="lucide-search" style="width:24px;height:24px" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>
+          </svg>
+        </div>
+        <div class="label">当前 · Lucide SVG</div>
+        <div style="font-size:10px;color:#86868B;margin-top:4px;">灰色线条风格</div>
+      </div>
+      <div class="compare-item proposed">
+        <div class="icon-preview">🔍</div>
+        <div class="label">设计稿 · Emoji</div>
+        <div style="font-size:10px;color:#86868B;margin-top:4px;">彩色实体风格</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 2: Header icons comparison -->
+  <div class="card">
+    <div class="card-label">标题栏图标</div>
+    <div class="card-title">同一问题：4 个按钮也是 Lucide SVG</div>
+
+    <div class="compare">
+      <div class="compare-item current">
+        <div class="header-icons">
+          <div class="h-icon-btn">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div class="h-icon-btn">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+          </div>
+          <div class="h-icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg>
+          </div>
+          <div class="h-icon-btn">
+            <svg viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </div>
+        </div>
+        <div class="label" style="margin-top:8px">当前 · Lucide SVG</div>
+      </div>
+      <div class="compare-item proposed">
+        <div class="header-icons">
+          <div class="h-icon-btn" style="font-size:15px">⚙</div>
+          <div class="h-icon-btn" style="font-size:15px">❓</div>
+          <div class="h-icon-btn" style="font-size:15px">—</div>
+          <div class="h-icon-btn" style="font-size:15px">✕</div>
+        </div>
+        <div class="label" style="margin-top:8px">设计稿 · Emoji/文字</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card 3: Fix proposals -->
+  <div class="card">
+    <div class="card-label">修复方案</div>
+    <div class="card-title">两个方向</div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="padding:12px;background:#F8F9FB;border-radius:10px;border-left:3px solid #0078D4;">
+        <div style="font-size:13px;font-weight:700;color:#1D1D1F;">方案 A · 搜索框改 emoji 🔍</div>
+        <div style="font-size:11px;color:#86868B;margin-top:4px;">搜索图标改成 🔍 emoji，与 Tab emoji 风格统一。标题栏 4 个按钮保持 Lucide SVG（功能按钮用 SVG 更合适）。</div>
+        <div style="margin-top:6px;"><span class="tag tag-green">改动小</span> <span class="tag" style="background:#EFF4FF;color:#0078D4;">只改搜索图标</span></div>
+      </div>
+      <div style="padding:12px;background:#F8F9FB;border-radius:10px;border-left:3px solid #BF5AF2;">
+        <div style="font-size:13px;font-weight:700;color:#1D1D1F;">方案 B · 全部改成 emoji</div>
+        <div style="font-size:11px;color:#86868B;margin-top:4px;">搜索框 🔍 + 标题栏 ⚙❓—✕ 全改 emoji。整体风格最统一，但标题栏功能按钮用 emoji 可能不够精致。</div>
+        <div style="margin-top:6px;"><span class="tag" style="background:#F0E8FB;color:#BF5AF2;">改动中等</span> <span class="tag" style="background:#F0E8FB;color:#BF5AF2;">5 处图标</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

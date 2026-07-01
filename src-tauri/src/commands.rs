@@ -1,19 +1,16 @@
 use crate::data_store::{DataStore, HistoryItem, Snippet, Stats};
 use crate::paste_engine::PasteEngine;
-use tauri::{State, Manager, Emitter, Listener};
+use tauri::{State, Manager, Emitter};
 
-/// 应用版本号（从 tauri.conf.json 运行时读取，唯一版本来源）
+/// 应用配置（从 tauri.conf.json 运行时读取，唯一配置来源）
 use std::sync::LazyLock;
-pub static APP_VERSION: LazyLock<String> = LazyLock::new(|| {
-    read_version_from_conf().unwrap_or_else(|_| "0.0.0".to_string())
-});
 
-fn read_version_from_conf() -> Result<String, Box<dyn std::error::Error>> {
+/// 从 tauri.conf.json 读取指定 key 的字符串值
+fn read_from_conf(key: &str) -> Result<String, Box<dyn std::error::Error>> {
     let conf_path = std::env::current_exe()
         .map(|p| p.parent().unwrap_or(std::path::Path::new(".")).join(".."))
         .unwrap_or_else(|_| std::path::Path::new(".").to_path_buf());
 
-    // 开发时 CWD 就是项目根目录，运行时 exe 在 target/release
     let candidates = vec![
         std::path::PathBuf::from("tauri.conf.json"),
         conf_path.join("tauri.conf.json"),
@@ -22,8 +19,9 @@ fn read_version_from_conf() -> Result<String, Box<dyn std::error::Error>> {
     for path in &candidates {
         if path.exists() {
             let content = std::fs::read_to_string(path)?;
-            if let Some(start) = content.find("\"version\"") {
-                let after_key = &content[start + 9..];
+            let search = format!("\"{}\"", key);
+            if let Some(start) = content.find(&search) {
+                let after_key = &content[start + search.len()..];
                 let trimmed = after_key.trim_start_matches(|c| c == ':' || c == ' ' || c == '"');
                 if let Some(end) = trimmed.find('"') {
                     return Ok(trimmed[..end].to_string());
@@ -31,13 +29,27 @@ fn read_version_from_conf() -> Result<String, Box<dyn std::error::Error>> {
             }
         }
     }
-    Err("version not found in tauri.conf.json".into())
+    Err(format!("{} not found in tauri.conf.json", key).into())
 }
+
+pub static APP_VERSION: LazyLock<String> = LazyLock::new(|| {
+    read_from_conf("version").unwrap_or_else(|_| "0.0.0".to_string())
+});
+
+pub static APP_NAME: LazyLock<String> = LazyLock::new(|| {
+    read_from_conf("productName").unwrap_or_else(|_| "PastePanda".to_string())
+});
 
 /// 获取应用版本号
 #[tauri::command]
 pub fn get_app_version() -> String {
     APP_VERSION.to_string()
+}
+
+/// 获取应用名称
+#[tauri::command]
+pub fn get_app_name() -> String {
+    APP_NAME.to_string()
 }
 
 #[tauri::command]
@@ -473,16 +485,22 @@ pub fn get_file_info(path: String) -> Result<serde_json::Value, String> {
     }
 }
 
-/// 打开文件所在文件夹并选中文件
+/// 用系统默认程序打开文件（直接调用 Windows ShellExecute）
 #[tauri::command]
-pub fn open_file_location(path: String) -> Result<(), String> {
+pub fn open_file_with_system(path: String) -> Result<(), String> {
+    // 先检查文件是否存在
+    if !std::path::Path::new(&path).exists() {
+        return Err(format!("文件不存在: {}", path));
+    }
+
     #[cfg(target_os = "windows")]
     {
         use std::process::Command;
-        Command::new("explorer")
-            .args(["/select,", &path])
+        // ShellExecute 等价：用系统默认程序打开文件
+        Command::new("cmd")
+            .args(["/C", "start", "", &path])
             .spawn()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("打开文件失败: {}", e))?;
         Ok(())
     }
     #[cfg(not(target_os = "windows"))]
@@ -490,6 +508,43 @@ pub fn open_file_location(path: String) -> Result<(), String> {
         let _ = path;
         Err("不支持的平台".to_string())
     }
+}
+
+/// 打开文件所在文件夹并选中文件
+#[tauri::command]
+pub fn open_file_location(path: String) -> Result<(), String> {
+    // 先检查路径是否存在（文件或父目录）
+    let p = std::path::Path::new(&path);
+    let check_path = if p.is_dir() {
+        p.to_path_buf()
+    } else {
+        p.parent().map(|pp| pp.to_path_buf()).unwrap_or_default()
+    };
+    if !check_path.exists() {
+        return Err("目标路径不存在".to_string());
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        use std::process::Command;
+        Command::new("explorer")
+            .args(["/select,", &path])
+            .spawn()
+            .map_err(|e| format!("打开文件夹失败: {}", e))?;
+        Ok(())
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let _ = path;
+        Err("不支持的平台".to_string())
+    }
+}
+
+/// 保存图片文件（直接复制源文件到目标路径）
+#[tauri::command]
+pub fn save_image_file(source: String, dest: String) -> Result<(), String> {
+    std::fs::copy(&source, &dest).map_err(|e| format!("保存图片失败: {}", e))?;
+    Ok(())
 }
 
 // ===== 局域网同步命令 =====
@@ -761,74 +816,19 @@ fn ocr_image_impl(_path: &str) -> Result<OcrResult, String> {
     Err("OCR 功能仅支持 Windows 系统".to_string())
 }
 
-// ===== 置顶图片窗口 =====
+// ===== 置顶图片（原生 Windows 窗口） =====
 
-/// 打开/切换置顶图片窗口
-/// 流程：创建窗口 → 前端加载完发 pinned-image-ready → 后端收到后发 pinned-image-update 带图片路径
+/// 创建原生 Windows 窗口显示置顶图片（GDI 渲染，不依赖 WebView）
 #[tauri::command]
-pub fn open_pinned_image(app: tauri::AppHandle, path: String) -> Result<(), String> {
-    let label = "pinned-image";
-
-    // 如果窗口已存在且可见，更新图片
-    if let Some(window) = app.get_webview_window(label) {
-        if window.is_visible().unwrap_or(false) {
-            window
-                .emit("pinned-image-update", path.clone())
-                .map_err(|e| format!("发送事件失败: {}", e))?;
-            window.set_focus().map_err(|e| format!("聚焦窗口失败: {}", e))?;
-            return Ok(());
-        }
-        // 窗口被销毁后残留引用，先关闭再重建
-        let _ = window.close();
-    }
-
-    let handle = app.clone();
-    let path_clone = path.clone();
-
-    // 创建新窗口
-    let window = tauri::WebviewWindowBuilder::new(
-        &app,
-        label,
-        tauri::WebviewUrl::App("pinned-image.html".into()),
-    )
-    .title("置顶图片")
-    .inner_size(400.0, 500.0)
-    .min_inner_size(200.0, 150.0)
-    .decorations(false)
-    .always_on_top(true)
-    .resizable(true)
-    .visible(true)
-    .center()
-    .build()
-    .map_err(|e| format!("创建置顶窗口失败: {}", e))?;
-
-    // 监听前端就绪事件，收到后立即发送图片路径
-    let handle2 = handle.clone();
-    let path_clone2 = path_clone.clone();
-    window.listen("pinned-image-ready", move |_| {
-        if let Some(w) = handle2.get_webview_window(label) {
-            let _ = w.emit("pinned-image-update", &path_clone2);
-        }
-    });
-
-    // 兜底：如果前端事件因故未触发，500ms 后自动发送
-    std::thread::spawn(move || {
-        std::thread::sleep(std::time::Duration::from_millis(800));
-        if let Some(w) = handle.get_webview_window(label) {
-            // 只发一次：如果已经发过（前端已显示图片），就不重复发了
-            let _ = w.emit("pinned-image-update-fallback", &path_clone);
-        }
-    });
-
-    Ok(())
+pub fn open_pinned_image(_app: tauri::AppHandle, _store: State<DataStore>, path: String) -> Result<(), String> {
+    log::info!("[pinned-image] open_pinned_image 被调用, path: {}", path);
+    crate::pinned_window::create_native_window(&path)
 }
 
-/// 关闭置顶图片窗口
+/// 关闭置顶图片（通知前端隐藏遮罩层 + 取消窗口置顶）
 #[tauri::command]
-pub fn close_pinned_image(app: tauri::AppHandle) -> Result<(), String> {
-    if let Some(window) = app.get_webview_window("pinned-image") {
-        window.close().map_err(|e| format!("关闭窗口失败: {}", e))?;
-    }
+pub fn close_pinned_image() -> Result<(), String> {
+    log::info!("[pinned-image] close_pinned_image 被调用（原生窗口自行关闭，无需额外操作）");
     Ok(())
 }
 

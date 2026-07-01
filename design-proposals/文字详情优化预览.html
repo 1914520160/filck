@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>文字查看详情 — 布局优化设计</title>
+<style>
+/* ============================================================
+   CSS 变量
+   ============================================================ */
+:root {
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F5F5F7;
+  --bg-tertiary: #E8E8ED;
+  --text-primary: #1D1D1F;
+  --text-secondary: #6E6E73;
+  --text-muted: #86868B;
+  --text-ter: #AEAEB2;
+  --accent: #0078D4;
+  --accent-light: #EFF4FF;
+  --accent-dark: #005A9E;
+  --danger: #EF4444;
+  --success: #34C759;
+  --border: #D2D2D7;
+  --section-bg: #F4F4F5;
+  --hover-bg: #EBEBEE;
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.12);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.18);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --font-mono: 'SF Mono', 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+  --transition: 0.2s ease;
+}
+
+.dark {
+  --bg-primary: #1C1C1E;
+  --bg-secondary: #2C2C2E;
+  --bg-tertiary: #3A3A3C;
+  --text-primary: #F5F5F7;
+  --text-secondary: #A1A1A6;
+  --text-muted: #636366;
+  --text-ter: #48484A;
+  --accent: #0A84FF;
+  --accent-light: #1A2A40;
+  --accent-dark: #4DA6FF;
+  --danger: #FF453A;
+  --success: #30D158;
+  --border: #48484A;
+  --section-bg: #2C2C2E;
+  --hover-bg: #3A3A3C;
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 20px;
+  transition: background 0.3s, color 0.3s;
+  min-height: 100vh;
+}
+
+/* 页面头部 */
+.page-header {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  margin-bottom: 28px;
+}
+.page-header h1 { font-size: 22px; font-weight: 700; }
+.page-header .subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+.theme-toggle {
+  padding: 8px 20px; border-radius: var(--radius-sm);
+  background: var(--accent); color: #fff; border: none;
+  cursor: pointer; font-size: 13px; font-weight: 500;
+}
+
+/* 对比区域 */
+.compare-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+}
+.compare-col h2 {
+  font-size: 15px; font-weight: 600; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 8px;
+}
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+.badge.old { background: #FEE2E2; color: var(--danger); }
+.badge.new { background: #DCFCE7; color: #16A34A; }
+
+/* 弹窗外层 */
+.dialog-shell {
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+  transition: all 0.3s;
+}
+.dialog-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.dialog-header h4 {
+  font-size: 13px; font-weight: 600;
+  display: flex; align-items: center; gap: 6px;
+}
+.dialog-close {
+  width: 24px; height: 24px; border-radius: 50%;
+  border: none; background: transparent;
+  color: var(--text-muted); cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+.dialog-close:hover { background: var(--section-bg); color: var(--text-primary); }
+
+.dialog-body {
+  padding: 14px 16px;
+  display: flex; flex-direction: column;
+  gap: 10px;
+}
+
+.dialog-footer {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+/* ============================================================
+   按钮通用
+   ============================================================ */
+.btn-primary {
+  padding: 6px 16px; border-radius: var(--radius-sm);
+  background: var(--accent); color: #fff; border: none;
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+  transition: background var(--transition);
+}
+.btn-primary:hover { background: var(--accent-dark); }
+
+.btn-secondary {
+  padding: 6px 16px; border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); color: var(--text-primary);
+  border: 1px solid var(--border);
+  font-size: 12px; font-weight: 500; cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.btn-secondary:hover { background: var(--section-bg); }
+
+.btn-ghost {
+  padding: 5px 10px; border-radius: var(--radius-sm);
+  background: var(--bg-primary); color: var(--text-secondary);
+  border: 1px solid var(--border);
+  font-size: 11px; cursor: pointer;
+  display: flex; align-items: center; gap: 4px;
+  font-family: inherit; font-weight: 500;
+  transition: all var(--transition);
+}
+.btn-ghost:hover {
+  background: var(--accent-light); color: var(--accent); border-color: var(--accent);
+}
+
+/* ============================================================
+   旧版
+   ============================================================ */
+.old-toolbar {
+  display: flex; gap: 4px; flex-wrap: wrap; align-items: center;
+}
+.old-tool-btn {
+  display: flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg-primary);
+  color: var(--text-secondary); font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit;
+}
+.old-textarea {
+  width: 100%; min-height: 160px; padding: 12px; border-radius: 10px;
+  border: 1.5px solid var(--border); background: var(--bg-primary);
+  color: var(--text-primary); font-size: 13px;
+  font-family: var(--font-mono); resize: vertical; outline: none;
+  line-height: 1.6;
+}
+.old-stats-row {
+  display: flex; justify-content: space-between; align-items: center;
+}
+.old-stats { font-size: 11px; color: var(--text-muted); }
+.old-compare-btn {
+  font-size: 11px; color: var(--accent); background: none;
+  border: none; cursor: pointer; font-family: inherit;
+}
+.old-compare-box {
+  padding: 10px; border-radius: 8px; background: var(--section-bg);
+  border: 1px solid var(--border); font-size: 12px;
+  color: var(--text-secondary); font-family: var(--font-mono);
+  max-height: 80px; overflow: auto; line-height: 1.5;
+  white-space: pre-wrap; word-break: break-all;
+}
+.old-actions {
+  display: flex; gap: 6px;
+}
+
+/* ============================================================
+   新版 — 核心改动
+   1. 工具栏放到元信息条里（节省空间）
+   2. 行号 + 文本查看器
+   3. 操作按钮（复制/粘贴/存片段）放到独立操作栏
+   4. Footer 去重复关闭按钮
+   ============================================================ */
+
+/* 元信息条 — 左侧信息 + 右侧类型 */
+.code-meta-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-bottom: none;
+  font-size: 11px;
+}
+.code-meta-left {
+  display: flex; align-items: center; gap: 12px;
+  color: var(--text-secondary);
+}
+.code-meta-item {
+  display: flex; align-items: center; gap: 4px;
+  font-family: var(--font-mono); font-size: 10px;
+}
+.code-meta-item .label { color: var(--text-muted); }
+.code-meta-item .val { color: var(--text-primary); font-weight: 500; }
+.code-type-badge {
+  padding: 2px 8px; border-radius: 8px;
+  font-size: 10px; font-weight: 500;
+  background: var(--accent-light); color: var(--accent);
+}
+
+/* 代码查看器 — 行号+文本 */
+.code-viewer {
+  display: flex;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--bg-primary);
+  max-height: 200px;
+  overflow: hidden;
+}
+.code-lines {
+  flex-shrink: 0; width: 38px;
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  padding: 8px 0;
+  user-select: none;
+}
+.code-lines .ln {
+  text-align: right;
+  padding: 0 8px 0 4px;
+  font-family: var(--font-mono);
+  font-size: 10px; line-height: 1.75;
+  color: var(--text-muted);
+}
+.code-text {
+  flex: 1; padding: 8px 14px;
+  font-family: var(--font-mono); font-size: 12px;
+  line-height: 1.75; white-space: pre-wrap;
+  word-break: break-all; color: var(--text-primary);
+  overflow: auto; tab-size: 2;
+}
+
+/* 工具栏区 — 文本变换 + 撤销重做 */
+.new-toolbar {
+  display: flex; align-items: center; gap: 4px; flex-wrap: wrap;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+.tool-btn {
+  display: flex; align-items: center; gap: 3px;
+  padding: 3px 8px; border-radius: 4px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  transition: all var(--transition);
+}
+.tool-btn:hover {
+  background: var(--hover-bg); color: var(--text-primary);
+  border-color: var(--border);
+}
+.tool-btn:active { background: var(--accent-light); color: var(--accent); }
+.tool-separator {
+  width: 1px; height: 16px; background: var(--border); margin: 0 2px;
+}
+
+/* 操作栏 */
+.code-actions-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+}
+.code-actions-left {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--text-muted);
+}
+.code-actions-right {
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* 原文对比区 */
+.compare-box {
+  padding: 10px; border-radius: var(--radius-sm);
+  background: var(--section-bg); border: 1px solid var(--border);
+  font-size: 12px; color: var(--text-secondary);
+  font-family: var(--font-mono); max-height: 70px; overflow: auto;
+  line-height: 1.5; white-space: pre-wrap; word-break: break-all;
+}
+
+/* 标注区 */
+.note-list {
+  margin-top: 14px; padding: 12px; border-radius: var(--radius-sm);
+  border-left: 3px solid;
+}
+.note-list.issues { background: #FEF3C7; border-color: #F59E0B; }
+.note-list.good { background: #DCFCE7; border-color: #22C55E; }
+.note-list h5 { font-size: 12px; margin-bottom: 6px; }
+.note-list.issues h5 { color: #92400E; }
+.note-list.good h5 { color: #166534; }
+.note-list li { font-size: 11px; margin-bottom: 2px; margin-left: 16px; }
+.note-list.issues li { color: #78350F; }
+.note-list.good li { color: #14532D; }
+
+/* ============================================================
+   第二个对比 — 短文本（只读预览）
+   ============================================================ */
+.section-divider {
+  margin-top: 48px; padding-top: 24px;
+  border-top: 2px solid var(--border);
+}
+.section-divider h2 {
+  font-size: 16px; margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div>
+    <h1>📄 文字查看详情 — 布局优化设计</h1>
+    <p class="subtitle">保留全部功能按钮 · 提升信息层次和可读性</p>
+  </div>
+  <button class="theme-toggle" onclick="toggleTheme()">🌓 切换深色主题</button>
+</div>
+
+<!-- ============================================================
+     编辑模式对比（有工具栏）
+     ============================================================ -->
+<div class="compare-row">
+
+  <!-- 旧版 -->
+  <div class="compare-col">
+    <h2><span class="badge old">当前版本</span> 编辑模式</h2>
+    <div class="dialog-shell">
+      <div class="dialog-header">
+        <h4>✏️ 编辑记录</h4>
+        <button class="dialog-close">✕</button>
+      </div>
+      <div class="dialog-body">
+        <!-- 工具栏 -->
+        <div class="old-toolbar">
+          <button class="old-tool-btn">🔠 大写</button>
+          <button class="old-tool-btn">🔡 小写</button>
+          <button class="old-tool-btn">✂️ 去空白</button>
+          <button class="old-tool-btn">📐 去空行</button>
+          <button class="old-tool-btn">💬 加引号</button>
+          <span style="margin-left:auto;display:flex;gap:2px;">
+            <button class="old-tool-btn">↩️ 撤销</button>
+            <button class="old-tool-btn">↪️ 重做</button>
+          </span>
+        </div>
+        <!-- 编辑区 -->
+        <textarea class="old-textarea">export function useClipboardMonitor() {
+  const [lastText, setLastText] = useState("");
+  const intervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    intervalRef.current = window.setInterval(async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text && text !== lastText) {
+          setLastText(text);
+          await saveToHistory(text);
+        }
+      } catch (e) {}
+    }, 500);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [lastText]);
+  return lastText;
+}</textarea>
+        <!-- 统计 -->
+        <div class="old-stats-row">
+          <span class="old-stats">281 字符 · 22 行 · 已修改</span>
+          <button class="old-compare-btn">对比原文</button>
+        </div>
+        <!-- 快捷操作 -->
+        <div class="old-actions">
+          <button class="old-tool-btn">📋 复制</button>
+          <button class="old-tool-btn">📌 粘贴</button>
+          <button class="old-tool-btn">⭐ 存片段</button>
+        </div>
+      </div>
+      <!-- Footer -->
+      <div class="dialog-footer">
+        <span style="font-size:10px;color:var(--text-muted);">Ctrl+Enter 保存 · Esc 取消</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-secondary">取消</button>
+          <button class="btn-primary">💾 保存修改</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-list issues">
+      <h5>⚠️ 问题</h5>
+      <ol>
+        <li>工具栏 + 编辑区 + 统计 + 快捷操作 + Footer 挤在 body 里，层次混杂</li>
+        <li>没有行号，大段代码定位困难</li>
+        <li>统计与对比按钮挤在同一行，信息密度过高</li>
+        <li>Footer "取消" 与 Header X 功能重复</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 新版 -->
+  <div class="compare-col">
+    <h2><span class="badge new">优化设计</span> 编辑模式</h2>
+    <div class="dialog-shell">
+      <div class="dialog-header">
+        <h4>✏️ 编辑记录</h4>
+        <button class="dialog-close">✕</button>
+      </div>
+      <div class="dialog-body">
+        <!-- 元信息条 -->
+        <div class="code-meta-bar">
+          <div class="code-meta-left">
+            <div class="code-meta-item"><span class="label">行</span><span class="val">22</span></div>
+            <div class="code-meta-item"><span class="label">字符</span><span class="val">281</span></div>
+            <span style="font-size:10px;color:var(--success);">● 已修改</span>
+          </div>
+          <div class="code-type-badge">💻 TypeScript</div>
+        </div>
+
+        <!-- 代码查看器 + 行号 -->
+        <div class="code-viewer" style="max-height:180px;">
+          <div class="code-lines">
+            <div class="ln">1</div><div class="ln">2</div><div class="ln">3</div>
+            <div class="ln">4</div><div class="ln">5</div><div class="ln">6</div>
+            <div class="ln">7</div><div class="ln">8</div><div class="ln">9</div>
+            <div class="ln">10</div><div class="ln">11</div><div class="ln">12</div>
+            <div class="ln">13</div><div class="ln">14</div><div class="ln">15</div>
+            <div class="ln">16</div><div class="ln">17</div><div class="ln">18</div>
+            <div class="ln">19</div><div class="ln">20</div><div class="ln">21</div><div class="ln">22</div>
+          </div>
+          <textarea class="code-text" style="background:transparent;border:none;resize:none;outline:none;width:100%;">export function useClipboardMonitor() {
+  const [lastText, setLastText] = useState("");
+  const intervalRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    intervalRef.current = window.setInterval(async () => {
+      try {
+        const text = await navigator.clipboard.readText();
+        if (text && text !== lastText) {
+          setLastText(text);
+          await saveToHistory(text);
+        }
+      } catch (e) {}
+    }, 500);
+
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [lastText]);
+  return lastText;
+}</textarea>
+        </div>
+
+        <!-- 工具栏 — 保留全部功能！ -->
+        <div class="new-toolbar">
+          <button class="tool-btn">🔠 大写</button>
+          <button class="tool-btn">🔡 小写</button>
+          <button class="tool-btn">✂️ 去空白</button>
+          <button class="tool-btn">📐 去空行</button>
+          <button class="tool-btn">💬 加引号</button>
+          <div class="tool-separator"></div>
+          <button class="tool-btn">↩️ 撤销</button>
+          <button class="tool-btn">↪️ 重做</button>
+          <span style="margin-left:auto;font-size:10px;color:var(--accent);cursor:pointer;">对比原文 ▾</span>
+        </div>
+
+        <!-- 原文对比（展开时） -->
+        <div class="compare-box" style="display:block;">
+          <span style="font-size:10px;color:var(--text-muted);">原文：</span>
+          export function useClipboardMonitor() { const [lastText] = useState(""); return lastText; }
+        </div>
+      </div>
+
+      <!-- Footer — 去掉取消，按钮带文字紧凑一行 -->
+      <div class="dialog-footer">
+        <span style="font-size:10px;color:var(--text-muted);">Ctrl+Enter 保存 · Esc 取消</span>
+        <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">
+          <button class="btn-ghost" style="padding:4px 10px;font-size:11px;">📋 复制</button>
+          <button class="btn-ghost" style="padding:4px 10px;font-size:11px;">📌 粘贴</button>
+          <button class="btn-ghost" style="padding:4px 10px;font-size:11px;">⭐ 存片段</button>
+          <button class="btn-primary" style="padding:4px 14px;font-size:11px;">💾 保存</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="note-list good">
+      <h5>✅ 优化点</h5>
+      <ol>
+        <li><strong>元信息条置顶</strong>：行数/字符/修改状态 + 类型标签一目了然</li>
+        <li><strong>行号</strong>：大段代码方便定位和讨论（"看第 12 行"）</li>
+        <li><strong>工具栏独立</strong>：变换 + 撤销/重做 + 对比原文在一行紧凑排列</li>
+        <li><strong>操作收敛到 Footer</strong>：复制/粘贴/存片段 + 保存统一在底部，去掉重复"取消"</li>
+        <li><strong>信息密度均衡</strong>：每个区域职责单一，层次分明</li>
+      </ol>
+    </div>
+  </div>
+
+</div><!-- /compare-row -->
+
+<!-- ============================================================
+     只读预览模式对比
+     ============================================================ -->
+<div class="section-divider">
+  <h2>👁️ 只读预览模式（QuickPreview — Space 弹出）</h2>
+</div>
+
+<div class="compare-row">
+
+  <!-- 旧版只读 -->
+  <div class="compare-col">
+    <h2><span class="badge old">当前版本</span> 快速预览</h2>
+    <div class="dialog-shell">
+      <div class="dialog-header">
+        <h4>📄 快速预览</h4>
+        <button class="dialog-close">✕</button>
+      </div>
+      <div class="dialog-body">
+        <div style="padding:14px;border-radius:8px;background:var(--section-bg);border:1px solid var(--border);font-family:var(--font-mono);font-size:13px;line-height:1.7;white-space:pre-wrap;word-break:break-all;color:var(--text-primary);max-height:200px;overflow:auto;">这是来自网页的一段普通文本内容。
+包含中英文混排，以及标点符号。
+剪贴板管理工具会自动记录复制的内容。
+方便随时找回和使用。</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;">
+          <span style="font-size:11px;color:var(--text-muted);">69 字符 · 4 行</span>
+          <button class="btn-ghost">📋 复制</button>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <span style="font-size:10px;color:var(--text-muted);">Space / Esc 关闭 · 可选中文本</span>
+        <button class="btn-secondary">关闭</button>
+      </div>
+    </div>
+    <div class="note-list issues">
+      <h5>⚠️ 问题</h5>
+      <ol>
+        <li>纯灰块文本，无行号无类型标识</li>
+        <li>统计和复制挤在 body 底部</li>
+        <li>Footer "关闭" 重复</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- 新版只读 -->
+  <div class="compare-col">
+    <h2><span class="badge new">优化设计</span> 快速预览</h2>
+    <div class="dialog-shell">
+      <div class="dialog-header">
+        <h4>👁️ 快速预览</h4>
+        <button class="dialog-close">✕</button>
+      </div>
+      <div class="dialog-body">
+        <!-- 元信息条 -->
+        <div class="code-meta-bar">
+          <div class="code-meta-left">
+            <div class="code-meta-item"><span class="label">行</span><span class="val">4</span></div>
+            <div class="code-meta-item"><span class="label">字符</span><span class="val">69</span></div>
+          </div>
+          <div class="code-type-badge">📝 文本</div>
+        </div>
+        <!-- 查看器（只读，无工具栏） -->
+        <div class="code-viewer" style="max-height:150px;">
+          <div class="code-lines">
+            <div class="ln">1</div><div class="ln">2</div><div class="ln">3</div><div class="ln">4</div>
+          </div>
+          <div class="code-text">这是来自网页的一段普通文本内容。
+包含中英文混排，以及标点符号。
+剪贴板管理工具会自动记录复制的内容。
+方便随时找回和使用。</div>
+        </div>
+        <!-- 操作栏 — 图标按钮一行 -->
+        <div class="code-actions-bar">
+          <div class="code-actions-left">
+            <span>Space / Esc 关闭 · 可选中文本</span>
+          </div>
+          <div class="code-actions-right" style="flex-shrink:0;">
+            <button class="btn-ghost" style="padding:4px 10px;font-size:11px;">📋 复制</button>
+            <button class="btn-ghost" style="padding:4px 10px;font-size:11px;">📌 粘贴</button>
+          </div>
+        </div>
+      </div>
+      <div class="dialog-footer">
+        <span style="font-size:10px;color:var(--text-muted);">来自 Chrome · 今天 14:23</span>
+        <span></span>
+      </div>
+    </div>
+    <div class="note-list good">
+      <h5>✅ 优化点</h5>
+      <ol>
+        <li>元信息条 + 行号，信息层次清晰</li>
+        <li>操作栏独立，不跟文本区混在一起</li>
+        <li>Footer 无重复按钮，只显示来源</li>
+      </ol>
+    </div>
+  </div>
+
+</div><!-- /compare-row -->
+
+<!-- ============================================================
+     总结
+     ============================================================ -->
+<div style="margin-top:40px;padding:20px;background:var(--accent-light);border-radius:var(--radius-md);border-left:4px solid var(--accent);">
+  <h3 style="font-size:14px;margin-bottom:12px;">📋 设计总结</h3>
+  <div style="font-size:13px;color:var(--text-secondary);line-height:2;">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;">
+      <tr style="border-bottom:1px solid var(--border);">
+        <th style="text-align:left;padding:6px 0;">区域</th>
+        <th style="text-align:left;padding:6px 0;">编辑模式</th>
+        <th style="text-align:left;padding:6px 0;">只读预览</th>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:4px 0;">元信息条</td>
+        <td>行数 · 字符数 · 修改状态 + 类型标签</td>
+        <td>行数 · 字符数 + 类型标签</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:4px 0;">内容区</td>
+        <td>行号 + 可编辑 textarea</td>
+        <td>行号 + 只读文本</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:4px 0;">工具栏</td>
+        <td>大写/小写/去空白/去空行/加引号 + 撤销/重做 + 对比原文</td>
+        <td>— 无 —</td>
+      </tr>
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:4px 0;">操作栏</td>
+        <td>— 合并到 Footer —</td>
+        <td>快捷键提示 + 复制/粘贴</td>
+      </tr>
+      <tr>
+        <td style="padding:4px 0;">Footer</td>
+        <td>快捷键提示 + 来源 + 复制/粘贴/存片段 + 保存</td>
+        <td>来源信息</td>
+      </tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function toggleTheme() {
+  document.documentElement.classList.toggle('dark');
+  const btn = document.querySelector('.theme-toggle');
+  btn.textContent = document.documentElement.classList.contains('dark')
+    ? '☀️ 切换浅色主题' : '🌓 切换深色主题';
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置页面 - 完整 UI 设计稿</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: #1C1C1E;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  /* 弹窗背景 */
+  .dialog-backdrop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* 弹窗外壳 */
+  .dialog-box {
+    width: 500px;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.1);
+    max-height: 92vh;
+  }
+
+  /* Header */
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    height: 48px;
+    flex-shrink: 0;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .dialog-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #1D1D1F;
+  }
+  .dialog-close {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: #86868B;
+    font-size: 14px;
+    transition: background 0.15s;
+  }
+  .dialog-close:hover { background: #F4F4F5; }
+
+  /* Body */
+  .dialog-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ===== Section 标题 ===== */
+  .s-section {
+    padding: 14px 20px 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #86868B;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #F5F5F7;
+    border-bottom: 1px solid #E5E5EA;
+    flex-shrink: 0;
+  }
+
+  /* ===== Setting Row ===== */
+  .s-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #E5E5EA;
+    gap: 12px;
+  }
+  .s-row:last-child { border-bottom: none; }
+  .s-row-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .s-row-body { flex: 1; min-width: 0; }
+  .s-row-label { font-size: 13px; font-weight: 600; color: #1D1D1F; }
+  .s-row-desc { font-size: 11px; color: #AEAEB2; margin-top: 2px; }
+
+  /* ===== Toggle ===== */
+  .s-toggle {
+    display: inline-block;
+    width: 44px; height: 26px;
+    border-radius: 13px;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.25s;
+    padding: 0;
+    vertical-align: middle;
+  }
+  .s-toggle.off { background: #E5E5EA; }
+  .s-toggle.on  { background: #34C759; }
+  .s-toggle-thumb {
+    position: absolute;
+    left: 0; top: 2px;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .s-toggle.off .s-toggle-thumb { transform: translateX(2px); }
+  .s-toggle.on  .s-toggle-thumb { transform: translateX(20px); }
+  .s-toggle-label {
+    position: absolute;
+    left: 0; top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px; font-weight: 700;
+    pointer-events: none; user-select: none;
+  }
+  .s-toggle.on  .s-toggle-label { left: 7px;  color: #fff; }
+  .s-toggle.off .s-toggle-label { left: auto; right: 6px; color: #AEAEB2; }
+
+  /* ===== Hotkey ===== */
+  .s-kbd {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px; font-weight: 600;
+    font-family: 'SF Mono', Consolas, monospace;
+    border: 1.5px solid #E5E5EA;
+    background: #F5F5F7;
+    color: #1D1D1F;
+    cursor: pointer;
+    min-width: 100px;
+    text-align: center;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .s-kbd:hover { border-color: #007AFF; background: #E8F0FE; color: #007AFF; }
+
+  /* ===== Value badge ===== */
+  .s-val {
+    font-size: 12px; font-weight: 600;
+    color: #007AFF;
+    padding: 3px 8px;
+    background: #E8F0FE;
+    border-radius: 6px;
+    white-space: nowrap;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* ===== Action button ===== */
+  .s-action {
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1px solid #E5E5EA;
+    background: #fff;
+    font-size: 11px; font-weight: 600;
+    color: #86868B;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .s-action:hover { border-color: #007AFF; color: #007AFF; background: #E8F0FE; }
+  .s-action.danger { color: #EF4444; border-color: rgba(239,68,68,0.2); }
+  .s-action.danger:hover { background: rgba(239,68,68,0.08); }
+
+  /* ===== Cleanup options ===== */
+  .s-cleanup { display: flex; gap: 4px; }
+  .s-cleanup-opt {
+    padding: 3px 8px; border-radius: 5px;
+    font-size: 10px; font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    font-family: inherit;
+    background: transparent;
+    color: #AEAEB2;
+    transition: all 0.15s;
+  }
+  .s-cleanup-opt.active {
+    background: #E8F0FE;
+    color: #007AFF;
+    border-color: #007AFF;
+  }
+  .s-cleanup-opt:not(.active):hover {
+    color: #636366;
+    background: #F5F5F7;
+  }
+
+  /* ===== Footer ===== */
+  .s-footer {
+    padding: 16px 20px 20px;
+    border-top: 1px solid #E5E5EA;
+    background: #F5F5F7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+  .s-save-btn {
+    width: 100%;
+    height: 40px;
+    border-radius: 10px;
+    border: none;
+    background: linear-gradient(135deg, #007AFF, #0055CC);
+    color: #fff;
+    font-size: 14px; font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,122,255,0.3);
+    transition: all 0.2s;
+    font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .s-save-btn:hover {
+    box-shadow: 0 4px 12px rgba(0,122,255,0.4);
+    transform: translateY(-1px);
+  }
+  .s-save-btn:active { transform: scale(0.98); }
+  .s-footer-ver { font-size: 10px; color: #C7C7CC; }
+
+  /* ===== 主题预览卡片 ===== */
+  .theme-picker {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .theme-card {
+    width: 72px; border-radius: 12px; overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer; background: none; padding: 0;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    transition: all 0.2s; font-family: inherit;
+  }
+  .theme-card.active {
+    border-color: #007AFF;
+    box-shadow: 0 0 0 3px rgba(0,122,255,0.15);
+  }
+  .theme-card:hover:not(.active) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  .theme-card-bar {
+    height: 24px; display: flex;
+    align-items: center; padding: 0 6px; gap: 3px;
+  }
+  .theme-card-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .theme-card-name {
+    font-size: 8px;
+  }
+  .theme-card-body {
+    height: 36px; padding: 6px;
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .theme-card-line { height: 5px; border-radius: 3px; }
+
+  /* ===== LAN Panel ===== */
+  .lan-panel {
+    margin: 8px 20px; border-radius: 14px;
+    padding: 16px 18px;
+    background: linear-gradient(135deg, #F0F7FF, #EDF2FA);
+    border: 1px solid #D6E4F7;
+  }
+  .lan-panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .lan-status {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .lan-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 6px rgba(16,185,129,0.4);
+    animation: lan-pulse 2s infinite;
+  }
+  @keyframes lan-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  .lan-status-text { font-size: 13px; font-weight: 600; color: #1A2B4A; }
+  .lan-refresh-btn {
+    background: none; border: 1px solid #D6E4F7; border-radius: 6px;
+    padding: 2px 8px; font-size: 11px; color: #5A6E8A;
+    cursor: pointer; font-family: inherit;
+  }
+  .lan-refresh-btn:hover { background: rgba(255,255,255,0.5); }
+  .lan-device-list {
+    margin-bottom: 8px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .lan-device-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 6px 10px; border-radius: 8px;
+    background: rgba(255,255,255,0.6); border: 1px solid #D6E4F7;
+  }
+  .lan-device-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .lan-device-info { flex: 1; min-width: 0; }
+  .lan-device-name { font-size: 12px; font-weight: 600; color: #1D2939; }
+  .lan-device-time { font-size: 10px; color: #8E9CB2; }
+  .lan-device-online {
+    font-size: 10px; color: #10B981; flex-shrink: 0;
+  }
+  .lan-hint {
+    font-size: 11px; color: #5A6E8A; margin-bottom: 8px;
+  }
+  .lan-test-btn {
+    margin-top: 10px; width: 100%; padding: 6px 0; border-radius: 8px;
+    border: 1px solid #B4D4F7; background: rgba(255,255,255,0.8);
+    color: #007AFF; font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .lan-test-btn:hover { background: #fff; border-color: #007AFF; }
+
+  /* ============================================== */
+  /* 方案 D: 数据统计嵌入式面板                          */
+  /* ============================================== */
+  .stats-panel {
+    margin: 10px 20px 12px;
+    background: #F5F5F7;
+    border-radius: 14px;
+    border: 1px solid #E5E5EA;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .stats-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #86868B;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  .stats-panel-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: #E5E5EA;
+  }
+  .stat-cell {
+    background: #fff;
+    padding: 14px 10px;
+    text-align: center;
+    transition: background 0.15s;
+    min-width: 0;
+  }
+  .stat-cell:hover { background: #F8FAFF; }
+  .stat-cell .num {
+    font-size: 24px;
+    font-weight: 700;
+    color: #1D1D1F;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+  }
+  .stat-cell .num.accent { color: #007AFF; }
+  .stat-cell .num.green  { color: #34C759; }
+  .stat-cell .num.orange { color: #FF9500; }
+  .stat-cell .label {
+    font-size: 11px;
+    color: #636366;
+    margin-top: 6px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .stats-panel-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    font-size: 11px;
+    color: #636366;
+    border-top: 1px solid #E5E5EA;
+    background: rgba(255,255,255,0.5);
+    flex-wrap: nowrap;
+  }
+  .stats-panel-footer span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+
+  /* ===== Scrollbar ===== */
+  .dialog-body::-webkit-scrollbar { width: 5px; }
+  .dialog-body::-webkit-scrollbar-thumb {
+    background: #D2D2D7; border-radius: 10px;
+  }
+  .dialog-body::-webkit-scrollbar-track { background: transparent; }
+</style>
+</head>
+<body>
+
+<div class="dialog-backdrop">
+  <div class="dialog-box">
+
+    <!-- Header -->
+    <div class="dialog-header">
+      <span class="dialog-title">⚙ 设置</span>
+      <button class="dialog-close">✕</button>
+    </div>
+
+    <!-- Body -->
+    <div class="dialog-body">
+
+      <!-- ── 数据统计 (方案 D) ── -->
+      <div class="s-section">数据统计</div>
+      <div class="stats-panel">
+        <div class="stats-panel-header">
+          📊 剪贴板数据概览
+        </div>
+        <div class="stats-panel-grid">
+          <div class="stat-cell">
+            <div class="num">124</div>
+            <div class="label">总记录</div>
+          </div>
+          <div class="stat-cell">
+            <div class="num green">8</div>
+            <div class="label">⭐ 收藏</div>
+          </div>
+          <div class="stat-cell">
+            <div class="num orange">23</div>
+            <div class="label">今日新增</div>
+          </div>
+          <div class="stat-cell">
+            <div class="num accent">98</div>
+            <div class="label">📝 文本</div>
+          </div>
+          <div class="stat-cell">
+            <div class="num accent">22</div>
+            <div class="label">🖼 图片</div>
+          </div>
+          <div class="stat-cell">
+            <div class="num accent">4</div>
+            <div class="label">📁 文件</div>
+          </div>
+        </div>
+        <div class="stats-panel-footer">
+          <span>💾 12.3 KB</span>
+          <span>📅 最早: 2025-01-15</span>
+          <span>📦 1 个空间</span>
+        </div>
+      </div>
+
+      <!-- ── 外观 ── -->
+      <div class="s-section">外观</div>
+      <div class="s-row" style="flex-direction:column;align-items:stretch;gap:12px;">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#007AFF,#5856D6);width:fit-content;padding:6px 12px;font-size:14px;">🎨 主题配色</span>
+        <div class="s-row-desc" style="margin-top:0;">选择你喜欢的配色方案</div>
+        <div class="theme-picker">
+          <!-- 蔚蓝 -->
+          <button class="theme-card active">
+            <div class="theme-card-bar" style="background:linear-gradient(180deg,#F5F8FF,#EDF2FA);border-bottom:1px solid #D6E4F7;">
+              <div class="theme-card-dot" style="background:#0078D4;"></div>
+              <span class="theme-card-name" style="color:#5A6E8A;">蔚蓝</span>
+            </div>
+            <div class="theme-card-body" style="background:#EDF2FA;">
+              <div class="theme-card-line" style="background:#F5F8FF;width:100%;border:1px solid #D6E4F7;"></div>
+              <div class="theme-card-line" style="background:#D6E4F7;width:70%;"></div>
+              <div class="theme-card-line" style="background:#0078D4;width:45%;"></div>
+            </div>
+          </button>
+          <!-- 浅色 -->
+          <button class="theme-card">
+            <div class="theme-card-bar" style="background:linear-gradient(180deg,#fff,#F5F5F7);border-bottom:1px solid #E5E5EA;">
+              <div class="theme-card-dot" style="background:#007AFF;"></div>
+              <span class="theme-card-name" style="color:#86868B;">浅色</span>
+            </div>
+            <div class="theme-card-body" style="background:#F5F5F7;">
+              <div class="theme-card-line" style="background:#fff;width:100%;border:1px solid #E5E5EA;"></div>
+              <div class="theme-card-line" style="background:#E8E8ED;width:70%;"></div>
+              <div class="theme-card-line" style="background:#007AFF;width:45%;"></div>
+            </div>
+          </button>
+          <!-- 深色 -->
+          <button class="theme-card">
+            <div class="theme-card-bar" style="background:linear-gradient(180deg,#2C2C2E,#1C1C1E);border-bottom:1px solid #3A3A3C;">
+              <div class="theme-card-dot" style="background:#0A84FF;"></div>
+              <span class="theme-card-name" style="color:#98989D;">深色</span>
+            </div>
+            <div class="theme-card-body" style="background:#1C1C1E;">
+              <div class="theme-card-line" style="background:#2C2C2E;width:100%;border:1px solid #3A3A3C;"></div>
+              <div class="theme-card-line" style="background:#3A3A3C;width:70%;"></div>
+              <div class="theme-card-line" style="background:#0A84FF;width:45%;"></div>
+            </div>
+          </button>
+          <!-- 蔚蓝深色 -->
+          <button class="theme-card">
+            <div class="theme-card-bar" style="background:linear-gradient(180deg,#1B2D45,#0D1B2A);border-bottom:1px solid #2A4060;">
+              <div class="theme-card-dot" style="background:#4DA3FF;"></div>
+              <span class="theme-card-name" style="color:#7B94B8;">深蔚蓝</span>
+            </div>
+            <div class="theme-card-body" style="background:#0D1B2A;">
+              <div class="theme-card-line" style="background:#1B2D45;width:100%;border:1px solid #2A4060;"></div>
+              <div class="theme-card-line" style="background:#2A4060;width:70%;"></div>
+              <div class="theme-card-line" style="background:#4DA3FF;width:45%;"></div>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#8B5CF6,#AF52DE)">📑</span>
+        <div class="s-row-body">
+          <div class="s-row-label">标签样式</div>
+          <div class="s-row-desc">切换筛选标签的显示风格</div>
+        </div>
+        <button class="s-val">分段控件</button>
+      </div>
+
+      <!-- ── 通用 ── -->
+      <div class="s-section">通用</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">🗑</span>
+        <div class="s-row-body">
+          <div class="s-row-label">自动清理</div>
+          <div class="s-row-desc">手动清理时，删除超过天数的记录</div>
+        </div>
+        <div class="s-cleanup">
+          <button class="s-cleanup-opt active">关</button>
+          <button class="s-cleanup-opt">7天</button>
+          <button class="s-cleanup-opt">15天</button>
+          <button class="s-cleanup-opt">30天</button>
+          <button class="s-cleanup-opt">60天</button>
+        </div>
+      </div>
+
+      <!-- Toggle rows -->
+      <div class="s-row" style="cursor:pointer">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#10B981,#34C759)">✂</span>
+        <div class="s-row-body">
+          <div class="s-row-label">自动去除空白</div>
+          <div class="s-row-desc">复制时去除首尾空白字符</div>
+        </div>
+        <div class="s-toggle on"><span class="s-toggle-thumb"></span><span class="s-toggle-label">开</span></div>
+      </div>
+      <div class="s-row" style="cursor:pointer">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#06B6D4,#007AFF)">🔁</span>
+        <div class="s-row-body">
+          <div class="s-row-label">依次粘贴循环</div>
+          <div class="s-row-desc">到达末尾后从头开始</div>
+        </div>
+        <div class="s-toggle on"><span class="s-toggle-thumb"></span><span class="s-toggle-label">开</span></div>
+      </div>
+      <div class="s-row" style="cursor:pointer">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">👁</span>
+        <div class="s-row-body">
+          <div class="s-row-label">失焦自动隐藏</div>
+          <div class="s-row-desc">窗口失去焦点时隐藏到托盘</div>
+        </div>
+        <div class="s-toggle off"><span class="s-toggle-thumb"></span><span class="s-toggle-label">关</span></div>
+      </div>
+      <div class="s-row" style="cursor:pointer">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">📌</span>
+        <div class="s-row-body">
+          <div class="s-row-label">窗口置顶</div>
+          <div class="s-row-desc">始终显示在其他窗口之上</div>
+        </div>
+        <div class="s-toggle off"><span class="s-toggle-thumb"></span><span class="s-toggle-label">关</span></div>
+      </div>
+      <div class="s-row" style="cursor:pointer">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#3B82F6,#007AFF)">🚀</span>
+        <div class="s-row-body">
+          <div class="s-row-label">开机自启</div>
+          <div class="s-row-desc">Windows 启动时自动运行</div>
+        </div>
+        <div class="s-toggle on"><span class="s-toggle-thumb"></span><span class="s-toggle-label">开</span></div>
+      </div>
+
+      <!-- ── 局域网同步 ── -->
+      <div class="s-section">局域网同步</div>
+      <div class="s-row" style="cursor:pointer">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#06B6D4,#3B82F6)">🌐</span>
+        <div class="s-row-body">
+          <div class="s-row-label">局域网同步</div>
+          <div class="s-row-desc">同一局域网内自动同步剪贴板内容</div>
+        </div>
+        <div class="s-toggle off"><span class="s-toggle-thumb"></span><span class="s-toggle-label">关</span></div>
+      </div>
+
+      <!-- ── 快捷键 ── -->
+      <div class="s-section">快捷键</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#3B82F6,#007AFF)">⌨</span>
+        <div class="s-row-body">
+          <div class="s-row-label">唤出窗口</div>
+          <div class="s-row-desc">全局快捷键，在任何位置唤出</div>
+        </div>
+        <button class="s-kbd">ctrl+shift+v</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#8B5CF6,#5856D6)">📋</span>
+        <div class="s-row-body">
+          <div class="s-row-label">依次粘贴</div>
+          <div class="s-row-desc">按顺序逐条粘贴剪贴板</div>
+        </div>
+        <button class="s-kbd">ctrl+shift+b</button>
+      </div>
+
+      <!-- ── 数据管理 ── -->
+      <div class="s-section">数据管理</div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#F59E0B,#FF9500)">📦</span>
+        <div class="s-row-body">
+          <div class="s-row-label">导出数据</div>
+          <div class="s-row-desc">将历史记录导出为 JSON 文件</div>
+        </div>
+        <button class="s-action">导出</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#06B6D4,#007AFF)">📥</span>
+        <div class="s-row-body">
+          <div class="s-row-label">导入数据</div>
+          <div class="s-row-desc">从 JSON 文件导入历史记录</div>
+        </div>
+        <button class="s-action">导入</button>
+      </div>
+      <div class="s-row">
+        <span class="s-row-icon" style="background:linear-gradient(135deg,#EF4444,#FF3B30)">🧹</span>
+        <div class="s-row-body">
+          <div class="s-row-label">清理过期记录</div>
+          <div class="s-row-desc">8 条记录已过期</div>
+        </div>
+        <button class="s-action danger">清理 8 条</button>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="s-footer">
+      <button class="s-save-btn">关闭设置</button>
+      <span class="s-footer-ver">剪贴板管理 v4.4.0</span>
+    </div>
+
+  </div>
+</div>
+
+</body>
+</html>

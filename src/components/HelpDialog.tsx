@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ChevronRight, Search } from "lucide-react";
 import { useAppStore } from "@/stores/appStore";
-import { getAppVersion } from "@/lib/api";
+import { getAppVersion, getAppName } from "@/lib/api";
 
 /** 将 "ctrl+shift+v" 格式化为胶囊 JSX */
 function KeyCaps({ value }: { value: string }) {
@@ -95,6 +95,7 @@ function Section({
 
 export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const config = useAppStore((s) => s.config);
+  const [appName, setAppName] = useState("PastePanda");
   const [appVersion, setAppVersion] = useState("?.?.?");
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
@@ -102,6 +103,7 @@ export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => vo
   useEffect(() => {
     if (open) {
       getAppVersion().then(setAppVersion);
+      getAppName().then(setAppName).catch(() => setAppName("PastePanda"));
       setQuery("");
       // Auto-focus search on open
       setTimeout(() => searchRef.current?.focus(), 100);
@@ -299,7 +301,7 @@ export function HelpDialog({ open, onClose }: { open: boolean; onClose: () => vo
             {/* Footer */}
             <div className="h-footer">
               <button onClick={onClose} className="h-close-btn">我知道了</button>
-              <span className="h-ver">Filck v{appVersion}</span>
+              <span className="h-ver">{appName} v{appVersion}</span>
             </div>
           </motion.div>
         </motion.div>

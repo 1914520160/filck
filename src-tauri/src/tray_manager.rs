@@ -64,6 +64,7 @@ pub fn is_monitoring_public(app: &AppHandle) -> bool {
 /// 构建弹窗数据 JSON（统一复用，消除重复查询）
 pub fn build_popup_data_public(app: &AppHandle, recents: &[(String, String, String, String)], monitoring: bool) -> serde_json::Value {
     let version = crate::commands::APP_VERSION.to_string();
+    let name = crate::commands::APP_NAME.to_string();
 
     let recents_json: Vec<serde_json::Value> = recents.iter().map(|(id, item_type, preview, text)| {
         serde_json::json!({ "id": id, "type": item_type, "preview": preview, "text": text })
@@ -98,6 +99,7 @@ pub fn build_popup_data_public(app: &AppHandle, recents: &[(String, String, Stri
     };
 
     serde_json::json!({
+        "name": name,
         "version": version,
         "monitoring": monitoring,
         "recents": recents_json,
@@ -352,14 +354,14 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
             Image::new_owned(pixels, 32, 32)
         });
 
-    let version = crate::commands::APP_VERSION;
+    let version = &crate::commands::APP_VERSION;
 
     // 记录最后一次托盘图标完整矩形 (x, y, w, h)（从 Enter/Move 事件获取）
     let tray_rect: Arc<Mutex<(f64, f64, f64, f64)>> = Arc::new(Mutex::new((0.0, 0.0, 24.0, 24.0)));
 
     let _tray = TrayIconBuilder::with_id("main-tray")
         .icon(icon)
-        .tooltip(format!("Filck v{}", version))
+        .tooltip(format!("{} v{}", &*crate::commands::APP_NAME, &**version))
         .show_menu_on_left_click(false)
         .on_tray_icon_event(move |tray, event| {
             match event {

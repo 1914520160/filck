@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>剪贴板管理 — 布局美化方案 v2</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #E8E8ED; min-height: 100vh; padding: 32px 16px; }
+
+.page-header { text-align: center; margin-bottom: 28px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1D1D1F; }
+.page-desc { font-size: 13px; color: #86868B; margin-top: 6px; }
+
+.tabs { display: flex; justify-content: center; gap: 6px; margin-bottom: 28px; }
+.tab { padding: 10px 22px; cursor: pointer; border: none; background: #fff; font-size: 13px; font-weight: 600; color: #86868B; border-radius: 10px; transition: all 0.2s; font-family: inherit; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.tab:hover { background: #F0F0F2; color: #1D1D1F; }
+.tab.active { background: #0078D4; color: #fff; box-shadow: 0 4px 12px rgba(0,120,212,0.3); }
+
+.panels { display: flex; justify-content: center; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+.phone { width: 400px; height: 720px; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08); position: relative; }
+.phone-label { text-align: center; margin-top: 16px; }
+.phone-label .name { font-size: 16px; font-weight: 700; color: #1D1D1F; }
+.phone-label .desc { font-size: 12px; color: #86868B; margin-top: 4px; max-width: 380px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+
+.thumb-placeholder { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; background: linear-gradient(135deg, #FFD6E0, #FFAFCC); }
+
+
+/* ================ 方案 A: Fluent Air ================ */
+.a-shell { display: flex; flex-direction: column; height: 100%; background: #F8F9FB; }
+
+.a-header { padding: 18px 20px 0; background: linear-gradient(180deg, #fff 0%, #F8F9FB 100%); flex-shrink: 0; }
+.a-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.a-title { font-size: 16px; font-weight: 700; color: #1D1D1F; display: flex; align-items: center; gap: 8px; }
+.a-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: linear-gradient(135deg, #0078D4, #005A9E); color: #fff; letter-spacing: 0.3px; }
+.a-icons { display: flex; gap: 2px; }
+.a-icon-btn { width: 32px; height: 32px; border: none; background: transparent; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #AEAEB2; font-size: 15px; transition: all 0.15s; }
+.a-icon-btn:hover { background: rgba(0,0,0,0.04); color: #636366; }
+
+.a-search { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; border: 1px solid #E8E8ED; border-radius: 12px; margin-bottom: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); }
+.a-search-icon { color: #C7C7CC; font-size: 14px; }
+.a-search-text { font-size: 13px; color: #C7C7CC; }
+
+.a-tabs { display: flex; gap: 0; background: #EDEDF0; border-radius: 10px; padding: 3px; }
+.a-tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 7px 0; border: none; background: transparent; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; color: #86868B; transition: all 0.2s; font-family: inherit; }
+.a-tab.active { background: #fff; color: #0078D4; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.a-tab .emoji { font-size: 13px; }
+.a-tab .count { font-size: 10px; color: #AEAEB2; font-weight: 700; }
+.a-tab.active .count { color: #0078D4; opacity: 0.7; }
+
+.a-scroll { flex: 1; overflow-y: auto; }
+.a-cards { padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 10px; }
+
+.a-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #fff; border: none; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 0 1px rgba(0,0,0,0.06); transition: all 0.2s cubic-bezier(0.4,0,0.2,1); cursor: pointer; position: relative; overflow: hidden; }
+.a-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; border-radius: 0 3px 3px 0; }
+.a-card.type-text::before { background: #0078D4; }
+.a-card.type-file::before { background: #34C759; }
+.a-card.type-image::before { background: #FF6482; }
+.a-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+.a-card.selected { background: linear-gradient(135deg, #EFF4FF, #F0F6FF); box-shadow: 0 0 0 2px #0078D4, 0 4px 16px rgba(0,120,212,0.12); }
+
+.a-card-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.a-card-icon.t-blue { background: linear-gradient(135deg, #E8F1FB, #D6E8FA); }
+.a-card-icon.t-green { background: linear-gradient(135deg, #E5F8EC, #D4F2DE); }
+.a-card-icon.t-pink { background: linear-gradient(135deg, #FDE8EE, #FAD6DF); }
+.a-card-icon.t-purple { background: linear-gradient(135deg, #F0E8FB, #E5D6FA); }
+
+.a-card-body { flex: 1; min-width: 0; }
+.a-card-title { font-size: 13px; font-weight: 600; color: #1D1D1F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+.a-card-meta { font-size: 11px; color: #AEAEB2; margin-top: 3px; display: flex; align-items: center; gap: 6px; }
+.a-card-meta .src { max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-card-time { font-size: 10px; color: #C7C7CC; flex-shrink: 0; font-weight: 600; font-variant-numeric: tabular-nums; align-self: flex-start; margin-top: 2px; }
+
+.a-bottom { position: absolute; bottom: 0; left: 0; right: 0; padding: 12px 20px 16px; background: rgba(248,249,251,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: space-between; }
+.a-bottom-counter { font-size: 11px; color: #AEAEB2; font-weight: 600; }
+.a-bottom-counter .n { color: #0078D4; }
+.a-paste-btn { height: 38px; padding: 0 20px; border-radius: 12px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; background: linear-gradient(135deg, #0078D4, #005A9E); color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 16px rgba(0,120,212,0.35); transition: all 0.2s; font-family: inherit; }
+.a-paste-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,120,212,0.4); }
+
+
+/* ================ 方案 B: Sharp Pro ================ */
+.b-shell { display: flex; flex-direction: column; height: 100%; background: #F2F2F7; }
+
+.b-header { padding: 18px 20px 16px; background: linear-gradient(135deg, #1C1C1E, #2C2C2E); flex-shrink: 0; }
+.b-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.b-title { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+.b-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: #0A84FF; color: #fff; }
+.b-icons { display: flex; gap: 2px; }
+.b-icon-btn { width: 32px; height: 32px; border: none; background: rgba(255,255,255,0.08); border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); font-size: 14px; transition: all 0.15s; }
+.b-icon-btn:hover { background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); }
+
+.b-search { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; margin-bottom: 14px; }
+.b-search-icon { color: rgba(255,255,255,0.3); font-size: 14px; }
+.b-search-text { font-size: 13px; color: rgba(255,255,255,0.3); }
+
+.b-tabs { display: flex; gap: 6px; }
+.b-tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 0; border: none; background: rgba(255,255,255,0.06); border-radius: 10px; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.b-tab.active { background: #0A84FF; }
+.b-tab .emoji { font-size: 16px; }
+.b-tab .label { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.5); }
+.b-tab.active .label { color: #fff; }
+.b-tab .cnt { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.3); }
+.b-tab.active .cnt { color: rgba(255,255,255,0.8); }
+
+.b-scroll { flex: 1; overflow-y: auto; }
+.b-cards { padding: 10px 12px 24px; display: flex; flex-direction: column; gap: 6px; }
+
+.b-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #fff; border: none; border-radius: 12px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden; }
+.b-card::before { content: ''; position: absolute; left: 0; top: 6px; bottom: 6px; width: 4px; border-radius: 0 4px 4px 0; }
+.b-card.type-text::before { background: #0A84FF; }
+.b-card.type-file::before { background: #30D158; }
+.b-card.type-image::before { background: #FF6482; }
+.b-card:hover { background: #F8F8FA; }
+.b-card.selected { background: #F0F4FF; box-shadow: inset 0 0 0 1.5px #0A84FF; }
+
+.b-card-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+.b-card-icon.t-blue { background: #0A84FF18; }
+.b-card-icon.t-green { background: #30D15818; }
+.b-card-icon.t-pink { background: #FF648218; }
+.b-card-icon.t-purple { background: #BF5AF218; }
+
+.b-card-body { flex: 1; min-width: 0; }
+.b-card-title { font-size: 13px; font-weight: 600; color: #1C1C1E; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.b-card-meta { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.b-card-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #F2F2F7; color: #8E8E93; text-transform: uppercase; letter-spacing: 0.3px; }
+.b-card-src { font-size: 10px; color: #AEAEB2; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.b-card-time { font-size: 10px; color: #C7C7CC; flex-shrink: 0; font-weight: 600; align-self: flex-start; margin-top: 1px; }
+
+.b-bottom { padding: 10px 16px 14px; background: #fff; border-top: 1px solid #E5E5EA; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.b-bottom-stat { font-size: 10px; color: #8E8E93; font-weight: 600; }
+.b-bottom-stat .n { color: #0A84FF; }
+.b-paste-group { display: flex; gap: 1px; background: #E5E5EA; border-radius: 10px; overflow: hidden; }
+.b-paste-btn { height: 36px; padding: 0 16px; border: none; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; background: #0A84FF; color: #fff; cursor: pointer; font-family: inherit; }
+.b-paste-btn:hover { background: #0977E6; }
+.b-paste-split { height: 36px; width: 36px; border: none; display: flex; align-items: center; justify-content: center; background: #0A84FF; color: rgba(255,255,255,0.7); cursor: pointer; font-size: 10px; }
+.b-paste-split:hover { background: #0977E6; }
+
+
+/* ================ 方案 C: Apple Clean ================ */
+.c-shell { display: flex; flex-direction: column; height: 100%; background: #fff; }
+
+.c-header { padding: 20px 20px 0; flex-shrink: 0; }
+.c-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.c-title { font-size: 20px; font-weight: 800; color: #1D1D1F; letter-spacing: -0.3px; display: flex; align-items: center; gap: 8px; }
+.c-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: #F5F5F7; color: #86868B; }
+.c-icons { display: flex; gap: 4px; }
+.c-icon-btn { width: 36px; height: 36px; border: none; background: #F5F5F7; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #86868B; font-size: 15px; transition: all 0.15s; }
+.c-icon-btn:hover { background: #E8E8ED; color: #636366; }
+
+.c-search { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #F5F5F7; border: none; border-radius: 14px; margin-bottom: 16px; }
+.c-search-icon { color: #AEAEB2; font-size: 15px; }
+.c-search-text { font-size: 14px; color: #AEAEB2; }
+
+.c-tabs { display: flex; gap: 8px; padding: 0 20px; margin-bottom: 4px; overflow-x: auto; }
+.c-tabs::-webkit-scrollbar { display: none; }
+.c-tab { display: flex; align-items: center; gap: 6px; padding: 8px 14px; border: none; background: #F5F5F7; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: 600; color: #86868B; transition: all 0.25s; font-family: inherit; white-space: nowrap; }
+.c-tab.active { background: #1D1D1F; color: #fff; }
+.c-tab .emoji { font-size: 14px; }
+.c-tab .count { font-size: 10px; font-weight: 700; opacity: 0.6; }
+
+.c-scroll { flex: 1; overflow-y: auto; }
+.c-cards { padding: 12px 16px 24px; display: flex; flex-direction: column; gap: 12px; }
+
+.c-card { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: #FAFAFA; border: none; border-radius: 18px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4,0,0.2,1); }
+.c-card:hover { background: #F2F2F7; }
+.c-card.selected { background: #F0F4FF; box-shadow: 0 0 0 2px #0078D4; }
+
+.c-card-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-right: -4px; }
+.c-card-dot.dot-blue { background: #0078D4; }
+.c-card-dot.dot-green { background: #34C759; }
+.c-card-dot.dot-pink { background: #FF6482; }
+.c-card-dot.dot-purple { background: #BF5AF2; }
+
+.c-card-icon { width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 20px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+.c-card-body { flex: 1; min-width: 0; }
+.c-card-title { font-size: 14px; font-weight: 600; color: #1D1D1F; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; letter-spacing: -0.1px; }
+.c-card-meta { font-size: 12px; color: #AEAEB2; margin-top: 4px; display: flex; align-items: center; gap: 8px; }
+.c-card-meta .src { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.c-card-meta .dot-sep { width: 3px; height: 3px; border-radius: 50%; background: #D1D1D6; flex-shrink: 0; }
+
+.c-bottom { position: absolute; bottom: 0; left: 0; right: 0; padding: 10px 16px 14px; background: rgba(255,255,255,0.9); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }
+.c-paste-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; background: #F5F5F7; border-radius: 16px; }
+.c-paste-info { font-size: 11px; color: #86868B; font-weight: 600; }
+.c-paste-info .n { color: #0078D4; font-weight: 700; }
+.c-paste-btn-c { height: 34px; padding: 0 18px; border-radius: 10px; border: none; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; background: #0078D4; color: #fff; cursor: pointer; font-family: inherit; box-shadow: 0 2px 8px rgba(0,120,212,0.25); transition: all 0.2s; }
+.c-paste-btn-c:hover { background: #006CBE; box-shadow: 0 4px 12px rgba(0,120,212,0.35); }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">剪贴板管理 — 布局美化方案 v2</div>
+  <div class="page-desc">已移除统计条，3 种视觉风格对比</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">方案 A · Fluent Air</button>
+  <button class="tab" onclick="switchTab(1)">方案 B · Sharp Pro</button>
+  <button class="tab" onclick="switchTab(2)">方案 C · Apple Clean</button>
+</div>
+
+<div class="panels">
+
+<!-- ========== 方案 A: Fluent Air ========== -->
+<div class="panel active" id="panel-0">
+  <div class="phone">
+    <div class="a-shell">
+      <div class="a-header">
+        <div class="a-top">
+          <div class="a-title">剪贴板管理 <span class="a-badge">v4.0</span></div>
+          <div class="a-icons">
+            <button class="a-icon-btn">⚙</button>
+            <button class="a-icon-btn">?</button>
+            <button class="a-icon-btn">—</button>
+            <button class="a-icon-btn">✕</button>
+          </div>
+        </div>
+        <div class="a-search">
+          <span class="a-search-icon">🔍</span>
+          <span class="a-search-text">搜索剪贴板…</span>
+        </div>
+        <div class="a-tabs">
+          <button class="a-tab active"><span class="emoji">📋</span> 全部 <span class="count">8</span></button>
+          <button class="a-tab"><span class="emoji">📝</span> 文本 <span class="count">5</span></button>
+          <button class="a-tab"><span class="emoji">📸</span> 图片 <span class="count">2</span></button>
+          <button class="a-tab"><span class="emoji">📁</span> 文件 <span class="count">1</span></button>
+          <button class="a-tab"><span class="emoji">⭐</span> 收藏</button>
+        </div>
+      </div>
+      <div class="a-scroll">
+        <div class="a-cards">
+          <div class="a-card type-file">
+            <div class="a-card-icon t-green">📁</div>
+            <div class="a-card-body">
+              <div class="a-card-title">元数据建模.md</div>
+              <div class="a-card-meta"><span class="src">D:\Altool\aiwork</span></div>
+            </div>
+            <div class="a-card-time">刚刚</div>
+          </div>
+          <div class="a-card type-text selected">
+            <div class="a-card-icon t-blue"><span style="font-weight:800;color:#0078D4;font-size:16px">T</span></div>
+            <div class="a-card-body">
+              <div class="a-card-title">一定要先出方案等我确认在动手</div>
+              <div class="a-card-meta"><span class="src">剪贴板管理 v4.0.0</span></div>
+            </div>
+            <div class="a-card-time">23分钟前</div>
+          </div>
+          <div class="a-card type-text">
+            <div class="a-card-icon t-blue"><span style="font-weight:800;color:#0078D4;font-size:16px">T</span></div>
+            <div class="a-card-body">
+              <div class="a-card-title">一定要先出方案等我确认在动手</div>
+              <div class="a-card-meta"><span class="src">win多次复制粘贴…</span></div>
+            </div>
+            <div class="a-card-time">28分钟前</div>
+          </div>
+          <div class="a-card type-text">
+            <div class="a-card-icon t-purple"><span style="font-weight:800;color:#BF5AF2;font-size:16px">T</span></div>
+            <div class="a-card-body">
+              <div class="a-card-title">queryBatchcodeVdef7Batch</div>
+              <div class="a-card-meta"><span class="src">aier</span></div>
+            </div>
+            <div class="a-card-time">33分钟前</div>
+          </div>
+          <div class="a-card type-image">
+            <div class="a-card-icon t-pink"><div class="thumb-placeholder" style="border-radius:12px"></div></div>
+            <div class="a-card-body">
+              <div class="a-card-title">[图片] 499×800</div>
+              <div class="a-card-meta"><span class="src">剪贴板管理 v4.0.0</span></div>
+            </div>
+            <div class="a-card-time">1小时前</div>
+          </div>
+        </div>
+      </div>
+      <div class="a-bottom">
+        <div class="a-bottom-counter"><span class="n">0</span> / 5</div>
+        <button class="a-paste-btn">📋 粘贴 ▾</button>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">方案 A · Fluent Air</div>
+    <div class="desc">左侧彩色细边线区分类型 · 渐变图标底色 · 毛玻璃底栏<br>iOS 风格分段控件 Tab · 柔和阴影 · 卡片悬浮微动效</div>
+  </div>
+</div>
+
+<!-- ========== 方案 B: Sharp Pro ========== -->
+<div class="panel" id="panel-1">
+  <div class="phone">
+    <div class="b-shell">
+      <div class="b-header">
+        <div class="b-top">
+          <div class="b-title">剪贴板管理 <span class="b-badge">v4.0</span></div>
+          <div class="b-icons">
+            <button class="b-icon-btn">⚙</button>
+            <button class="b-icon-btn">?</button>
+            <button class="b-icon-btn">—</button>
+            <button class="b-icon-btn">✕</button>
+          </div>
+        </div>
+        <div class="b-search">
+          <span class="b-search-icon">🔍</span>
+          <span class="b-search-text">搜索剪贴板…</span>
+        </div>
+        <div class="b-tabs">
+          <button class="b-tab active"><span class="emoji">📋</span><span class="label">全部</span><span class="cnt">8</span></button>
+          <button class="b-tab"><span class="emoji">📝</span><span class="label">文本</span><span class="cnt">5</span></button>
+          <button class="b-tab"><span class="emoji">📸</span><span class="label">图片</span><span class="cnt">2</span></button>
+          <button class="b-tab"><span class="emoji">📁</span><span class="label">文件</span><span class="cnt">1</span></button>
+          <button class="b-tab"><span class="emoji">⭐</span><span class="label">收藏</span><span class="cnt">0</span></button>
+        </div>
+      </div>
+      <div class="b-scroll">
+        <div class="b-cards">
+          <div class="b-card type-file">
+            <div class="b-card-icon t-green">📁</div>
+            <div class="b-card-body">
+              <div class="b-card-title">元数据建模.md</div>
+              <div class="b-card-meta"><span class="b-card-tag">FILE</span><span class="b-card-src">aiwork</span></div>
+            </div>
+            <div class="b-card-time">刚刚</div>
+          </div>
+          <div class="b-card type-text selected">
+            <div class="b-card-icon t-blue"><span style="font-weight:800;color:#0A84FF;font-size:15px">T</span></div>
+            <div class="b-card-body">
+              <div class="b-card-title">一定要先出方案等我确认在动手</div>
+              <div class="b-card-meta"><span class="b-card-tag">TEXT</span><span class="b-card-src">剪贴板管理</span></div>
+            </div>
+            <div class="b-card-time">23分前</div>
+          </div>
+          <div class="b-card type-text">
+            <div class="b-card-icon t-blue"><span style="font-weight:800;color:#0A84FF;font-size:15px">T</span></div>
+            <div class="b-card-body">
+              <div class="b-card-title">一定要先出方案等我确认在动手</div>
+              <div class="b-card-meta"><span class="b-card-tag">TEXT</span><span class="b-card-src">win多次复制…</span></div>
+            </div>
+            <div class="b-card-time">28分前</div>
+          </div>
+          <div class="b-card type-text">
+            <div class="b-card-icon t-purple"><span style="font-weight:800;color:#BF5AF2;font-size:15px">T</span></div>
+            <div class="b-card-body">
+              <div class="b-card-title">queryBatchcodeVdef7Batch</div>
+              <div class="b-card-meta"><span class="b-card-tag">CODE</span><span class="b-card-src">aier</span></div>
+            </div>
+            <div class="b-card-time">33分前</div>
+          </div>
+          <div class="b-card type-image">
+            <div class="b-card-icon t-pink"><div class="thumb-placeholder" style="border-radius:10px"></div></div>
+            <div class="b-card-body">
+              <div class="b-card-title">[图片] 499×800</div>
+              <div class="b-card-meta"><span class="b-card-tag">IMG</span><span class="b-card-src">剪贴板管理</span></div>
+            </div>
+            <div class="b-card-time">1时前</div>
+          </div>
+        </div>
+      </div>
+      <div class="b-bottom">
+        <span class="b-bottom-stat"><span class="n">0</span> / 5</span>
+        <div class="b-paste-group">
+          <button class="b-paste-btn">📋 粘贴</button>
+          <button class="b-paste-split">▾</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">方案 B · Sharp Pro</div>
+    <div class="desc">深色头部视觉层次 · 纵向图标Tab · 4px粗边线标识类型<br>FILE/CODE 类型标签芯片 · 贴底工具栏 · 分体粘贴按钮</div>
+  </div>
+</div>
+
+<!-- ========== 方案 C: Apple Clean ========== -->
+<div class="panel" id="panel-2">
+  <div class="phone">
+    <div class="c-shell">
+      <div class="c-header">
+        <div class="c-top">
+          <div class="c-title">剪贴板 <span class="c-badge">v4.0</span></div>
+          <div class="c-icons">
+            <button class="c-icon-btn">⚙</button>
+            <button class="c-icon-btn">?</button>
+            <button class="c-icon-btn">—</button>
+            <button class="c-icon-btn">✕</button>
+          </div>
+        </div>
+        <div class="c-search">
+          <span class="c-search-icon">🔍</span>
+          <span class="c-search-text">搜索剪贴板…</span>
+        </div>
+      </div>
+      <div class="c-tabs">
+        <button class="c-tab active"><span class="emoji">📋</span> 全部 <span class="count">8</span></button>
+        <button class="c-tab"><span class="emoji">📝</span> 文本 <span class="count">5</span></button>
+        <button class="c-tab"><span class="emoji">📸</span> 图片 <span class="count">2</span></button>
+        <button class="c-tab"><span class="emoji">📁</span> 文件 <span class="count">1</span></button>
+        <button class="c-tab"><span class="emoji">⭐</span> 收藏</button>
+      </div>
+      <div class="c-scroll">
+        <div class="c-cards">
+          <div class="c-card">
+            <span class="c-card-dot dot-green"></span>
+            <div class="c-card-icon">📁</div>
+            <div class="c-card-body">
+              <div class="c-card-title">元数据建模.md</div>
+              <div class="c-card-meta"><span class="src">D:\Altool\aiwork</span><span class="dot-sep"></span><span>刚刚</span></div>
+            </div>
+          </div>
+          <div class="c-card selected">
+            <span class="c-card-dot dot-blue"></span>
+            <div class="c-card-icon"><span style="font-weight:800;color:#0078D4;font-size:18px">T</span></div>
+            <div class="c-card-body">
+              <div class="c-card-title">一定要先出方案等我确认在动手</div>
+              <div class="c-card-meta"><span class="src">剪贴板管理 v4.0.0</span><span class="dot-sep"></span><span>23分钟前</span></div>
+            </div>
+          </div>
+          <div class="c-card">
+            <span class="c-card-dot dot-blue"></span>
+            <div class="c-card-icon"><span style="font-weight:800;color:#0078D4;font-size:18px">T</span></div>
+            <div class="c-card-body">
+              <div class="c-card-title">一定要先出方案等我确认在动手</div>
+              <div class="c-card-meta"><span class="src">win多次复制粘贴…</span><span class="dot-sep"></span><span>28分钟前</span></div>
+            </div>
+          </div>
+          <div class="c-card">
+            <span class="c-card-dot dot-purple"></span>
+            <div class="c-card-icon"><span style="font-weight:800;color:#BF5AF2;font-size:18px">T</span></div>
+            <div class="c-card-body">
+              <div class="c-card-title">queryBatchcodeVdef7Batch</div>
+              <div class="c-card-meta"><span class="src">aier</span><span class="dot-sep"></span><span>33分钟前</span></div>
+            </div>
+          </div>
+          <div class="c-card">
+            <span class="c-card-dot dot-pink"></span>
+            <div class="c-card-icon"><div class="thumb-placeholder" style="border-radius:14px"></div></div>
+            <div class="c-card-body">
+              <div class="c-card-title">[图片] 499×800</div>
+              <div class="c-card-meta"><span class="src">剪贴板管理 v4.0.0</span><span class="dot-sep"></span><span>1小时前</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="c-bottom">
+        <div class="c-paste-bar">
+          <div class="c-paste-info"><span class="n">0</span> / 5 依次粘贴</div>
+          <button class="c-paste-btn-c">📋 粘贴</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">方案 C · Apple Clean</div>
+    <div class="desc">大号药丸Tab可横向滚动 · 彩色圆点标识类型 · 时间内联元数据行<br>白底卡片+灰底容器 · 圆形图标按钮 · 全宽毛玻璃操作栏</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function switchTab(i) {
+  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
+  document.querySelectorAll('.panel').forEach((p, j) => p.classList.toggle('active', j === i));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tab 对齐搜索框 — 问题诊断与方案</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei', sans-serif; background: #E8E8ED; min-height: 100vh; padding: 32px 16px; }
+
+.page-header { text-align: center; margin-bottom: 20px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1D1D1F; }
+.page-desc { font-size: 13px; color: #86868B; margin-top: 6px; max-width: 600px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+
+.tabs { display: flex; justify-content: center; gap: 6px; margin-bottom: 28px; }
+.tab { padding: 10px 22px; cursor: pointer; border: none; background: #fff; font-size: 13px; font-weight: 600; color: #86868B; border-radius: 10px; transition: all 0.2s; font-family: inherit; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+.tab:hover { background: #F0F0F2; color: #1D1D1F; }
+.tab.active { background: #0078D4; color: #fff; box-shadow: 0 4px 12px rgba(0,120,212,0.3); }
+
+.panels { display: flex; justify-content: center; }
+.panel { display: none; }
+.panel.active { display: block; }
+
+.phone { width: 400px; height: 560px; border-radius: 24px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.08); position: relative; }
+.phone-label { text-align: center; margin-top: 16px; }
+.phone-label .name { font-size: 16px; font-weight: 700; color: #1D1D1F; }
+.phone-label .desc { font-size: 12px; color: #86868B; margin-top: 4px; max-width: 380px; margin-left: auto; margin-right: auto; line-height: 1.6; }
+
+/* Annotation */
+.anno-row { display: flex; align-items: center; gap: 8px; padding: 8px 16px; }
+.anno-line-h { flex: 1; height: 1px; border-top: 2px dashed #FF3B30; }
+.anno-tag { display: inline-flex; align-items: center; padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 700; background: rgba(255,59,48,0.9); color: #fff; white-space: nowrap; }
+
+/* ==================== Current (Bug) ==================== */
+.bug-shell { display: flex; flex-direction: column; height: 100%; background: #F8F9FB; }
+.bug-header { padding: 16px 16px 0; background: linear-gradient(180deg, #fff 0%, #F8F9FB 100%); }
+.bug-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.bug-title { font-size: 15px; font-weight: 700; color: #1D1D1F; display: flex; align-items: center; gap: 8px; }
+.bug-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: linear-gradient(135deg, #0078D4, #005A9E); color: #fff; }
+.bug-icons { display: flex; gap: 2px; }
+.bug-icon-btn { width: 32px; height: 32px; border: none; background: transparent; border-radius: 10px; color: #AEAEB2; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+/* Bug: no box-sizing: border-box — content-box behavior */
+.bug-search {
+  display: flex; align-items: center; gap: 8px; height: 38px;
+  padding: 0 14px; border-radius: 12px;
+  background: #fff; border: 1px solid #E8E8ED;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  /* content-box: width=auto=100%, then padding+border added outside */
+  box-sizing: content-box;
+}
+.bug-search-text { font-size: 13px; color: #C7C7CC; }
+
+.bug-tabs-area { padding: 14px 16px 10px; }
+.bug-segmented {
+  display: flex; background: #EDEDF0; border-radius: 10px; padding: 3px;
+  /* content-box: padding added outside 100% width */
+  box-sizing: content-box;
+}
+.bug-seg {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  height: 36px; border-radius: 8px; border: none; background: transparent;
+  font-size: 12px; font-weight: 500; color: #86868B; font-family: inherit;
+}
+.bug-seg.active { background: #fff; color: #1D1D1F; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+/* Width rulers */
+.ruler { position: relative; padding: 0 16px; margin-top: 8px; }
+.ruler-bar { height: 24px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border-radius: 4px; }
+.ruler-search { background: rgba(0,120,212,0.15); color: #0078D4; }
+.ruler-tab { background: rgba(255,59,48,0.15); color: #FF3B30; }
+
+/* ==================== Fix A: box-sizing border-box ==================== */
+.fix-shell { display: flex; flex-direction: column; height: 100%; background: #F8F9FB; }
+.fix-header { padding: 16px 16px 0; background: linear-gradient(180deg, #fff 0%, #F8F9FB 100%); }
+.fix-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.fix-title { font-size: 15px; font-weight: 700; color: #1D1D1F; display: flex; align-items: center; gap: 8px; }
+.fix-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; background: linear-gradient(135deg, #0078D4, #005A9E); color: #fff; }
+.fix-icons { display: flex; gap: 2px; }
+.fix-icon-btn { width: 32px; height: 32px; border: none; background: transparent; border-radius: 10px; color: #AEAEB2; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+
+/* Fix: global box-sizing: border-box */
+.fix-search {
+  display: flex; align-items: center; gap: 8px; height: 38px;
+  padding: 0 14px; border-radius: 12px;
+  background: #fff; border: 1px solid #E8E8ED;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+  box-sizing: border-box;
+}
+.fix-search-text { font-size: 13px; color: #C7C7CC; }
+
+.fix-tabs-area { padding: 14px 16px 10px; }
+.fix-segmented {
+  display: flex; background: #EDEDF0; border-radius: 10px; padding: 3px;
+  box-sizing: border-box;
+}
+.fix-seg {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+  height: 36px; border-radius: 8px; border: none; background: transparent;
+  font-size: 12px; font-weight: 500; color: #86868B; font-family: inherit;
+}
+.fix-seg.active { background: #fff; color: #1D1D1F; font-weight: 600; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+
+/* Ruler for fix */
+.fix-ruler { position: relative; padding: 0 16px; margin-top: 8px; }
+.fix-ruler-bar { height: 24px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; border-radius: 4px; }
+.fix-ruler-ok { background: rgba(52,199,89,0.15); color: #34C759; }
+
+/* Explanation box */
+.explain { margin-top: 16px; padding: 16px; background: #fff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); max-width: 400px; margin-left: auto; margin-right: auto; }
+.explain-title { font-size: 14px; font-weight: 700; color: #1D1D1F; margin-bottom: 8px; }
+.explain-text { font-size: 12px; color: #86868B; line-height: 1.6; }
+.explain-code { font-family: 'SF Mono', Consolas, monospace; font-size: 11px; background: #F5F5F7; padding: 8px 12px; border-radius: 8px; margin-top: 8px; color: #1D1D1F; line-height: 1.6; overflow-x: auto; }
+.explain-code .hl { color: #FF3B30; font-weight: 600; }
+.explain-code .ok { color: #34C759; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="page-title">Tab 对齐搜索框 — 问题诊断</div>
+  <div class="page-desc">
+    搜索框和 Tab 控件宽度不一致的根因：<br>
+    CSS 缺少全局 <code>box-sizing: border-box</code>，导致 <code>content-box</code> 模式下<br>
+    padding 和 border 被叠加到 100% 宽度之外
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">当前问题</button>
+  <button class="tab" onclick="switchTab(1)">修复方案</button>
+</div>
+
+<div class="panels">
+
+<!-- ========== 当前问题 ========== -->
+<div class="panel active" id="panel-0">
+  <div class="phone">
+    <div class="bug-shell">
+      <div class="bug-header">
+        <div class="bug-top">
+          <div class="bug-title">📋 剪贴板管理 <span class="bug-badge">v4.0</span></div>
+          <div class="bug-icons">
+            <div class="bug-icon-btn">⚙</div>
+            <div class="bug-icon-btn">?</div>
+            <div class="bug-icon-btn">—</div>
+            <div class="bug-icon-btn">✕</div>
+          </div>
+        </div>
+        <!-- 搜索框: content-box → 实际宽度 = 100% + 28px(padding) + 2px(border) = 溢出30px -->
+        <div class="bug-search">
+          <span>🔍</span>
+          <span class="bug-search-text">搜索剪贴板…</span>
+        </div>
+
+        <!-- Tab 区域 -->
+        <div class="bug-tabs-area">
+          <!-- segmented: content-box → 实际宽度 = 100% + 6px(padding) = 溢出6px -->
+          <div class="bug-segmented">
+            <div class="bug-seg active">📋 全部 <span style="font-size:10px;font-weight:700;color:#0078D4">8</span></div>
+            <div class="bug-seg">📝 文本 <span style="font-size:10px;font-weight:700;color:#AEAEB2">5</span></div>
+            <div class="bug-seg">📸 图片 <span style="font-size:10px;font-weight:700;color:#AEAEB2">2</span></div>
+            <div class="bug-seg">📁 文件 <span style="font-size:10px;font-weight:700;color:#AEAEB2">1</span></div>
+            <div class="bug-seg">⭐ 收藏</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 宽度对比指示器 -->
+      <div class="ruler" style="margin-top: 20px;">
+        <div style="font-size:11px;font-weight:600;color:#86868B;margin-bottom:6px;">实际渲染宽度对比（header padding 内 = 368px）：</div>
+        <div class="ruler-bar ruler-search" style="width: 398px; margin-left: -15px;">
+          🔍 搜索框 = 368 + 28px padding + 2px border = 398px
+        </div>
+        <div style="height: 6px;"></div>
+        <div class="ruler-bar ruler-tab" style="width: 374px; margin-left: -3px;">
+          📋 Tab = 368 + 6px padding = 374px
+        </div>
+        <div style="height: 10px;"></div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span class="anno-tag">差 24px!</span>
+          <span style="font-size:11px; color:#86868B;">搜索框比 Tab 宽 24px，导致视觉不对齐</span>
+        </div>
+      </div>
+
+      <div style="padding: 20px 16px;">
+        <div class="explain">
+          <div class="explain-title">根因分析</div>
+          <div class="explain-text">
+            CSS 默认使用 <code>content-box</code> 盒模型。在这种模式下，<code>width: auto</code>（即 100%）只设定内容区宽度，padding 和 border 会额外叠加到元素总宽度上。
+          </div>
+          <div class="explain-code">
+<span class="hl">搜索框</span>: padding 0 14px + border 1px<br>
+→ 溢出 = 14×2 + 1×2 = <span class="hl">30px</span><br>
+<br>
+<span class="hl">Tab控件</span>: padding 3px<br>
+→ 溢出 = 3×2 = <span class="hl">6px</span><br>
+<br>
+差距 = 30 - 6 = <span class="hl">24px</span>（搜索框更宽）
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">当前状态 — 不对齐</div>
+    <div class="desc">搜索框比 Tab 控件宽 24px，因为 padding/border 在 content-box 模式下溢出</div>
+  </div>
+</div>
+
+<!-- ========== 修复方案 ========== -->
+<div class="panel" id="panel-1">
+  <div class="phone">
+    <div class="fix-shell">
+      <div class="fix-header">
+        <div class="fix-top">
+          <div class="fix-title">📋 剪贴板管理 <span class="fix-badge">v4.0</span></div>
+          <div class="fix-icons">
+            <div class="fix-icon-btn">⚙</div>
+            <div class="fix-icon-btn">?</div>
+            <div class="fix-icon-btn">—</div>
+            <div class="fix-icon-btn">✕</div>
+          </div>
+        </div>
+        <div class="fix-search">
+          <span>🔍</span>
+          <span class="fix-search-text">搜索剪贴板…</span>
+        </div>
+
+        <div class="fix-tabs-area">
+          <div class="fix-segmented">
+            <div class="fix-seg active">📋 全部 <span style="font-size:10px;font-weight:700;color:#0078D4">8</span></div>
+            <div class="fix-seg">📝 文本 <span style="font-size:10px;font-weight:700;color:#AEAEB2">5</span></div>
+            <div class="fix-seg">📸 图片 <span style="font-size:10px;font-weight:700;color:#AEAEB2">2</span></div>
+            <div class="fix-seg">📁 文件 <span style="font-size:10px;font-weight:700;color:#AEAEB2">1</span></div>
+            <div class="fix-seg">⭐ 收藏</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="fix-ruler" style="margin-top: 20px;">
+        <div style="font-size:11px;font-weight:600;color:#86868B;margin-bottom:6px;">修复后渲染宽度（header padding 内 = 368px）：</div>
+        <div class="fix-ruler-bar fix-ruler-ok" style="width: 368px;">
+          🔍 搜索框 = 368px（border-box，padding/border 包含在内）
+        </div>
+        <div style="height: 6px;"></div>
+        <div class="fix-ruler-bar fix-ruler-ok" style="width: 368px;">
+          📋 Tab = 368px（border-box，padding 包含在内）
+        </div>
+        <div style="height: 10px;"></div>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span style="display:inline-flex;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;background:rgba(52,199,89,0.9);color:#fff;">完全对齐 ✓</span>
+          <span style="font-size:11px; color:#86868B;">两者宽度一致 368px</span>
+        </div>
+      </div>
+
+      <div style="padding: 20px 16px;">
+        <div class="explain">
+          <div class="explain-title">修复方案</div>
+          <div class="explain-text">
+            在 <code>app.css</code> 顶部加一行全局 <code>box-sizing: border-box</code>，让所有元素的 padding 和 border 包含在 width 内，不再溢出。
+          </div>
+          <div class="explain-code">
+<span class="ok">/* 文件顶部新增 */</span><br>
+* { box-sizing: <span class="ok">border-box</span>; }<br>
+<br>
+<span class="ok">效果</span>：<br>
+搜索框: 100% width 内含 padding + border<br>
+→ 实际宽度 = <span class="ok">368px</span>（不溢出）<br>
+<br>
+Tab: 100% width 内含 padding<br>
+→ 实际宽度 = <span class="ok">368px</span>（不溢出）
+          </div>
+          <div class="explain-text" style="margin-top:8px;">
+            这是现代 CSS 的标准做法，只需加一行代码，不影响已有任何样式。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-label">
+    <div class="name">修复后 — 完美对齐</div>
+    <div class="desc">加一行 <code>* { box-sizing: border-box; }</code> 即可，搜索框和 Tab 宽度完全一致</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+function switchTab(i) {
+  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
+  document.querySelectorAll('.panel').forEach((p, j) => p.classList.toggle('active', j === i));
+}
+</script>
+</body>
+</html>
