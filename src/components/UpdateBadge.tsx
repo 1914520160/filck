@@ -2,16 +2,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useUpdate } from "@/contexts/UpdateContext";
 import { ArrowDown, Loader2, CheckCircle, AlertCircle, RotateCcw, ExternalLink } from "lucide-react";
 
-/** 获取版本号：优先安装版 update.version，否则绿色版 portableUpdate.latest_version */
-function versionText(update: any, portableUpdate: any, isPortable: boolean): string {
-  if (isPortable && portableUpdate) return portableUpdate.latest_version;
-  if (!isPortable && update) return update.version;
-  return "";
-}
-
 /** TopBar 中显示的新版本提示徽章 */
 export function UpdateBadge() {
-  const { status, update, portableUpdate, isPortable, progress, downloadAndInstall, restart } = useUpdate();
+  const { status, update, progress, downloadAndInstall, restart } = useUpdate();
 
   const handleClick = async () => {
     if (status === "available") {
@@ -32,7 +25,7 @@ export function UpdateBadge() {
 
   // 有新版本：显示徽章
   if (status === "available") {
-    const ver = versionText(update, portableUpdate, isPortable);
+    const ver = update?.version ?? "";
     return (
       <motion.button
         initial={{ scale: 0, opacity: 0 }}
@@ -98,7 +91,7 @@ export function UpdateBadge() {
 
 /** AboutDialog 中使用的更新横幅 + 下载进度 */
 export function UpdateBanner() {
-  const { status, update, portableUpdate, isPortable, progress, error, checkForUpdate, downloadAndInstall, restart, markInstalled } =
+  const { status, update, progress, error, checkForUpdate, downloadAndInstall, restart, markInstalled } =
     useUpdate();
 
   switch (status) {
@@ -113,10 +106,8 @@ export function UpdateBanner() {
       );
 
     case "available": {
-      const ver = versionText(update, portableUpdate, isPortable);
-      const desc = isPortable
-        ? portableUpdate?.notes || "包含性能优化和 bug 修复"
-        : update?.body || "包含性能优化和 bug 修复";
+      const ver = update?.version ?? "";
+      const desc = update?.body || "包含性能优化和 bug 修复";
       return (
         <div className="update-banner update-banner-available">
           <div className="update-banner-icon">

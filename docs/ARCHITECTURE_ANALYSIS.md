@@ -1,15 +1,16 @@
 # PastePanda 架构分析与改进建议
 
-> **分析日期**: 2026-07-01（v5.0.59 重写版）
-> **代码快照**: 40 个源文件 / 9687 行 / 50 个 Tauri Commands / 0 个 Rust 单元测试
+> **分析日期**: 2026-07-01（v5.0.69 重写版）
+> **代码快照**: 39 个源文件 / ~9400 行 / 46 个 Tauri Commands / 0 个 Rust 单元测试
 > **项目名**: Filck → PastePanda（commit `ed30591`，2026-07-01）
-> **最新版本**: v5.0.59
+> **最新版本**: v5.0.69
 > **GitHub 仓库**: `lzlkyb/pastepanda`
 >
-> **最大文件**: `src-tauri/src/commands.rs` (892 行) ⬆️
+> **最大文件**: `src-tauri/src/commands.rs` (~860 行) ⬆️
 > **次大文件**: `src/components/CardList.tsx` (958 行) ⬇️
 > **次次大**: `src-tauri/src/data_store.rs` (607 行)
-> **新增模块**: `pinned_window.rs` (445 行) / `updater.rs` (175 行, untracked)
+> **新增模块**: `pinned_window.rs` (445 行)
+> **已删除模块**: `updater.rs`（v5.0.69，便携版收敛到 tauri-plugin-updater）
 
 ---
 
@@ -93,12 +94,12 @@
 
 ### 关键事实
 
-- **后端**: Tauri 2 + rusqlite (bundled) + arboard + tokio + windows crate + self_update (1.0.0-rc.1, ⚠️ RC)
+- **后端**: Tauri 2 + rusqlite (bundled) + arboard + tokio + windows crate
 - **前端**: React 19 + Zustand + Radix UI + Framer Motion + Vite 7 (multi-page)
 - **状态持久化**: SQLite (history/config/snippets) + localStorage (searchHistory)
-- **跨进程通信**: Tauri invoke (request/response, 50 个) + emit/listen (event)
+- **跨进程通信**: Tauri invoke (request/response, 46 个) + emit/listen (event)
 - **平台限制**: 强 Windows 专属（`#[cfg(target_os = "windows")]` 占多数）
-- **支持两种发布形态**: NSIS 安装版（自动用 `@tauri-apps/plugin-updater`）+ 绿色便携版（`self_update` crate）
+- **统一更新链路**: 安装版 + 便携版统一走 `tauri-plugin-updater`（minisign 签名）
 
 ---
 
@@ -288,32 +289,17 @@ static WINDOW_STATE: Mutex<Option<WindowState>> = Mutex::new(None);
 
 ---
 
-### P0-6. 绿色版自更新无签名校验 🆕
+### P0-6. 绿色版自更新无签名校验 ✅（v5.0.69 已修复）
 
-`src-tauri/src/updater.rs:87, 138` — `no_confirm(true)` 默认值。
+`src-tauri/src/updater.rs` 已删除。便携版统一走 `tauri-plugin-updater`（minisign 签名校验），与安装版共享同一签名链路。
 
-**问题**：
-- NSIS 安装版用 `@tauri-apps/plugin-updater` 走 minisign 签名
-- **绿色便携版用 `self_update` crate 默认 `no_confirm(true)`**，未集成 minisign/PGP 校验
-- 如果 GitHub Release 被劫持（token 泄漏、admin 帐号被控），就会下发恶意 zip
-- `self_update` 1.0.0-rc.1 是 pre-release，semver 锁不会自动升级到 stable
+**变更内容**：
+- 删除 `src-tauri/src/updater.rs`（175 行）及 `self_update`/`reqwest`/`semver` 三个依赖
+- 删除 `commands.rs` 中 4 个便携版 command
+- 前端 `UpdateContext.tsx` 移除便携版分支，统一用 `check()` + `downloadAndInstall()`
+- CI 删除"打包绿色便携版"步骤
 
-**RCE 风险**：绿色版用户占新增 release `f059eee` 的全部用户，**全部暴露**。
-
-**建议**：
-```rust
-// updater.rs - 加入 minisign 校验
-let mut update = self_update::backends::github::Update::configure()
-    .repo_owner("lzlkyb")
-    .repo_name("pastepanda")
-    .bin_name("PastePanda.exe")
-    .show_download_progress(true)
-    .no_confirm(true)
-    .signing_public_key(include_str!("../keys/public-minisign.pub"))  // 嵌入公钥
-    .build()?;
-```
-
-并把 `self_update` 升级到 `1.0.0` stable（观察 crates.io 何时发布）。
+> 便携版用户升级后会变为"已安装"状态（产生 uninst.exe 和注册表条目），因为 tauri-plugin-updater 在 Windows 上通过 NSIS 安装器执行更新。
 
 ---
 
@@ -656,19 +642,14 @@ fn read_version_from_conf() -> Result<String, Box<dyn std::error::Error>> {
 
 ---
 
-### P2-8. `aws-lc-sys` 编译拖累 🆕
+### P2-8. `aws-lc-sys` 编译拖累 ✅（v5.0.69 已修复）
 
-`Cargo.toml` 引入 `self_update` 后，`Cargo.lock` 出现：
+`self_update` 依赖已删除，随之移除：
 - `aws-lc-rs 1.17.1` + `aws-lc-sys 0.42.0`
 - `cmake 0.1.58` + `cc`
 - `rustls-pki-types` + `webpki-roots`
 
-**问题**：`aws-lc-sys` 需要 C 编译 + cmake，首次构建显著增加时间（CI 慢 2-5 分钟）。
-
-**建议**：
-- 考虑改用 `native-tls`（Windows 上用 SChannel，无需 C 编译）
-- 或预编译 `aws-lc-sys` 二进制（vendored-sources feature）
-- 或在 CI 缓存 `target/` 目录
+CI 构建时间预计减少 2-5 分钟。
 
 ---
 
@@ -727,7 +708,7 @@ WebviewWindowBuilder::new(app, "tray-popup", tauri::WebviewUrl::App("popup.html"
 
 ## 自动更新体系
 
-### 架构
+### 架构（v5.0.69 统一后）
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -735,41 +716,33 @@ WebviewWindowBuilder::new(app, "tray-popup", tauri::WebviewUrl::App("popup.html"
 │        │                                                         │
 │        ▼                                                         │
 │  .github/workflows/release.yml                                   │
-│   - 编译 Windows x64 NSIS + portable zip                        │
-│   - minisign 签名 updater.json + portable zip                   │
+│   - 编译 Windows x64 NSIS                                       │
+│   - minisign 签名 .exe → 自动生成 .sig                          │
 │        │                                                         │
 │        ▼                                                         │
 │  GitHub Release: lzlkyb/pastepanda                               │
-│   - PastePanda_x.x.x_x64-setup.exe                              │
-│   - PastePanda_x.x.x_x64_portable.zip                           │
-│   - updater.json (NSIS 用)                                       │
+│   - PastePanda_x.x.x_x64-setup.exe + .sig                       │
+│   - updater.json                                                 │
 │        │                                                         │
 │        ▼                                                         │
 │  ┌──────────────────────────────────────────────────────┐       │
 │  │ 用户启动 PastePanda                                  │       │
 │  │  - App.tsx 挂载 UpdateProvider                       │       │
-│  │  - UpdateContext.silentCheck() 启动后立即 check      │       │
-│  │  - UpdateContext.scheduleNextCheck() 24h 后再 check   │       │
+│  │  - 启动后立即 silentCheck()                          │       │
+│  │  - 每 24h 定时 checkForUpdate()                      │       │
 │  └──────────────────────────────────────────────────────┘       │
 │        │                                                         │
 │        ▼                                                         │
 │  UpdateContext.checkForUpdate()                                  │
-│   ├─ is_portable_version() → updater.rs                          │
-│   │   ├─ true:  check_portable_update()   → self_update         │
-│   │   │         → 拉 GitHub releases/latest                     │
-│   │   │         → 比较版本                                       │
-│   │   │         → 返回 PortableUpdateInfo                       │
-│   │   └─ false: invoke("plugin:updater|check")                  │
-│   │            → NSIS minisign 校验                              │
-│   │                                                             │
-│   ├─ 有更新 → UpdateBadge 显示红点                               │
-│   │         → AboutDialog 显示横幅                                │
-│   │         → 用户点击"立即更新"                                 │
-│   │         → downloadAndInstall() 或                           │
-│   │           invoke("download_and_install_portable")            │
-│   │         → 完成后 invoke("relaunch")                          │
-│   │                                                             │
-│   └─ 无更新 → scheduleNextCheck 24h 后重试                      │
+│   └─ check() → tauri-plugin-updater                             │
+│        → 拉 updater.json                                         │
+│        → minisign 签名校验                                       │
+│        → 有更新 → UpdateBadge 显示红点                           │
+│        → 用户点击 → downloadAndInstall()                         │
+│        → NSIS passive 静默安装                                   │
+│        → relaunch() 重启                                         │
+│                                                                  │
+│  > 安装版和便携版统一走同一链路，便携版升级后变为"已安装"状态      │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -777,10 +750,8 @@ WebviewWindowBuilder::new(app, "tray-popup", tauri::WebviewUrl::App("popup.html"
 
 | 文件 | 行数 | 职责 |
 |---|---|---|
-| `src/contexts/UpdateContext.tsx` | 259 | React Context，状态机 + 24h 调度 |
-| `src/components/UpdateBadge.tsx` | 205 | TopBar 徽章 + AboutDialog 横幅 |
-| `src-tauri/src/updater.rs` | 175 | 绿色版 `self_update` 集成 |
-| `src-tauri/src/commands.rs` (4 个新增 command) | +26 | `is_portable_version`, `check_portable_update`, `download_and_install_portable`, `get_portable_update_status` |
+| `src/contexts/UpdateContext.tsx` | ~190 | React Context，统一状态机 + 24h 调度 |
+| `src/components/UpdateBadge.tsx` | ~195 | TopBar 徽章 + AboutDialog 横幅 |
 | `scripts/generate-updater-json.mjs` | — | updater.json 生成（NSIS 用）|
 | `docs/AUTO_UPDATE.md` | 305 | 运维文档（密钥、签名、发布流程）|
 | `.github/workflows/release.yml` | — | Tag 触发自动构建 + 签名 |
@@ -795,14 +766,9 @@ idle → checking → available → downloading → ready → installed
 
 ### 已知问题
 
-1. **`silentCheck` 里 `localStorage.setItem` 在 catch 后还在 finally 外**
-   `UpdateContext.tsx:127` 应移到 `finally` 块，确保异常路径也写时间戳
-2. **`is_portable_version` invoke 3 次**（启动 + silentCheck + checkForUpdate）
-   可在 `UpdateContext` 顶层 `useEffect` 缓存到 `useState`
-3. **`getUpdateStatus()` polling API 前端完全没用**（死代码，详见 P2-3）
-4. **24h 定时器不会因配置变更重置**
-   如果用户在 AboutDialog 改了"自动检查频率"配置，定时器不会重读
-5. **绿色版无签名校验**（P0-6）—— RCE 风险
+1. **`silentCheck` 里 `localStorage.setItem` 在 catch 后还在 finally 外** ✅（v5.0.69 已修复）
+2. **便携版升级后变为"已安装"** — 有 uninst.exe 和注册表，不再是纯绿色
+3. **24h 定时器不会因配置变更重置** — 如果用户改了"自动检查频率"配置，定时器不会重读
 
 ---
 
@@ -870,8 +836,8 @@ idle → checking → available → downloading → ready → installed
 
 | # | 风险 | 位置 | 等级 | 影响 |
 |---|---|---|---|---|
-| 1 | `self_update = "1.0.0-rc.1"` 锁 pre-release | `src-tauri/Cargo.toml` | P0 | 无法自动升级到 1.0.0 stable |
-| 2 | 绿色版自更新无 minisign 签名校验 | `src-tauri/src/updater.rs:87, 138` | P0 | GitHub Release 劫持 → RCE |
+| 1 | ~~`self_update = "1.0.0-rc.1"` 锁 pre-release~~ | ~~`src-tauri/Cargo.toml`~~ | ~~P0~~ | ✅ v5.0.69 已删除 self_update |
+| 2 | ~~绿色版自更新无 minisign 签名校验~~ | ~~`src-tauri/src/updater.rs:87, 138`~~ | ~~P0~~ | ✅ v5.0.69 统一走 tauri-plugin-updater |
 | 3 | `pinned_window.rs` `unsafe impl Send/Sync` + `Box::from_raw` | `src-tauri/src/pinned_window.rs:51-52, 286` | P0 | use-after-free / 内存泄漏 |
 | 4 | `from_raw` 静默吞错在 pinned_window.rs 放大 | `src-tauri/src/pinned_window.rs:184, 197, 286` | P0 | 图片解码失败无日志 |
 | 5 | `update_auto_strip_cache` 失效机制缺失 | `src-tauri/src/lib.rs:84` + `commands.rs:134` | P0 | 直改 SQLite 缓存不更新 |
@@ -889,7 +855,7 @@ idle → checking → available → downloading → ready → installed
 | P0 | SQLite 锁拆分/合并 7 次 COUNT | 半天 | 中 | ❌ |
 | P0 | 修复 `from_raw` 静默吞错（4 处） | 10min | 中 | ❌（+3 处）|
 | P0 | **pinned_window.rs 内存安全加固** | 1-2 天 | 高 | 🆕 未做 |
-| P0 | **绿色版自更新加 minisign** | 半天 | 高 | 🆕 未做 |
+| P0 | **绿色版自更新加 minisign** | 半天 | 高 | ✅ 已完成（v5.0.69）|
 | P1 | 共享类型（specta） | 1 天 | 高 | ❌ |
 | P1 | 拆 commands.rs 为 14+ 模块 | 半天 | 中 | ❌（25%：pinned_window 拆出）|
 | P1 | 抽 config keys + AppConfig struct | 半天 | 中 | ❌ |
@@ -905,7 +871,7 @@ idle → checking → available → downloading → ready → installed
 | P2 | 统一版本号 | 10min | 低 | ✅ 已完成 |
 | P2 | zustand persist middleware | 2h | 低 | ⚠️ 手写替代 |
 | P2 | 置顶图片事件时序修复 | 半天 | 中 | ✅ 已完成（但有 P0-5 新风险）|
-| P2 | **aws-lc-sys 编译优化** | 1 天 | 中 | 🆕 未做 |
+| P2 | **aws-lc-sys 编译优化** | 1 天 | 中 | ✅ 已完成（v5.0.69）|
 
 **统计**：
 - P0 共 6 项（4 项旧 + 2 项新）
@@ -927,18 +893,10 @@ idle → checking → available → downloading → ready → installed
 - **路径**：把 `Box<WindowState>` + `unsafe impl Send/Sync` 改成 `Arc<Mutex<WindowState>>`，Win32 HWND 仍用 `SetWindowLongPtrW` 存指针
 - **收益**：消除 P0-5，未来重构此模块不再心惊胆战
 
-### 2. 绿色版自更新加 minisign 签名（半天）
+### 2. ~~绿色版自更新加 minisign 签名（半天）~~ ✅ 已完成
 
-- **理由**：RCE 风险，影响所有 `f059eee` 之后的便携版用户
-- **路径**：
-  ```rust
-  // updater.rs
-  let update = Update::configure()
-      .signing_public_key(include_str!("../keys/public-minisign.pub"))
-      .build()?;
-  ```
-- **同时**：`self_update` 升级到 `1.0.0` stable（一旦发布）
-- **收益**：消除 P0-6
+- **v5.0.69 已修复**：删除 `self_update` 整条路径，便携版统一走 `tauri-plugin-updater` + minisign
+- **收益**：消除 P0-6，同时消除 P2-8（aws-lc-sys 编译拖累）
 
 ### 3. 补 `data_store.rs` 单元测试（1 天）
 
@@ -978,7 +936,6 @@ idle → checking → available → downloading → ready → installed
 | `src-tauri/src/tray_manager.rs` | 440 | 系统托盘 + popup 窗口 | ✅ 微调 |
 | `src-tauri/src/paste_engine.rs` | 295 | 粘贴引擎 + 锁 + WM_PASTE 注入 | ❌ 未改 |
 | `src-tauri/src/lan_sync.rs` | 270 | 局域网同步 | ❌ 未改 |
-| `src-tauri/src/updater.rs` | 175 | **绿色版 self_update 集成** | 🆕 签名缺失 P0 |
 | `src-tauri/src/hotkey_manager.rs` | 175 | 全局热键注册 | ❌ 未改 |
 
 ### 前端（TypeScript / React）
@@ -994,9 +951,9 @@ idle → checking → available → downloading → ready → installed
 | `src/components/ContextMenu.tsx` | 359 | 右键菜单 | ✅ |
 | `src/components/HelpDialog.tsx` | 311 | 帮助对话框 | ✅ |
 | `src/components/EditDialog.tsx` | 309 | 编辑对话框 | ✅ |
-| `src/contexts/UpdateContext.tsx` | 259 | **自更新 React Context** | 🆕 5 个小问题 |
+| `src/contexts/UpdateContext.tsx` | ~190 | **自更新 React Context** | ✅ 统一链路 |
 | `src/components/Card.tsx` | 271 | 单卡渲染 | ✅ |
-| `src/components/UpdateBadge.tsx` | 205 | **自更新徽章 + 横幅** | 🆕 |
+| `src/components/UpdateBadge.tsx` | ~195 | **自更新徽章 + 横幅** | ✅ 统一链路 |
 | `src/components/ExtractDialog.tsx` | 222 | 提取对话框 | ❌ 8 项 B 差异未实现 |
 | `src/components/AboutDialog.tsx` | 138 | 关于对话框 | ✅ |
 | `src/components/QuickPreview.tsx` | 162 | 快速预览 | ✅ |
@@ -1030,3 +987,4 @@ idle → checking → available → downloading → ready → installed
 |---|---|
 | 2026-07-01 早 | 初版（Filck v5.0.53 / 38 文件 / 9139 行 / 43 commands）|
 | 2026-07-01 午 | **v5.0.59 重写版**：改名 Filck → PastePanda；新增自动更新体系（UpdateContext + updater.rs + UpdateBadge + AUTO_UPDATE.md）；多入口构建（popup.html）；`pinned_window.rs` 模块化（445 行，含 unsafe 风险）；`updater.rs` 绿色版集成（175 行，含签名缺失风险）；文档沉淀（docs/ +7 文件，design-proposals 2→27）；版本号统一（5.0.59 三文件一致）。<br>**代码快照**：40 文件 / 9687 行 / 50 commands。<br>**新增 P0 风险**：5 项（pinned_window 内存 / 自更新签名 / self_update RC 版 / from_raw 恶化 / cache 失效机制）。<br>**完成项**：统一版本号 ✅、置顶图片事件时序 ✅。<br>**替代项**：zustand persist（手写替代 ⚠️）。 |
+| 2026-07-01 晚 | **v5.0.69 自动更新收敛**：删除 `updater.rs`（175 行）及 `self_update`/`reqwest`/`semver` 三个依赖；删除 `commands.rs` 中 4 个便携版 command；前端 `UpdateContext.tsx` 和 `UpdateBadge.tsx` 移除便携版分支；CI 删除"打包绿色便携版"步骤。便携版统一走 `tauri-plugin-updater` + minisign 签名。<br>**修复**：P0-6 ✅（签名校验）、P2-8 ✅（aws-lc-sys 编译拖累）。<br>**代码快照**：39 文件 / ~9400 行 / 46 commands。 |

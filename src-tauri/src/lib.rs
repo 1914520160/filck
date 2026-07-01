@@ -9,7 +9,6 @@ mod tray_manager;
 mod hotkey_manager;
 mod lan_sync;
 mod pinned_window;
-mod updater;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -22,8 +21,15 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
-        .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            // Updater 插件容错注册：初始化失败仅 warn，不中断应用启动
+            #[cfg(desktop)]
+            {
+                if let Err(e) = app.handle().plugin(tauri_plugin_updater::Builder::new().build()) {
+                    log::warn!("初始化 Updater 插件失败，已跳过：{e}");
+                }
+            }
             let handle = app.handle().clone();
 
             // 初始化 SQLite 数据库
@@ -184,10 +190,6 @@ pub fn run() {
             commands::emit_tray_open_settings,
             commands::show_main_window,
             commands::save_image_file,
-            commands::is_portable_version,
-            commands::check_portable_update,
-            commands::download_and_install_portable,
-            commands::get_portable_update_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

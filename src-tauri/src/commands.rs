@@ -16,13 +16,15 @@ pub static APP_VERSION: LazyLock<String> = LazyLock::new(|| {
     read_from_conf("version").unwrap_or_else(|_| "0.0.0".to_string())
 });
 
-/// 应用名称（编译期嵌入）
+/// 应用名称（优先读取 tauri.conf.json 的 productName，回退到 CARGO_PKG_NAME）
 pub static APP_NAME: LazyLock<String> = LazyLock::new(|| {
-    let compiled = env!("CARGO_PKG_NAME").to_string();
-    if !compiled.is_empty() {
-        return compiled;
-    }
-    read_from_conf("productName").unwrap_or_else(|_| "PastePanda".to_string())
+    read_from_conf("productName").unwrap_or_else(|_| {
+        let compiled = env!("CARGO_PKG_NAME").to_string();
+        if !compiled.is_empty() {
+            return compiled;
+        }
+        "PastePanda".to_string()
+    })
 });
 
 /// 获取应用版本号
@@ -879,28 +881,3 @@ pub fn emit_tray_open_settings(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-// ===== 绿色便携版自动更新 =====
-
-/// 检测是否为绿色版（非 NSIS 安装版）
-#[tauri::command]
-pub fn is_portable_version() -> bool {
-    crate::updater::is_portable()
-}
-
-/// 检查绿色版更新
-#[tauri::command]
-pub fn check_portable_update() -> Result<crate::updater::PortableUpdateInfo, String> {
-    crate::updater::check_portable_update()
-}
-
-/// 下载并安装绿色版更新
-#[tauri::command]
-pub fn download_and_install_portable() -> Result<(), String> {
-    crate::updater::download_and_install_portable()
-}
-
-/// 获取绿色版当前更新状态
-#[tauri::command]
-pub fn get_portable_update_status() -> crate::updater::PortableUpdateStatus {
-    crate::updater::get_update_status()
-}

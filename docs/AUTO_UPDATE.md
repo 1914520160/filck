@@ -20,7 +20,8 @@
 | **更新端点** | `https://github.com/lzlkyb/pastepanda/releases/latest/download/updater.json` |
 | **安装模式** | NSIS `passive`（静默安装，用户无感知） |
 | **检查频率** | 启动时自动检查 + 每 24 小时定时检查 |
-| **签名算法** | ECDSA P-256 (secp256r1) |
+| **签名算法** | minisign（Ed25519） |
+| **适用范围** | 安装版 + 便携版统一走同一套更新链路 |
 
 ---
 
@@ -34,34 +35,25 @@
 | **私钥** | GitHub Secrets → `TAURI_SIGNING_PRIVATE_KEY` | Actions 自动签名 |
 | **公钥** | `tauri.conf.json` → `plugins.updater.pubkey` | 客户端验证签名 |
 
+> 一份密钥对签名所有产物（NSIS 安装器），安装版和便携版统一验证。
+
 ### 公钥（当前）
 
 ```
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEP90fRiyuwGHSjxu2kj72CTXKYZ7FruQTZsLRf1UHy4gF3tbPpnUUU9cYsHa0uiOs2TBzsyi8Qsy305yDLN7Hyg==
+dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEJGQTNBQ0Y5OTIxNjg1RUUKUldUdWhSYVMrYXlqdnptREQvTlpWR1dRckVLVkZaRVBBOGYvQm0wL3FjMjVad1Nkd0ZPUlhSZUMK
 ```
 
 ### 密钥生成命令
 
-如果密钥丢失，用以下命令重新生成：
+使用 Tauri CLI 生成 minisign 密钥对：
 
 ```powershell
-node -e "
-const crypto = require('crypto');
-const { publicKey, privateKey } = crypto.generateKeyPairSync('ec', {
-  namedCurve: 'P-256',
-  publicKeyEncoding: { type: 'spki', format: 'der' },
-  privateKeyEncoding: { type: 'pkcs8', format: 'der' },
-});
-const pub = publicKey.toString('base64');
-const pri = privateKey.toString('base64');
-const fs = require('fs');
-const home = process.env.USERPROFILE || process.env.HOME;
-fs.mkdirSync(home + '/.tauri', { recursive: true });
-fs.writeFileSync(home + '/.tauri/pastepanda.key', pri);
-console.log('新公钥: ' + pub);
-console.log('私钥已保存到: ' + home + '/.tauri/pastepanda.key');
-"
+npx tauri signer generate -w ~/.tauri/pastepanda.key
 ```
+
+这会生成：
+- 私钥文件：`%USERPROFILE%\.tauri\pastepanda.key`
+- 输出公钥（base64 字符串），需要复制到 `tauri.conf.json` 的 `plugins.updater.pubkey`
 
 ⚠️ **更换密钥后必须同步更新**：
 1. `tauri.conf.json` → `plugins.updater.pubkey`
@@ -110,11 +102,10 @@ git push origin master --tags
 2. 安装 Node.js + Rust + 依赖
 3. 写入签名私钥到文件
 4. 构建前端 (npm run build)
-5. 构建 NSIS 安装包 (tauri build)
-6. 对安装包签名
-7. 生成 updater.json
-8. 创建 GitHub Release，上传安装包 + updater.json
-9. 所有客户端下次检查时自动发现新版本
+5. 构建 NSIS 安装包 (tauri build)，自动生成 .sig 签名
+6. 生成 updater.json
+7. 创建 GitHub Release，上传安装包 + updater.json
+8. 所有客户端（安装版 + 便携版）下次检查时自动发现新版本
 ```
 
 ### 3.4 手动检查构建状态
@@ -177,7 +168,7 @@ git push origin master --tags
 
 | 文件 | 职责 |
 |------|------|
-| `src/contexts/UpdateContext.tsx` | 核心逻辑：检查更新、下载、安装、重启 |
+| `src/contexts/UpdateContext.tsx` | 核心逻辑：检查更新、下载、安装、重启（统一走 tauri-plugin-updater） |
 | `src/components/UpdateBadge.tsx` | UI 组件：TopBar 徽章 + AboutDialog 横幅 + 进度条 |
 | `src/App.tsx` | 包裹 `<UpdateProvider>` |
 | `src/components/TopBar.tsx` | 嵌入 `<UpdateBadge />` |
@@ -194,23 +185,25 @@ IDLE → CHECKING → 有更新 → AVAILABLE → 用户点击下载 → DOWNLOA
                                下载失败 → ERROR
 ```
 
+> 安装版和便携版统一走同一状态机，不再区分。
+
 ### 5.3 UpdateContext 核心 API
 
 ```typescript
 // 检查更新（自动去重：24h 内跳过）
 checkForUpdate(): void
 
-// 下载并安装更新
+// 下载并安装更新（tauri-plugin-updater，NSIS 静默安装）
 downloadAndInstall(): Promise<void>
 
 // 重启应用
-relaunchApp(): void
+restart(): void
 
 // 状态字段
-updateStatus: "idle" | "checking" | "available" | "downloading" | "ready" | "error"
-updateInfo: { version, body, date } | null
-downloadProgress: { downloaded, total, percent } | null
-errorMessage: string | null
+status: "idle" | "checking" | "available" | "downloading" | "ready" | "error" | "installed"
+update: Update | null
+progress: number
+error: string | null
 ```
 
 ### 5.4 UpdateBadge 组件
