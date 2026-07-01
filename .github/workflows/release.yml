@@ -198,7 +198,7 @@ jobs:
           files: |
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/nsis/*.exe.sig
-            PastePanda_*_portable.zip
+            PastePanda_*_x86_64-pc-windows-msvc.zip
             dist/updater.json
           draft: false
           prerelease: false
