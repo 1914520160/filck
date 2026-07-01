@@ -121,7 +121,7 @@ jobs:
           $version = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
           $exePath = "src-tauri/target/release/PastePanda.exe"
           $confPath = "src-tauri/tauri.conf.json"
-          $zipName = "PastePanda_$version`_portable.zip"
+          $zipName = "PastePanda_$version`_x86_64-pc-windows-msvc.zip"
 
           if (-not (Test-Path $exePath)) {
             Write-Host "❌ 绿色版 exe 不存在: $exePath"
@@ -194,7 +194,7 @@ jobs:
 
             ### 📦 下载
             - **安装版**：下载 `PastePanda_*_x64-setup.exe`，运行安装程序（支持自动更新）
-            - **绿色版**：下载 `PastePanda_*_portable.zip`，解压后直接双击 `PastePanda.exe` 即可使用（无需安装）
+            - **绿色版**：下载 `PastePanda_*_x86_64-pc-windows-msvc.zip`，解压后直接双击 `PastePanda.exe` 即可使用（无需安装）
           files: |
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/nsis/*.exe.sig
