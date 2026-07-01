@@ -1,20 +1,32 @@
 import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
+import { invoke } from "@tauri-apps/api/core";
 import { logger } from "@/lib/logger";
 
 // ─── 类型定义 ───────────────────────────────────────────
 
 export type UpdateStatus = "idle" | "checking" | "available" | "downloading" | "ready" | "error" | "installed";
 
+export interface PortableUpdateInfo {
+  available: boolean;
+  current_version: string;
+  latest_version: string;
+  notes: string;
+}
+
 export interface UpdateState {
   status: UpdateStatus;
   /** 更新信息（available / downloading / ready 时有值） */
   update: Update | null;
+  /** 绿色版更新信息 */
+  portableUpdate: PortableUpdateInfo | null;
   /** 下载进度 0-100 */
   progress: number;
   /** 错误信息 */
   error: string | null;
+  /** 是否为绿色版 */
+  isPortable: boolean;
   /** 手动触发检查更新 */
   checkForUpdate: () => Promise<void>;
   /** 下载并安装更新 */
@@ -46,10 +58,20 @@ const LAST_CHECK_KEY = "pastepanda_last_update_check";
 export function UpdateProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<UpdateStatus>("idle");
   const [update, setUpdate] = useState<Update | null>(null);
+  const [portableUpdate, setPortableUpdate] = useState<PortableUpdateInfo | null>(null);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [isPortable, setIsPortable] = useState(false);
   const checkingRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ─── 检测运行模式 ──────────────────────────────────
+
+  useEffect(() => {
+    invoke<boolean>("is_portable_version")
+      .then(setIsPortable)
+      .catch(() => setIsPortable(false));
+  }, []);
 
   // ─── 启动时自动检查 ──────────────────────────────────
 
@@ -58,11 +80,9 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       const lastCheck = localStorage.getItem(LAST_CHECK_KEY);
       const now = Date.now();
 
-      // 如果上次检查在 24 小时内，跳过（可选：仍检查但标记为 background）
       if (lastCheck) {
         const elapsed = now - Number(lastCheck);
         if (elapsed < CHECK_INTERVAL_MS) {
-          // 不到 24 小时，但仍然静默检查一次（有新版本也不弹窗，只设置状态）
           await silentCheck();
           return;
         }
@@ -73,7 +93,6 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
     doStartupCheck();
 
-    // 定时检查（每 24 小时）
     timerRef.current = setInterval(() => {
       checkForUpdate();
     }, CHECK_INTERVAL_MS);
@@ -87,10 +106,20 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
 
   const silentCheck = useCallback(async () => {
     try {
-      const update = await check();
-      if (update) {
-        setStatus("available");
-        setUpdate(update);
+      // 根据运行模式选择检查方式
+      const portable = await invoke<boolean>("is_portable_version");
+      if (portable) {
+        const info = await invoke<PortableUpdateInfo>("check_portable_update");
+        if (info.available) {
+          setStatus("available");
+          setPortableUpdate(info);
+        }
+      } else {
+        const update = await check();
+        if (update) {
+          setStatus("available");
+          setUpdate(update);
+        }
       }
     } catch {
       // 静默检查失败不处理
@@ -108,13 +137,30 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
-      const update = await check();
-      if (update) {
-        setStatus("available");
-        setUpdate(update);
+      // 检测运行模式
+      const portable = await invoke<boolean>("is_portable_version");
+      setIsPortable(portable);
+
+      if (portable) {
+        // 绿色版：使用 self_update 检查 GitHub Releases
+        const info = await invoke<PortableUpdateInfo>("check_portable_update");
+        if (info.available) {
+          setStatus("available");
+          setPortableUpdate(info);
+        } else {
+          setStatus("idle");
+          setPortableUpdate(null);
+        }
       } else {
-        setStatus("idle");
-        setUpdate(null);
+        // 安装版：使用 Tauri 原生 updater
+        const update = await check();
+        if (update) {
+          setStatus("available");
+          setUpdate(update);
+        } else {
+          setStatus("idle");
+          setUpdate(null);
+        }
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -130,45 +176,51 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
   // ─── 下载并安装 ──────────────────────────────────────
 
   const downloadAndInstall = useCallback(async () => {
-    if (!update) return;
-
     setStatus("downloading");
     setProgress(0);
     setError(null);
 
     try {
-      let contentLength = 0;
-      let downloaded = 0;
+      if (isPortable) {
+        // 绿色版：调用 Rust 下载并安装
+        await invoke("download_and_install_portable");
+        setProgress(100);
+        setStatus("ready");
+      } else if (update) {
+        // 安装版：使用 Tauri updater
+        let contentLength = 0;
+        let downloaded = 0;
 
-      await update.downloadAndInstall((event) => {
-        switch (event.event) {
-          case "Started": {
-            contentLength = event.data.contentLength ?? 0;
-            break;
-          }
-          case "Progress": {
-            downloaded += event.data.chunkLength;
-            if (contentLength > 0) {
-              const pct = Math.round((downloaded / contentLength) * 100);
-              setProgress(pct);
+        await update.downloadAndInstall((event) => {
+          switch (event.event) {
+            case "Started": {
+              contentLength = event.data.contentLength ?? 0;
+              break;
             }
-            break;
+            case "Progress": {
+              downloaded += event.data.chunkLength;
+              if (contentLength > 0) {
+                const pct = Math.round((downloaded / contentLength) * 100);
+                setProgress(pct);
+              }
+              break;
+            }
+            case "Finished": {
+              setProgress(100);
+              break;
+            }
           }
-          case "Finished": {
-            setProgress(100);
-            break;
-          }
-        }
-      });
+        });
 
-      setStatus("ready");
+        setStatus("ready");
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       logger.error("[Update] 下载安装失败:", msg);
       setError(msg);
       setStatus("error");
     }
-  }, [update]);
+  }, [update, isPortable]);
 
   // ─── 重启应用 ────────────────────────────────────────
 
@@ -191,8 +243,10 @@ export function UpdateProvider({ children }: { children: ReactNode }) {
       value={{
         status,
         update,
+        portableUpdate,
         progress,
         error,
+        isPortable,
         checkForUpdate,
         downloadAndInstall,
         restart,

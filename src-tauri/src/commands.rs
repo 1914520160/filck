@@ -864,3 +864,29 @@ pub fn emit_tray_open_settings(app: tauri::AppHandle) -> Result<(), String> {
     }
     Ok(())
 }
+
+// ===== 绿色便携版自动更新 =====
+
+/// 检测是否为绿色版（非 NSIS 安装版）
+#[tauri::command]
+pub fn is_portable_version() -> bool {
+    crate::updater::is_portable()
+}
+
+/// 检查绿色版更新
+#[tauri::command]
+pub fn check_portable_update() -> Result<crate::updater::PortableUpdateInfo, String> {
+    crate::updater::check_portable_update()
+}
+
+/// 下载并安装绿色版更新
+#[tauri::command]
+pub fn download_and_install_portable() -> Result<(), String> {
+    crate::updater::download_and_install_portable()
+}
+
+/// 获取绿色版当前更新状态
+#[tauri::command]
+pub fn get_portable_update_status() -> crate::updater::PortableUpdateStatus {
+    crate::updater::get_update_status()
+}

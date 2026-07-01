@@ -440,6 +440,4 @@ fn run_window_loop(pixels: Vec<u8>, img_width: u32, img_height: u32) -> Result<(
     Ok(())
 }
 
-pub fn is_running() -> bool {
-    WINDOW_RUNNING.load(Ordering::SeqCst)
-}
+

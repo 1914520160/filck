@@ -9,6 +9,7 @@ mod tray_manager;
 mod hotkey_manager;
 mod lan_sync;
 mod pinned_window;
+mod updater;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -183,6 +184,10 @@ pub fn run() {
             commands::emit_tray_open_settings,
             commands::show_main_window,
             commands::save_image_file,
+            commands::is_portable_version,
+            commands::check_portable_update,
+            commands::download_and_install_portable,
+            commands::get_portable_update_status,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
