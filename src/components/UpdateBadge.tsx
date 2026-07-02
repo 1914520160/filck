@@ -41,7 +41,7 @@ export function UpdateBadge({ currentVersion }: { currentVersion: string }) {
     );
   }
 
-  // 下载中
+  // 下载中（不确定进度条，因为 GitHub Release 重定向不返回 Content-Length）
   if (status === "downloading") {
     return (
       <motion.span
@@ -49,10 +49,10 @@ export function UpdateBadge({ currentVersion }: { currentVersion: string }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="header-badge header-badge-downloading"
-        title={`下载中 ${progress}%`}
+        title="正在下载更新…"
       >
         <Loader2 size={10} className="spin-icon" />
-        <span>{progress}%</span>
+        <span>下载中</span>
       </motion.span>
     );
   }
@@ -131,12 +131,9 @@ export function UpdateBanner() {
           <div style={{ flex: 1 }}>
             <div className="update-banner-title">正在下载更新…</div>
             <div className="update-progress-bar">
-              <div
-                className="update-progress-fill"
-                style={{ width: `${progress}%` }}
-              />
+              <div className="update-progress-fill update-progress-indeterminate" />
             </div>
-            <div className="update-banner-desc">{progress}%</div>
+            <div className="update-banner-desc">正在从 GitHub 下载，请耐心等待</div>
           </div>
         </div>
       );

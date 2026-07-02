@@ -39,29 +39,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #0078D4, #005A9E);
-  color: #fff;
   flex-shrink: 0;
-  transition: background 0.3s ease;
-}
-
-[data-theme="ocean"] .tray-popup-logo {
-  background: linear-gradient(135deg, #3B82F6, #0284C7);
-}
-[data-theme="forest"] .tray-popup-logo {
-  background: linear-gradient(135deg, #10B981, #059669);
-}
-[data-theme="blossom"] .tray-popup-logo {
-  background: linear-gradient(135deg, #EC4899, #DB2777);
-}
-[data-theme="midnight"] .tray-popup-logo {
-  background: linear-gradient(135deg, #818CF8, #6366F1);
-}
-[data-theme="terminal"] .tray-popup-logo {
-  background: linear-gradient(135deg, #22C55E, #16A34A);
-}
-[data-theme="sunset"] .tray-popup-logo {
-  background: linear-gradient(135deg, #F97316, #EA580C);
 }
 
 .tray-popup-title {

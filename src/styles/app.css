@@ -147,8 +147,8 @@
   --red-bg: #FEF2F2; --danger: #DC2626;
   --version-badge-gradient: linear-gradient(135deg, #0284C7, #0369A1);
   --version-badge-shadow: rgba(2, 132, 199, 0.35);
-  --update-badge-gradient: linear-gradient(135deg, #0284C7, #0369A1);
-  --update-badge-shadow: rgba(2, 132, 199, 0.4);
+  --update-badge-gradient: linear-gradient(135deg, #059669, #047857);
+  --update-badge-shadow: rgba(5, 150, 105, 0.4);
 }
 
 /* ── 2. midnight 午夜（默认深色·OLED）── */
@@ -187,8 +187,8 @@
   --red-bg: #450A0A; --danger: #F87171;
   --version-badge-gradient: linear-gradient(135deg, #818CF8, #6366F1);
   --version-badge-shadow: rgba(129, 140, 248, 0.35);
-  --update-badge-gradient: linear-gradient(135deg, #818CF8, #6366F1);
-  --update-badge-shadow: rgba(129, 140, 248, 0.4);
+  --update-badge-gradient: linear-gradient(135deg, #38BDF8, #0EA5E9);
+  --update-badge-shadow: rgba(56, 189, 248, 0.45);
 }
 
 /* ── 3. forest 森林（浅色·护眼绿）── */
@@ -227,8 +227,8 @@
   --red-bg: #FEF2F2; --danger: #DC2626;
   --version-badge-gradient: linear-gradient(135deg, #059669, #047857);
   --version-badge-shadow: rgba(5, 150, 105, 0.35);
-  --update-badge-gradient: linear-gradient(135deg, #059669, #047857);
-  --update-badge-shadow: rgba(5, 150, 105, 0.4);
+  --update-badge-gradient: linear-gradient(135deg, #0891B2, #0E7490);
+  --update-badge-shadow: rgba(8, 145, 178, 0.4);
 }
 
 /* ── 4. blossom 樱花（浅色·女性/浪漫）── */
@@ -267,8 +267,8 @@
   --red-bg: #FEF2F2; --danger: #DC2626;
   --version-badge-gradient: linear-gradient(135deg, #EC4899, #DB2777);
   --version-badge-shadow: rgba(236, 72, 153, 0.35);
-  --update-badge-gradient: linear-gradient(135deg, #EC4899, #DB2777);
-  --update-badge-shadow: rgba(236, 72, 153, 0.4);
+  --update-badge-gradient: linear-gradient(135deg, #EF4444, #DC2626);
+  --update-badge-shadow: rgba(239, 68, 68, 0.4);
 }
 
 /* ── 5. terminal 终端（深色·开发者/极客）── */
@@ -307,8 +307,8 @@
   --red-bg: #450A0A; --danger: #F87171;
   --version-badge-gradient: linear-gradient(135deg, #22C55E, #16A34A);
   --version-badge-shadow: rgba(34, 197, 94, 0.35);
-  --update-badge-gradient: linear-gradient(135deg, #22C55E, #16A34A);
-  --update-badge-shadow: rgba(34, 197, 94, 0.4);
+  --update-badge-gradient: linear-gradient(135deg, #2DD4BF, #14B8A6);
+  --update-badge-shadow: rgba(45, 212, 191, 0.45);
 }
 
 /* ── 6. sunset 日落（深色·年轻/潮流）── */
@@ -347,8 +347,8 @@
   --red-bg: #450A0A; --danger: #F87171;
   --version-badge-gradient: linear-gradient(135deg, #F97316, #EA580C);
   --version-badge-shadow: rgba(249, 115, 22, 0.35);
-  --update-badge-gradient: linear-gradient(135deg, #F97316, #EA580C);
-  --update-badge-shadow: rgba(249, 115, 22, 0.4);
+  --update-badge-gradient: linear-gradient(135deg, #F59E0B, #D97706);
+  --update-badge-shadow: rgba(245, 158, 11, 0.45);
 }
 
 
@@ -4452,6 +4452,24 @@ button:disabled,
   transition: width 0.4s ease;
 }
 
+/* 不确定进度条 — 左右滑动动画 */
+.update-progress-indeterminate {
+  width: 40% !important;
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(250%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
 /* ============================================================
    About 关于页面新增样式
    ============================================================ */
@@ -4472,8 +4490,6 @@ button:disabled,
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #3B82F6, #0284C7);
-  box-shadow: 0 8px 24px rgba(0, 120, 212, 0.25);
 }
 .about-icon img {
   display: block;
