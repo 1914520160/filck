@@ -1,5 +1,5 @@
 name: Release
-run-name: ${{ github.ref_name }}
+run-name: ${{ github.ref_name }} - ${{ github.event.head_commit.message }}
 
 # 当推送 v* 格式的 tag 时触发（如 v5.0.37）
 on:
