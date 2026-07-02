@@ -186,8 +186,10 @@ jobs:
           "logs<<EOF" >> $env:GITHUB_OUTPUT
           $titles >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
-          # 将详细变更日志输出为单独变量，供 updater.json 使用
-          "updater_notes=$logs" >> $env:GITHUB_OUTPUT
+          # 将详细变更日志用 heredoc 输出，避免多行文本解析错误
+          "updater_notes<<EOF" >> $env:GITHUB_OUTPUT
+          $logs >> $env:GITHUB_OUTPUT
+          "EOF" >> $env:GITHUB_OUTPUT
           Write-Host "更新日志：$logs"
 
       - name: 生成 updater.json
