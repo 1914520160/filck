@@ -64,7 +64,7 @@ pub fn is_monitoring_public(app: &AppHandle) -> bool {
 /// 构建弹窗数据 JSON（统一复用，消除重复查询）
 pub fn build_popup_data_public(app: &AppHandle, recents: &[(String, String, String, String)], monitoring: bool) -> serde_json::Value {
     let version = crate::commands::APP_VERSION.to_string();
-    let name = crate::commands::APP_NAME.to_string();
+    let name = crate::commands::APP_NAME.get().map(|s| s.as_str()).unwrap_or("PastePanda");
 
     let recents_json: Vec<serde_json::Value> = recents.iter().map(|(id, item_type, preview, text)| {
         serde_json::json!({ "id": id, "type": item_type, "preview": preview, "text": text })
@@ -361,7 +361,7 @@ pub fn setup_tray(app: &AppHandle) -> Result<(), Box<dyn std::error::Error>> {
 
     let _tray = TrayIconBuilder::with_id("main-tray")
         .icon(icon)
-        .tooltip(format!("{} v{}", &*crate::commands::APP_NAME, &**version))
+        .tooltip(format!("{} v{}", crate::commands::APP_NAME.get().map(|s| s.as_str()).unwrap_or("PastePanda"), &**version))
         .show_menu_on_left_click(false)
         .on_tray_icon_event(move |tray, event| {
             match event {

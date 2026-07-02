@@ -23,6 +23,10 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
+            // 初始化 APP_NAME（通过 Tauri 框架 API 获取，dev/安装版均可正确读取）
+            let product_name = app.config().product_name.clone().unwrap_or_else(|| "PastePanda".into());
+            let _ = commands::APP_NAME.set(product_name);
+
             // Updater 插件容错注册：初始化失败仅 warn，不中断应用启动
             #[cfg(desktop)]
             {
@@ -140,7 +144,7 @@ pub fn run() {
                 }
             }
 
-            log::info!("{} v{} 启动", *commands::APP_NAME, *commands::APP_VERSION);
+            log::info!("{} v{} 启动", commands::APP_NAME.get().map(|s| s.as_str()).unwrap_or("PastePanda"), *commands::APP_VERSION);
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

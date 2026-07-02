@@ -4,6 +4,7 @@ use tauri::{State, Manager, Emitter};
 
 /// 应用配置（从 tauri.conf.json 运行时读取，唯一配置来源）
 use std::sync::LazyLock;
+use std::sync::OnceLock;
 
 /// 应用版本号（唯一来源：tauri.conf.json，构建时已由 sync-version.mjs 同步到 Cargo.toml）
 /// 编译期 CARGO_PKG_VERSION 作为兜底，确保与 tauri.conf.json 一致。
@@ -17,16 +18,8 @@ pub static APP_VERSION: LazyLock<String> = LazyLock::new(|| {
     read_from_conf("version").unwrap_or_else(|_| "0.0.0".to_string())
 });
 
-/// 应用名称（优先读取 tauri.conf.json 的 productName，回退到 CARGO_PKG_NAME）
-pub static APP_NAME: LazyLock<String> = LazyLock::new(|| {
-    read_from_conf("productName").unwrap_or_else(|_| {
-        let compiled = env!("CARGO_PKG_NAME").to_string();
-        if !compiled.is_empty() {
-            return compiled;
-        }
-        "PastePanda".to_string()
-    })
-});
+/// 应用名称（由 lib.rs setup 通过 Tauri 框架 API 初始化，dev/安装版均可正确读取）
+pub static APP_NAME: OnceLock<String> = OnceLock::new();
 
 /// 获取应用版本号
 #[tauri::command]
@@ -37,7 +30,7 @@ pub fn get_app_version() -> String {
 /// 获取应用名称
 #[tauri::command]
 pub fn get_app_name() -> String {
-    APP_NAME.to_string()
+    APP_NAME.get().map(|s| s.as_str()).unwrap_or("PastePanda").to_string()
 }
 
 /// 从 tauri.conf.json 读取指定 key 的字符串值（兜底逻辑）
