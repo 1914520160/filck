@@ -26,6 +26,9 @@ jobs:
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: 🔑 准备签名密钥（文件路径方式）
         shell: pwsh
@@ -147,50 +150,44 @@ jobs:
         id: changelog
         shell: pwsh
         run: |
-          # 获取所有 tag，按版本排序
-          $allTags = git tag --sort=-version:refname
           $currentTag = "${{ github.ref_name }}"
 
-          # 找到当前 tag 在列表中的位置，取前一个作为 prevTag
-          $tagArray = @($allTags)
-          $currentIndex = [array]::IndexOf($tagArray, $currentTag)
-          if ($currentIndex -ge 0 -and $currentIndex -lt $tagArray.Count - 1) {
-            $prevTag = $tagArray[$currentIndex + 1]
-          } else {
+          # 查找上一个 tag：用 git describe 找当前 tag 之前的最近 tag
+          # git describe --tags --abbrev=0 {tag}^ 找到 {tag} 的父 commit 上的最近 tag
+          $prevTag = git describe --tags --abbrev=0 "$currentTag^" 2>$null
+          if (-not $prevTag) {
+            # fallback: 如果当前 tag 是第一个 commit，尝试 ^
             $prevTag = ""
           }
 
           Write-Host "当前 tag: $currentTag"
           Write-Host "上一个 tag: $prevTag"
 
-          # 提取自上一个 tag 以来的 commit message body（包含详细变更）
+          # 提取自上一个 tag 以来的 commit messages
           if ($prevTag) {
-            $logs = git log "${prevTag}..${currentTag}" --pretty=format:"%b" --no-merges
+            $bodyLogs = git log "${prevTag}..${currentTag}" --pretty=format:"%b" --no-merges
+            $titleLogs = git log "${prevTag}..${currentTag}" --pretty=format:"- %s" --no-merges
           } else {
-            $logs = git log $currentTag --pretty=format:"%b" --no-merges -n 10
+            $bodyLogs = git log $currentTag --pretty=format:"%b" --no-merges -n 10
+            $titleLogs = git log $currentTag --pretty=format:"- %s" --no-merges -n 10
           }
 
-          # 清理：去掉空行和首尾空白
-          $logs = ($logs -split "`n" | Where-Object { $_.Trim() -ne "" }) -join "`n"
-          if (-not $logs) { $logs = "常规构建发布" }
+          # 清理 body 日志：去掉空行
+          $bodyLogs = ($bodyLogs -split "`n" | Where-Object { $_.Trim() -ne "" }) -join "`n"
+          if (-not $bodyLogs) { $bodyLogs = "常规构建发布" }
 
-          # 同时提取标题行用于 Release name
-          if ($prevTag) {
-            $titles = git log "${prevTag}..${currentTag}" --pretty=format:"- %s" --no-merges
-          } else {
-            $titles = git log $currentTag --pretty=format:"- %s" --no-merges -n 10
-          }
-          $firstCommit = ($titles -split "`n" | Select-Object -First 1) -replace "^- ", ""
+          # 第一条 commit message 作为 Release name
+          $firstCommit = ($titleLogs -split "`n" | Select-Object -First 1) -replace "^- ", ""
 
           "first_commit=$firstCommit" >> $env:GITHUB_OUTPUT
           "logs<<EOF" >> $env:GITHUB_OUTPUT
-          $titles >> $env:GITHUB_OUTPUT
+          $titleLogs >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
-          # 将详细变更日志用 heredoc 输出，避免多行文本解析错误
           "updater_notes<<EOF" >> $env:GITHUB_OUTPUT
-          $logs >> $env:GITHUB_OUTPUT
+          $bodyLogs >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
-          Write-Host "更新日志：$logs"
+          Write-Host "标题日志：$titleLogs"
+          Write-Host "详细日志：$bodyLogs"
 
       - name: 生成 updater.json
         run: node scripts/generate-updater-json.mjs
