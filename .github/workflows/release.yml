@@ -179,9 +179,16 @@ jobs:
           # 第一条 commit message 作为 Release name
           $firstCommit = ($titleLogs -split "`n" | Select-Object -First 1) -replace "^- ", ""
 
+          # Release body 用标题 + 正文合并，有详细变更就展示
+          if ($bodyLogs) {
+            $fullLogs = "$titleLogs`n`n$bodyLogs"
+          } else {
+            $fullLogs = $titleLogs
+          }
+
           "first_commit=$firstCommit" >> $env:GITHUB_OUTPUT
           "logs<<EOF" >> $env:GITHUB_OUTPUT
-          $titleLogs >> $env:GITHUB_OUTPUT
+          $fullLogs >> $env:GITHUB_OUTPUT
           "EOF" >> $env:GITHUB_OUTPUT
           "updater_notes<<EOF" >> $env:GITHUB_OUTPUT
           $bodyLogs >> $env:GITHUB_OUTPUT
