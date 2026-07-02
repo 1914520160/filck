@@ -8,7 +8,7 @@ import { ContextMenu } from "@/components/ContextMenu";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { pasteText, pasteImage, getImageThumbnail, getImageDataUrl, getImageBase64, getImageInfo, loadMoreHistory, deleteHistory } from "@/lib/api";
 import { invoke } from "@tauri-apps/api/core";
-import { ClipboardList, Copy, Search, Zap, ZoomIn, ZoomOut, RotateCw, Download, X, Info, Trash2, FileDown, ScanText, Pin } from "lucide-react";
+import { ClipboardList, Copy, Search, Zap, ZoomIn, ZoomOut, RotateCw, Download, X, Info, Trash2, FileDown, ScanText, Pin, CheckSquare, Square } from "lucide-react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 const EditDialog = lazy(() => import("@/components/EditDialog").then(m => ({ default: m.EditDialog })));
@@ -73,12 +73,22 @@ export function CardList() {
   const [loadError, setLoadError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+  const [isScrolling, setIsScrolling] = useState(false); // 列表是否在滚动中（用于禁用 Popover）
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollTimerRef = useRef<number | null>(null);
   const loadedPathsRef = useRef<Set<string>>(new Set());
 
   // 滚动到底部时加载更多
   const handleScroll = useCallback(() => {
-    if (!scrollRef.current || !hasMore || loadingMore) return;
+    if (!scrollRef.current) return;
+    // 标记滚动中：触发 hover 卡片时不再显示 Popover，避免滚动时频繁渲染
+    setIsScrolling(true);
+    if (scrollTimerRef.current) window.clearTimeout(scrollTimerRef.current);
+    scrollTimerRef.current = window.setTimeout(() => {
+      scrollTimerRef.current = null;
+      setIsScrolling(false);
+    }, 120);
+    if (!hasMore || loadingMore) return;
     const el = scrollRef.current;
     const threshold = 80; // 距底部 80px 时触发
     if (el.scrollHeight - el.scrollTop - el.clientHeight < threshold) {
@@ -301,6 +311,16 @@ export function CardList() {
     setOcrResult(null);
     setOcrActive(false);
     setSelectedWordIndices(new Set());
+  }, []);
+
+  // 卸载时清理滚动 timer
+  useEffect(() => {
+    return () => {
+      if (scrollTimerRef.current !== null) {
+        window.clearTimeout(scrollTimerRef.current);
+        scrollTimerRef.current = null;
+      }
+    };
   }, []);
 
   // ESC 键关闭预览 / 清除 OCR 选择
@@ -627,6 +647,21 @@ export function CardList() {
             {selectedCount > 0 && (
               <div className="batch-toolbar">
                 <span className="batch-toolbar-label">已选 {selectedCount} 条</span>
+                <button
+                  onClick={() => {
+                    const store = useAppStore.getState();
+                    if (selectedCount >= items.length) {
+                      store.clearSelection();
+                    } else {
+                      store.selectAll();
+                    }
+                  }}
+                  className="batch-btn"
+                  title={selectedCount >= items.length ? "取消全选" : "全选当前列表"}
+                  aria-label={selectedCount >= items.length ? "取消全选" : "全选"}>
+                  {selectedCount >= items.length ? <CheckSquare size={12} /> : <Square size={12} />}
+                  {selectedCount >= items.length ? "取消全选" : "全选"}
+                </button>
                 <button onClick={handleBatchCopy} className="batch-btn" title="合并复制选中文本" aria-label="合并复制选中文本">
                   <Copy size={12} /> 合并复制
                 </button>
@@ -655,6 +690,7 @@ export function CardList() {
                           onDoubleClick={() => handleDoubleClick(item)}
                           onEdit={(item) => setEditItem(item)}
                           index={vItem.index}
+                          disablePreview={isScrolling || selectedCount > 0}
                         />
                   </div>
                 );

@@ -75,23 +75,56 @@ impl PasteEngine {
     #[cfg(not(target_os = "windows"))]
     pub fn track_foreground_window(&self) {}
 
-    /// 手动保存当前前台窗口（在显示窗口之前调用，作为备用）
+    /// 手动保存当前前台窗口（在显示窗口之前调用，作为备用）。
+    /// 排除 PastePanda 自身的窗口，避免把"自己"当作粘贴目标。
     pub fn save_foreground_hwnd(&self) {
         #[cfg(target_os = "windows")]
         {
             use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
             unsafe {
                 let hwnd = GetForegroundWindow();
-                if !hwnd.is_invalid() {
-                    if let Ok(mut guard) = self.last_foreground_hwnd.lock() {
-                        *guard = Some(hwnd.0 as isize);
+                if hwnd.is_invalid() {
+                    return;
+                }
+                // 过滤自身窗口
+                if let Some(window) = self.app_handle.get_webview_window("main") {
+                    if let Ok(our_hwnd) = window.hwnd() {
+                        if hwnd.0 as isize == our_hwnd.0 as isize {
+                            return;
+                        }
                     }
+                }
+                if let Ok(mut guard) = self.last_foreground_hwnd.lock() {
+                    *guard = Some(hwnd.0 as isize);
                 }
             }
         }
     }
 
-    /// 获取最佳目标窗口句柄：手动保存 > 追踪 > 当前前台
+    /// 实时抓取当前前台窗口（排除自身），用于"粘贴前重抓"流程
+    #[cfg(target_os = "windows")]
+    pub fn capture_foreground_now(&self) -> Option<isize> {
+        use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+        unsafe {
+            let hwnd = GetForegroundWindow();
+            if hwnd.is_invalid() {
+                return None;
+            }
+            // 过滤自身窗口
+            if let Some(window) = self.app_handle.get_webview_window("main") {
+                if let Ok(our_hwnd) = window.hwnd() {
+                    if hwnd.0 as isize == our_hwnd.0 as isize {
+                        return None;
+                    }
+                }
+            }
+            Some(hwnd.0 as isize)
+        }
+    }
+    #[cfg(not(target_os = "windows"))]
+    pub fn capture_foreground_now(&self) -> Option<isize> { None }
+
+    /// 获取最佳目标窗口句柄：手动保存 > 追踪 > 实时抓取 > None
     fn get_target_hwnd(&self) -> Option<isize> {
         // 优先使用手动保存的句柄
         if let Ok(manual) = self.last_foreground_hwnd.lock() {
@@ -107,18 +140,12 @@ impl PasteEngine {
             }
         }
 
-        // 最后尝试当前前台窗口
+        // 最后实时抓取当前前台窗口（粘贴前一刻的最新状态）
         #[cfg(target_os = "windows")]
         {
-            use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
-            unsafe {
-                let hwnd = GetForegroundWindow();
-                if !hwnd.is_invalid() {
-                    return Some(hwnd.0 as isize);
-                }
-            }
+            return self.capture_foreground_now();
         }
-
+        #[cfg(not(target_os = "windows"))]
         None
     }
 
@@ -153,7 +180,16 @@ impl PasteEngine {
             log::info!("[PasteEngine] 剪贴板已写入: {}...", &t[..t.len().min(30)]);
         }
 
-        // 3. 获取目标窗口句柄
+        // 3. 粘贴前实时重抓前台窗口（排除自身）作为兜底目标，
+        //    防止 tracked/manual 句柄过期或指向自身
+        #[cfg(target_os = "windows")]
+        if let Some(now_hwnd) = self.capture_foreground_now() {
+            if let Ok(mut guard) = self.tracked_foreground_hwnd.lock() {
+                *guard = Some(now_hwnd);
+            }
+        }
+
+        // 4. 获取目标窗口句柄
         let target_hwnd = self.get_target_hwnd();
         log::info!("[PasteEngine] 目标窗口: {:?}", target_hwnd);
 
@@ -219,7 +255,15 @@ impl PasteEngine {
         clipboard.set_image(img_data).map_err(|e| format!("无法写入图片到剪贴板: {}", e))?;
         log::info!("[PasteEngine] 图片已写入剪贴板 {}x{}", width, height);
 
-        // 3. 获取目标窗口句柄
+        // 3. 粘贴前实时重抓前台窗口（排除自身）
+        #[cfg(target_os = "windows")]
+        if let Some(now_hwnd) = self.capture_foreground_now() {
+            if let Ok(mut guard) = self.tracked_foreground_hwnd.lock() {
+                *guard = Some(now_hwnd);
+            }
+        }
+
+        // 4. 获取目标窗口句柄
         let target_hwnd = self.get_target_hwnd();
         log::info!("[PasteEngine] 图片粘贴目标窗口: {:?}", target_hwnd);
 

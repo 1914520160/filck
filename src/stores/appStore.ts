@@ -38,6 +38,7 @@ export interface AppConfig {
   current_workspace: string;
   workspaces: string[];
   double_click_action: "copy" | "preview"; // 双击列表行为
+  hover_preview_enabled: boolean; // 鼠标悬停卡片时显示 Popover 气泡预览
 }
 
 // ===== Store 接口 =====
@@ -111,6 +112,7 @@ const DEFAULT_CONFIG: AppConfig = {
   current_workspace: "默认",
   workspaces: ["默认"],
   double_click_action: "preview",
+  hover_preview_enabled: true,
 };
 
 // ===== Store =====
@@ -198,11 +200,14 @@ export const useAppStore = create<AppState>((set, get) => ({
     return restored;
   },
   togglePin: (id) =>
-    set((s) => ({
-      history: s.history.map((h) =>
-        h.id === id ? { ...h, pinned: !h.pinned } : h
-      ),
-    })),
+    set((s) => {
+      s._filterCache = null; // 清除缓存确保列表刷新
+      return {
+        history: s.history.map((h) =>
+          h.id === id ? { ...h, pinned: !h.pinned } : h
+        ),
+      };
+    }),
   // 拖拽排序：将 fromId 移动到 toId 之前（在原始 history 中操作，不改变置顶排序）
   reorderItems: (fromId: string, toId: string) =>
     set((s) => {

@@ -37,6 +37,17 @@ function cleanSource(source: string): string {
   return cleaned;
 }
 
+/** 解析文件路径 content JSON，返回路径数组 */
+function parseFilePaths(content: string): string[] {
+  if (!content) return [];
+  try {
+    const parsed = JSON.parse(content);
+    if (Array.isArray(parsed)) return parsed.map(String);
+    if (typeof parsed === "string") return [parsed];
+  } catch { /* not JSON, treat as plain path */ }
+  return content ? [content] : [];
+}
+
 /** 搜索关键词高亮组件 */
 export const HighlightText = memo(function HighlightText({ text, highlight }: { text: string; highlight: string }) {
   if (!highlight || !highlight.trim()) return <>{text}</>;
@@ -57,11 +68,13 @@ export const HighlightText = memo(function HighlightText({ text, highlight }: { 
 });
 
 /** 卡片组件（纯展示） */
-export const Card = memo(function Card({ item, selected, onClick, onDoubleClick, index, imageState, searchKeyword, onRetryImage, pasting, menuItems }: {
-  item: HistoryItem; selected: boolean; onClick: (e: React.MouseEvent) => void; onDoubleClick: () => void; index: number; imageState?: ImgState; searchKeyword?: string; onRetryImage?: () => void; pasting?: boolean; menuItems?: MenuItem[];
+export const Card = memo(function Card({ item, selected, onClick, onDoubleClick, index, imageState, searchKeyword, onRetryImage, pasting, menuItems, onEdit, disablePreview }: {
+  item: HistoryItem; selected: boolean; onClick: (e: React.MouseEvent) => void; onDoubleClick: () => void; index: number; imageState?: ImgState; searchKeyword?: string; onRetryImage?: () => void; pasting?: boolean; menuItems?: MenuItem[]; onEdit?: (item: HistoryItem) => void; disablePreview?: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
+  const config = useAppStore((s) => s.config);
   const clickTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
   const subType = item.type === "text" ? detectTextType(item.text) : item.type;
   const cfg = ICONS[subType] || ICONS.text;
   const Icon = cfg.Icon;
@@ -107,10 +120,32 @@ export const Card = memo(function Card({ item, selected, onClick, onDoubleClick,
         clearTimeout(clickTimerRef.current);
         clickTimerRef.current = null;
       }
+      if (closeTimerRef.current !== null) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
     };
   }, []);
 
-  // 延迟区分单击/双击：200ms 内再次点击视为双击
+  // 延迟关闭 Popover：给鼠标在卡片与 Popover 之间移动留缓冲时间
+  const cancelCloseTimer = useCallback(() => {
+    if (closeTimerRef.current !== null) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  }, []);
+  const scheduleClose = useCallback(() => {
+    cancelCloseTimer();
+    closeTimerRef.current = window.setTimeout(() => {
+      setHovered(false);
+      closeTimerRef.current = null;
+    }, 150);
+  }, [cancelCloseTimer]);
+  const enterHover = useCallback(() => {
+    cancelCloseTimer();
+    setHovered(true);
+  }, [cancelCloseTimer]);
+
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // 只处理左键，右键留给 onContextMenu
     if (e.button !== 0) return;
@@ -127,80 +162,287 @@ export const Card = memo(function Card({ item, selected, onClick, onDoubleClick,
   }, [onClick, onDoubleClick]);
 
   return (
-    <motion.div
-      ref={cardRef}
-      initial={{ opacity: 0, x: -20, scale: 0.97 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, x: -30, scale: 0.95, transition: { duration: 0.2 } }}
-      transition={{ type: "spring", stiffness: 400, damping: 28, delay: Math.min(index * 0.003, 0.04) }}
-      onMouseDown={handleMouseDown}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+    <div
+      className="card-wrap"
       style={{ position: "relative" }}
-      className={`card ${typeClass}${selected ? " selected" : ""}`}
-      role="option"
-      aria-selected={selected}
-      aria-label={title.length > 80 ? title.slice(0, 80) + "…" : title}
-      aria-posinset={index + 1}
-      tabIndex={-1}>
+      onMouseEnter={(e: React.MouseEvent) => {
+        enterHover();
+        // 提升虚拟列表项容器 z-index，确保 popover 不被相邻项遮挡
+        const virtualItem = e.currentTarget.parentElement;
+        if (virtualItem) (virtualItem as HTMLElement).style.zIndex = "50";
+      }}
+      onMouseLeave={(e: React.MouseEvent) => {
+        scheduleClose();
+        const virtualItem = e.currentTarget.parentElement;
+        if (virtualItem) (virtualItem as HTMLElement).style.zIndex = "";
+      }}
+    >
+      <motion.div
+        ref={cardRef}
+        initial={{ opacity: 0, x: -20, scale: 0.97 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        exit={{ opacity: 0, x: -30, scale: 0.95, transition: { duration: 0.2 } }}
+        transition={{ type: "spring", stiffness: 400, damping: 28, delay: Math.min(index * 0.003, 0.04) }}
+        onMouseDown={handleMouseDown}
+        className={`card ${typeClass}${selected ? " selected" : ""}`}
+        role="option"
+        aria-selected={selected}
+        aria-label={title.length > 80 ? title.slice(0, 80) + "…" : title}
+        aria-posinset={index + 1}
+        tabIndex={-1}>
 
-      {/* 图标 */}
-      {item.type === "image" ? (
-        imageState?.status === "loaded" && imageState.url ? (
-          <div className="card-icon card-img-thumb">
-            <img src={imageState.url} alt="" />
+        {/* 图标 */}
+        {item.type === "image" ? (
+          imageState?.status === "loaded" && imageState.url ? (
+            <div className="card-icon card-img-thumb">
+              <img src={imageState.url} alt="" />
+            </div>
+          ) : imageState?.status === "error" ? (
+            <div className="card-icon card-img-error">
+              <ImageIcon size={18} color="#EF4444" strokeWidth={2.2} />
+              {onRetryImage && (
+                <span className="card-img-retry" onClick={(e) => { e.stopPropagation(); onRetryImage(); }}>🔄</span>
+              )}
+            </div>
+          ) : (
+            <div className={`card-icon ${iconBg} card-img-loading`}>
+              <div className="card-img-shimmer" />
+            </div>
+          )
+        ) : (
+          <div className={`card-icon ${iconBg}`}>
+            <Icon size={18} color={iconColor} strokeWidth={2.2} />
           </div>
-        ) : imageState?.status === "error" ? (
-          <div className="card-icon card-img-error">
-            <ImageIcon size={18} color="#EF4444" strokeWidth={2.2} />
-            {onRetryImage && (
-              <span className="card-img-retry" onClick={(e) => { e.stopPropagation(); onRetryImage(); }}>🔄</span>
+        )}
+
+        {/* 内容 */}
+        <div className="card-content">
+          <p className="card-title">
+            <HighlightText text={title} highlight={item.type === "text" ? (searchKeyword ?? "") : ""} />
+          </p>
+          <div className="card-sub">
+            {item.pinned && (
+              <span className="card-pin">
+                <Pin size={7} /> 置顶
+              </span>
+            )}
+            {source && <span className="card-source">{source}</span>}
+          </div>
+        </div>
+
+        {/* 时间 / 复制中指示器 */}
+        <span className="card-time">
+          {pasting ? <span className="card-pasting"><Check size={10} style={{marginRight:2}} />已复制</span> : time}
+        </span>
+      </motion.div>
+
+      {/* ★ 悬停 Popover 气泡弹窗（移到卡片外部，避免被 card overflow:hidden 裁剪） */}
+      {hovered && config.hover_preview_enabled && !disablePreview && (
+        <CardHoverPopover item={item} imageState={imageState} subType={subType} onEdit={onEdit} onMouseEnter={enterHover} onMouseLeave={scheduleClose} />
+      )}
+    </div>
+  );
+});
+
+/**
+ * 卡片悬停 Popover 气泡弹窗
+ * - 默认在卡片上方弹出
+ * - 第一项/最后一项翻转到下方
+ * - 多类型适配：文本/链接/邮箱/电话/代码/图片/文件
+ * - 包含操作按钮：收藏 / 复制 / 编辑 / 删除
+ */
+const CardHoverPopover = memo(function CardHoverPopover({
+  item,
+  imageState,
+  subType,
+  onEdit,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  item: HistoryItem;
+  imageState?: ImgState;
+  subType: string;
+  onEdit?: (item: HistoryItem) => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
+  const togglePin = useAppStore((s) => s.togglePin);
+  const removeItems = useAppStore((s) => s.removeItems);
+  const { toast } = useToast();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleCopy = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      if (item.type === "image" && item.content) {
+        const { getImageBase64 } = await import("@/lib/api");
+        const dataUrl = await getImageBase64(item.content);
+        const mimeMatch = dataUrl.match(/^data:([^;]+);base64,/);
+        const mimeType = mimeMatch ? mimeMatch[1] : "image/png";
+        const base64Data = dataUrl.split(",")[1];
+        const byteChars = atob(base64Data);
+        const bytes = new Uint8Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) bytes[i] = byteChars.charCodeAt(i);
+        const blob = new Blob([bytes], { type: mimeType });
+        await navigator.clipboard.write([new ClipboardItem({ [mimeType]: blob })]);
+        toast("已复制", "success");
+      } else if (item.type === "file" && item.content) {
+        await navigator.clipboard.writeText(item.content);
+        toast("已复制路径", "success");
+      } else {
+        await navigator.clipboard.writeText(item.text || "");
+        toast("已复制", "success");
+      }
+    } catch {
+      toast("复制失败", "error");
+    }
+  }, [item, toast]);
+
+  const handleFav = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    togglePin(item.id);
+    toast(item.pinned ? "已取消收藏" : "已收藏", "success");
+  }, [item.id, item.pinned, togglePin, toast]);
+
+  const handleEdit = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onEdit?.(item);
+  }, [item, onEdit]);
+
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setShowDeleteConfirm(true);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    removeItems([item.id]);
+    setShowDeleteConfirm(false);
+    toast("已删除", "success");
+  }, [item.id, removeItems, toast]);
+
+  // 短文本：无需预览，只保留操作按钮（纯文本、≤40 字符、无换行）
+  const isShortPlainText = item.type === "text" && subType === "text" && (item.text?.length ?? 0) <= 40 && !item.text?.includes("\n");
+
+  // 文件路径解析
+  let fileList: string[] = [];
+  if (item.type === "file") {
+    try {
+      const parsed = JSON.parse(item.content || "[]");
+      fileList = Array.isArray(parsed) ? parsed.map(String) : (item.content ? [item.content] : []);
+    } catch {
+      fileList = item.content ? [item.content] : [];
+    }
+  }
+
+  return (
+    <>
+      <div
+        className="card-popover"
+        // 阻止 mousedown 触发卡片的单击延迟逻辑
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 预览区 */}
+        {item.type === "text" && !isShortPlainText && (
+          subType === "code" ? (
+            <div className="card-popover-code">{item.text}</div>
+          ) : subType === "link" ? (
+            <div className="card-popover-text">
+              <div className="card-popover-link-host">
+                🔗 {(() => { try { return new URL(item.text).hostname; } catch { return item.text; } })()}
+              </div>
+              <div className="card-popover-link-path">
+                {(() => { try { return new URL(item.text).pathname; } catch { return ""; } })()}
+              </div>
+            </div>
+          ) : subType === "email" ? (
+            <div className="card-popover-text">
+              <div className="card-popover-link-host">📧 {item.text}</div>
+              <div className="card-popover-link-path">邮箱地址 · 点击复制打开邮件</div>
+            </div>
+          ) : subType === "phone" ? (
+            <div className="card-popover-text">
+              <div className="card-popover-link-host">📞 {item.text}</div>
+              <div className="card-popover-link-path">电话号码</div>
+            </div>
+          ) : (
+            <div className="card-popover-text">{item.text}</div>
+          )
+        )}
+
+        {item.type === "image" && (
+          <div className="card-popover-image">
+            {imageState?.status === "loaded" && imageState.url ? (
+              <img src={imageState.url} alt="" />
+            ) : (
+              <div className="card-popover-image-placeholder">
+                <span style={{ fontSize: 24 }}>🖼️</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 11 }}>
+                    {item.content?.split(/[/\\]/).pop() || "图片"}
+                  </div>
+                  <div style={{ fontSize: 10, opacity: 0.7 }}>图片预览</div>
+                </div>
+              </div>
             )}
           </div>
-        ) : (
-          <div className={`card-icon ${iconBg} card-img-loading`}>
-            <div className="card-img-shimmer" />
-          </div>
-        )
-      ) : (
-        <div className={`card-icon ${iconBg}`}>
-          <Icon size={18} color={iconColor} strokeWidth={2.2} />
-        </div>
-      )}
+        )}
 
-      {/* 内容 */}
-      <div className="card-content">
-        <p className="card-title">
-          <HighlightText text={title} highlight={item.type === "text" ? (searchKeyword ?? "") : ""} />
-        </p>
-        <div className="card-sub">
-          {item.pinned && (
-            <span className="card-pin">
-              <Pin size={7} /> 置顶
-            </span>
+        {item.type === "file" && (
+          <div className="card-popover-file">
+            {fileList.length > 0 ? fileList.map((f, i) => {
+              const name = f.split(/[/\\]/).pop() || f;
+              return <div key={i}>📄 {name}</div>;
+            }) : <div>📄 文件</div>}
+          </div>
+        )}
+
+        {/* 操作按钮 */}
+        <div className="card-popover-actions">
+          <button
+            className={`card-popover-btn fav${item.pinned ? " active" : ""}`}
+            onClick={handleFav}
+            title={item.pinned ? "取消收藏" : "收藏"}
+          >
+            {item.pinned ? "★" : "☆"} <span>{item.pinned ? "已收藏" : "收藏"}</span>
+          </button>
+          <button className="card-popover-btn" onClick={handleCopy} title="复制">
+            📋 <span>复制</span>
+          </button>
+          {item.type === "text" && onEdit && (
+            <button className="card-popover-btn" onClick={handleEdit} title="编辑">
+              ✏️ <span>编辑</span>
+            </button>
           )}
-          {source && <span className="card-source">{source}</span>}
+          <button className="card-popover-btn danger" onClick={handleDelete} title="删除">
+            🗑 <span>删除</span>
+          </button>
         </div>
       </div>
 
-      {/* 时间 / 复制中指示器 */}
-      <span className="card-time">
-        {pasting ? <span className="card-pasting"><Check size={10} style={{marginRight:2}} />已复制</span> : time}
-      </span>
-
-      {/* 悬停预览 — 最多5行，用CSS截断，保留完整文本用于复制 */}
-      {hovered && item.type === "text" && item.text && item.text.length > 80 && (
-        <div className="card-preview-popover">
-          <div className="card-preview-text">{item.text}</div>
-        </div>
-      )}
-    </motion.div>
+      {/* 删除确认弹窗 */}
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="确认删除"
+        message="确定要删除这条记录吗？可通过 Ctrl+Z 撤销。"
+        confirmText="删除"
+        variant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
+    </>
   );
 });
 
 /** 卡片上下文包装器（右键菜单 + 操作逻辑） */
-export const CardWithContext = memo(function CardWithContext({ item, selected, onClick, onDoubleClick, index, imageState, searchKeyword, onRetryImage, pasting, onEdit }: {
-  item: HistoryItem; selected: boolean; onClick: (e: React.MouseEvent) => void; onDoubleClick: () => void; index: number; imageState?: ImgState; searchKeyword?: string; onRetryImage?: () => void; pasting?: boolean; onEdit?: (item: HistoryItem) => void;
+export const CardWithContext = memo(function CardWithContext({ item, selected, onClick, onDoubleClick, index, imageState, searchKeyword, onRetryImage, pasting, onEdit, disablePreview }: {
+  item: HistoryItem; selected: boolean; onClick: (e: React.MouseEvent) => void; onDoubleClick: () => void; index: number; imageState?: ImgState; searchKeyword?: string; onRetryImage?: () => void; pasting?: boolean; onEdit?: (item: HistoryItem) => void; disablePreview?: boolean;
 }) {
   const { toast } = useToast();
   const togglePin = useAppStore((s) => s.togglePin);
@@ -224,18 +466,94 @@ export const CardWithContext = memo(function CardWithContext({ item, selected, o
     } catch (e) { logger.warn("打开URL失败", e); }
   }, [item.text]);
 
+  const subType = item.type === "text" ? detectTextType(item.text) : item.type;
+
   const handlePasteTransform = useCallback(async (transform: string) => {
     let text = item.text || "";
-    switch (transform) {
-      case "upper": text = text.toUpperCase(); break;
-      case "lower": text = text.toLowerCase(); break;
-      case "strip": text = text.replace(/^\s+|\s+$/g, ""); break;
-      case "strip_lines": text = text.split("\n").filter((l: string) => l.trim()).join("\n"); break;
-      case "quote": text = `"${text}"`; break;
-      case "md_link": text = `[${text.slice(0, 30)}](${text})`; break;
-    }
-    try { await pasteText(text); toast("已粘贴", "success"); } catch { toast("粘贴失败", "error"); }
-  }, [item.text, toast]);
+    const content = item.content || "";
+
+    try {
+      switch (transform) {
+        // === 文本通用变换 ===
+        case "upper": text = text.toUpperCase(); break;
+        case "lower": text = text.toLowerCase(); break;
+        case "strip": text = text.replace(/^\s+|\s+$/g, ""); break;
+        case "strip_lines": text = text.split("\n").filter((l: string) => l.trim()).join("\n"); break;
+        case "quote": text = `"${text}"`; break;
+        case "md_link": text = `[${text.slice(0, 30)}](${text})`; break;
+
+        // === 链接子类型专属 ===
+        case "plain_url":
+          try { text = new URL(text).hostname + new URL(text).pathname; } catch { /* keep original */ }
+          break;
+
+        // === 邮箱子类型专属 ===
+        case "mailto": text = `mailto:${text.trim()}`; break;
+
+        // === 代码子类型专属 ===
+        case "code_block": text = "```\n" + text + "\n```"; break;
+        case "single_line": text = text.split("\n").map((l: string) => l.trim()).join("; "); break;
+
+        // === 电话子类型专属 ===
+        case "tel": text = `tel:${text.replace(/[- ]/g, "")}`; break;
+        case "phone_cn": {
+          const digits = text.replace(/[- ()（）+]/g, "");
+          text = digits.startsWith("86") ? `+${digits}` : `+86${digits}`;
+          break;
+        }
+
+        // === 图片类型 ===
+        case "md_image": {
+          const imgPath = content || text;
+          text = `![图片](${imgPath})`;
+          break;
+        }
+        case "img_base64": {
+          // 如果 content 是本地路径，尝试读取并转 base64
+          if (content) {
+            try {
+              const { invoke } = await import("@tauri-apps/api/core");
+              const b64: string = await invoke("read_file_as_base64", { path: content });
+              text = `data:image/png;base64,${b64}`;
+            } catch {
+              // 兜底：粘贴路径
+              text = content;
+              toast("图片Base64转换失败，已粘贴路径", "warning");
+            }
+          }
+          break;
+        }
+
+        // === 文件类型 ===
+        case "file_name": {
+          const files = parseFilePaths(content);
+          text = files.map((f: string) => f.split(/[/\\]/).pop() || f).join("\n");
+          break;
+        }
+        case "file_dir": {
+          const files = parseFilePaths(content);
+          text = files.map((f: string) => {
+            const idx = Math.max(f.lastIndexOf("/"), f.lastIndexOf("\\"));
+            return idx >= 0 ? f.slice(0, idx) : ".";
+          }).join("\n");
+          break;
+        }
+        case "file_bslash":
+          text = content.replace(/\//g, "\\");
+          break;
+        case "file_fslash":
+          text = content.replace(/\\/g, "/");
+          break;
+        case "file_list": {
+          const files = parseFilePaths(content);
+          text = files.join("\n");
+          break;
+        }
+      }
+      await pasteText(text);
+      toast("已粘贴", "success");
+    } catch { toast("粘贴失败", "error"); }
+  }, [item.text, item.content, toast]);
 
   const menuItems = createCardMenuItems({
     onEdit: item.type === "text" && onEdit ? () => onEdit(item) : undefined,
@@ -246,6 +564,8 @@ export const CardWithContext = memo(function CardWithContext({ item, selected, o
       try { await pasteText(item.text); toast("已粘贴", "success"); } catch { toast("粘贴失败", "error"); }
     },
     onPasteTransform: handlePasteTransform,
+    itemType: item.type,
+    itemSubType: subType,
     onPin: () => { togglePin(item.id); toast(item.pinned ? "已取消置顶" : "已置顶", "success"); },
     onDelete: () => setShowDeleteConfirm(true),
     onAddSnippet: handleAddSnippet,
@@ -256,7 +576,7 @@ export const CardWithContext = memo(function CardWithContext({ item, selected, o
 
   return (
     <>
-      <Card item={item} selected={selected} onClick={onClick} onDoubleClick={onDoubleClick} index={index} imageState={imageState} searchKeyword={searchKeyword} onRetryImage={onRetryImage} pasting={pasting} menuItems={menuItems} />
+      <Card item={item} selected={selected} onClick={onClick} onDoubleClick={onDoubleClick} index={index} imageState={imageState} searchKeyword={searchKeyword} onRetryImage={onRetryImage} pasting={pasting} menuItems={menuItems} onEdit={onEdit} disablePreview={disablePreview} />
       <ConfirmDialog
         open={showDeleteConfirm}
         title="确认删除"

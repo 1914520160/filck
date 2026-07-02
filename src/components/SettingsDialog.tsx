@@ -239,11 +239,11 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   <div className="s-row-desc">选择你喜欢的配色方案</div>
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {THEMES.map((t) => {
+                  {THEMES.map((t, idx) => {
                     const prev = THEME_PREVIEWS[t.key];
                     const isActive = config.theme === t.key;
                     return (
-                      <button key={t.key}
+                      <button key={t.key || `theme-${idx}`}
                         onClick={() => { updateAndSave({ theme: t.key }); applyTheme(t.key as ThemeKey); }}
                         style={{
                           width: 64, borderRadius: 10, overflow: "hidden",
@@ -293,8 +293,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   <div className="s-row-desc">手动清理时，删除超过天数的记录</div>
                 </div>
                 <div className="s-cleanup">
-                  {CLEANUP_OPTIONS.map((opt) => (
-                    <button key={opt.value}
+                  {CLEANUP_OPTIONS.map((opt, idx) => (
+                    <button key={`cleanup-${opt.value ?? idx}`}
                       className={`s-cleanup-opt${cleanupDays === opt.value ? " active" : ""}`}
                       onClick={() => updateAndSave({ auto_cleanup_days: opt.value })}>
                       {opt.label}
@@ -313,6 +313,14 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   {config.double_click_action === "copy" ? "复制" : "预览"}
                 </button>
               </div>
+              <ToggleRow
+                icon="💬"
+                gradient="linear-gradient(135deg, #8B5CF6, #6366F1)"
+                label="悬停预览气泡"
+                desc="鼠标悬停卡片时弹出预览气泡（关闭后仅通过双击查看详情）"
+                value={config.hover_preview_enabled}
+                onChange={(v) => updateAndSave({ hover_preview_enabled: v })}
+              />
               <ToggleRow icon="🔁" gradient="linear-gradient(135deg, #06B6D4, #0078D4)" label="依次粘贴循环" desc="到达末尾后从头开始" value={config.sequential_loop} onChange={(v) => updateAndSave({ sequential_loop: v })} />
               <ToggleRow icon="👁" gradient="linear-gradient(135deg, #EF4444, #FF3B30)" label="失焦自动隐藏" desc="窗口失去焦点时隐藏到托盘" value={config.hide_on_focus_out} onChange={(v) => updateAndSave({ hide_on_focus_out: v })} />
               <ToggleRow icon="📌" gradient="linear-gradient(135deg, #F59E0B, #FF9500)" label="窗口置顶" desc="始终显示在其他窗口之上" value={config.always_on_top}
@@ -578,8 +586,8 @@ function LanSyncPanel({ toast }: { toast: (msg: string, type?: "success" | "erro
       {/* 设备列表 */}
       {devices.length > 0 && (
         <div className="lan-device-list">
-          {devices.map((d) => (
-            <div key={d.device_id} className="lan-device-item">
+          {devices.map((d, idx) => (
+            <div key={d.device_id ? `device-${d.device_id}-${idx}` : `device-${idx}`} className="lan-device-item">
               <div className="lan-device-avatar" style={{
                 background: `hsl(${d.device_id.charCodeAt(0) * 40 % 360}, 60%, 55%)`,
               }}>

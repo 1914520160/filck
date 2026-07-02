@@ -67,19 +67,36 @@ function App() {
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
+    let hideTimer: number | null = null;
     async function setup() {
       try {
-        const { listen } = await import("@tauri-apps/api/event");
-        unlisten = await listen("tauri://focus-lost", () => {
-          const cfg = useAppStore.getState().config;
-          if (cfg.hide_on_focus_out && !dialogOpenRef.current) {
-            import("@tauri-apps/api/window").then(m => m.getCurrentWindow().hide()).catch(e => logger.warn("隐藏窗口失败", e));
+        const { getCurrentWindow } = await import("@tauri-apps/api/window");
+        const win = getCurrentWindow();
+        // Tauri 2: 使用 onFocusChanged 替代已移除的 tauri://focus-lost 事件
+        unlisten = await win.onFocusChanged(({ payload: focused }) => {
+          if (focused) {
+            // 重新获焦时取消任何 pending hide
+            if (hideTimer !== null) { window.clearTimeout(hideTimer); hideTimer = null; }
+            return;
           }
+          const cfg = useAppStore.getState().config;
+          if (!cfg.hide_on_focus_out || dialogOpenRef.current) return;
+          // 防抖 150ms：避免弹窗切换/菜单闪烁期间的瞬时失焦误触发
+          if (hideTimer !== null) window.clearTimeout(hideTimer);
+          hideTimer = window.setTimeout(() => {
+            hideTimer = null;
+            // 二次检查：仍处于失焦状态才隐藏
+            if (dialogOpenRef.current) return;
+            win.hide().catch(e => logger.warn("隐藏窗口失败", e));
+          }, 150);
         });
       } catch (e) { logger.warn("注册失焦监听失败", e); }
     }
     setup();
-    return () => { if (unlisten) unlisten(); };
+    return () => {
+      if (unlisten) unlisten();
+      if (hideTimer !== null) { window.clearTimeout(hideTimer); hideTimer = null; }
+    };
   }, []);
 
   // 监听托盘菜单事件

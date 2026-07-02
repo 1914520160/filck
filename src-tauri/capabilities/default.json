@@ -15,6 +15,7 @@
     "core:window:allow-close",
     "core:window:allow-start-dragging",
     "core:window:allow-is-visible",
+    "core:window:allow-set-always-on-top",
     "shell:default",
     "clipboard-manager:default",
     "global-shortcut:default",

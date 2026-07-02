@@ -33,6 +33,15 @@ pub fn get_app_name() -> String {
     APP_NAME.get().map(|s| s.as_str()).unwrap_or("PastePanda").to_string()
 }
 
+/// 读取文件内容并返回 base64 编码（用于图片粘贴并变换）
+#[tauri::command]
+pub fn read_file_as_base64(path: String) -> Result<String, String> {
+    use std::fs;
+    use base64::{Engine as _, engine::general_purpose::STANDARD};
+    let bytes = fs::read(&path).map_err(|e| format!("读取文件失败: {e}"))?;
+    Ok(STANDARD.encode(&bytes))
+}
+
 /// 从 tauri.conf.json 读取指定 key 的字符串值（兜底逻辑）
 fn read_from_conf(key: &str) -> Result<String, Box<dyn std::error::Error>> {
     let exe_dir = std::env::current_exe()

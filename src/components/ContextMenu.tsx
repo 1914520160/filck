@@ -298,6 +298,64 @@ export function ContextMenu({ children }: { children: ReactNode }) {
   );
 }
 
+/** 根据 item 类型生成不同的变换子菜单项 */
+function buildTransformMenu(onTransform: (t: string) => void, itemType?: string, subType?: string): MenuItem[] {
+  const children: MenuItem[] = [];
+
+  if (itemType === "text") {
+    // 文本通用变换
+    children.push(
+      { icon: <span className="ctx-text-icon ctx-text-upper">A</span>, label: "粘贴为大写", onClick: () => onTransform("upper") },
+      { icon: <span className="ctx-text-icon ctx-text-lower">a</span>, label: "粘贴为小写", onClick: () => onTransform("lower") },
+      { icon: <span className="ctx-text-icon ctx-text-scissor">✂</span>, label: "粘贴并去空白", onClick: () => onTransform("strip") },
+      { icon: <span className="ctx-text-icon ctx-text-para">¶</span>, label: "粘贴并去空行", onClick: () => onTransform("strip_lines") },
+      { icon: <span className="ctx-text-icon ctx-text-quote">"</span>, label: "粘贴为引号包裹", onClick: () => onTransform("quote") },
+    );
+
+    // 子类型专属变换
+    if (subType === "link") {
+      children.push(
+        { icon: <span style={{ fontSize: 12 }}>🔗</span>, label: "粘贴为 Markdown 链接", onClick: () => onTransform("md_link") },
+        { icon: <span style={{ fontSize: 12 }}>🔗</span>, label: "粘贴为纯链接文本", onClick: () => onTransform("plain_url") },
+      );
+    } else if (subType === "email") {
+      children.push(
+        { icon: <span style={{ fontSize: 12 }}>📧</span>, label: "粘贴为 mailto 链接", onClick: () => onTransform("mailto") },
+      );
+    } else if (subType === "code") {
+      children.push(
+        { icon: <span style={{ fontSize: 12 }}>{`</>`}</span>, label: "粘贴为代码块", onClick: () => onTransform("code_block") },
+        { icon: <span style={{ fontSize: 12 }}>≡</span>, label: "粘贴为单行", onClick: () => onTransform("single_line") },
+      );
+    } else if (subType === "phone") {
+      children.push(
+        { icon: <span style={{ fontSize: 12 }}>📞</span>, label: "粘贴为 tel 链接", onClick: () => onTransform("tel") },
+        { icon: <span style={{ fontSize: 12 }}>+</span>, label: "粘贴为 +86 格式", onClick: () => onTransform("phone_cn") },
+      );
+    } else {
+      // 普通文本：也有 Markdown 链接
+      children.push(
+        { icon: <span style={{ fontSize: 12 }}>🔗</span>, label: "粘贴为 Markdown 链接", onClick: () => onTransform("md_link") },
+      );
+    }
+  } else if (itemType === "image") {
+    children.push(
+      { icon: <span style={{ fontSize: 12 }}>🖼</span>, label: "粘贴为 Markdown 图片", onClick: () => onTransform("md_image") },
+      { icon: <span style={{ fontSize: 12 }}>📋</span>, label: "粘贴为 Base64", onClick: () => onTransform("img_base64") },
+    );
+  } else if (itemType === "file") {
+    children.push(
+      { icon: <span style={{ fontSize: 12 }}>📄</span>, label: "粘贴为文件名", onClick: () => onTransform("file_name") },
+      { icon: <span style={{ fontSize: 12 }}>📁</span>, label: "粘贴为目录路径", onClick: () => onTransform("file_dir") },
+      { icon: <span style={{ fontSize: 12 }}>\\</span>, label: "粘贴为反斜杠路径", onClick: () => onTransform("file_bslash") },
+      { icon: <span style={{ fontSize: 12 }}>/</span>, label: "粘贴为正斜杠路径", onClick: () => onTransform("file_fslash") },
+      { icon: <span style={{ fontSize: 12 }}>📋</span>, label: "粘贴为文件列表", onClick: () => onTransform("file_list") },
+    );
+  }
+
+  return children;
+}
+
 // Helper to create standard card context menu items
 export function createCardMenuItems(opts: {
   onCopy: () => void;
@@ -310,6 +368,9 @@ export function createCardMenuItems(opts: {
   onPasteTransform?: (transform: string) => void;
   pinned?: boolean;
   hasUrl?: boolean;
+  /** item 基础类型 + 子类型，用于按类型生成不同变换菜单 */
+  itemType?: string;
+  itemSubType?: string;
 }): MenuItem[] {
   const items: MenuItem[] = [];
 
@@ -323,20 +384,16 @@ export function createCardMenuItems(opts: {
     { icon: <ClipboardPaste size={14} />, label: "粘贴到前台", onClick: opts.onPaste },
   );
 
-  // 粘贴变换折叠为子菜单
+  // 粘贴变换折叠为子菜单（按类型定制）
   if (opts.onPasteTransform) {
-    items.push({
-      icon: <ClipboardPaste size={14} />,
-      label: "粘贴并变换",
-      children: [
-        { icon: <span className="ctx-text-icon ctx-text-upper">A</span>, label: "粘贴为大写", onClick: () => opts.onPasteTransform!("upper") },
-        { icon: <span className="ctx-text-icon ctx-text-lower">a</span>, label: "粘贴为小写", onClick: () => opts.onPasteTransform!("lower") },
-        { icon: <span className="ctx-text-icon ctx-text-scissor">✂</span>, label: "粘贴并去空白", onClick: () => opts.onPasteTransform!("strip") },
-        { icon: <span className="ctx-text-icon ctx-text-para">¶</span>, label: "粘贴并去空行", onClick: () => opts.onPasteTransform!("strip_lines") },
-        { icon: <span className="ctx-text-icon ctx-text-quote">"</span>, label: "粘贴为引号包裹", onClick: () => opts.onPasteTransform!("quote") },
-        { icon: <span style={{ fontSize: 12 }}>🔗</span>, label: "粘贴为 Markdown 链接", onClick: () => opts.onPasteTransform!("md_link") },
-      ],
-    });
+    const transformChildren: MenuItem[] = buildTransformMenu(opts.onPasteTransform, opts.itemType, opts.itemSubType);
+    if (transformChildren.length > 0) {
+      items.push({
+        icon: <ClipboardPaste size={14} />,
+        label: "粘贴并变换",
+        children: transformChildren,
+      });
+    }
   }
 
   if (opts.hasUrl && opts.onOpenUrl) {
